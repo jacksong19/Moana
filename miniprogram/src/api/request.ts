@@ -1,0 +1,211 @@
+/**
+ * Moana API 请求封装
+ * 支持 Token 自动刷新、统一错误处理
+ */
+
+// API 基础配置
+const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1'
+
+// 请求配置接口
+interface RequestOptions {
+  url: string
+  method?: 'GET' | 'POST' | 'PUT' | 'DELETE'
+  data?: any
+  header?: Record<string, string>
+  showLoading?: boolean
+  showError?: boolean
+}
+
+// 响应接口
+interface ApiResponse<T = any> {
+  data: T
+  statusCode: number
+}
+
+// 是否正在刷新 Token
+let isRefreshing = false
+// 等待刷新的请求队列
+let refreshSubscribers: Array<(token: string) => void> = []
+
+/**
+ * 添加请求到等待队列
+ */
+function subscribeTokenRefresh(callback: (token: string) => void) {
+  refreshSubscribers.push(callback)
+}
+
+/**
+ * Token 刷新完成，执行等待队列
+ */
+function onTokenRefreshed(token: string) {
+  refreshSubscribers.forEach(callback => callback(token))
+  refreshSubscribers = []
+}
+
+/**
+ * 刷新 Token
+ */
+async function refreshToken(): Promise<string> {
+  const refreshToken = uni.getStorageSync('refresh_token')
+
+  if (!refreshToken) {
+    throw new Error('No refresh token')
+  }
+
+  const res = await uni.request({
+    url: `${BASE_URL}/auth/refresh`,
+    method: 'POST',
+    data: { refresh_token: refreshToken },
+    header: { 'Content-Type': 'application/json' }
+  })
+
+  if (res.statusCode === 200) {
+    const data = res.data as any
+    uni.setStorageSync('access_token', data.access_token)
+    uni.setStorageSync('refresh_token', data.refresh_token)
+    return data.access_token
+  }
+
+  throw new Error('Token refresh failed')
+}
+
+/**
+ * 核心请求函数
+ */
+async function request<T = any>(options: RequestOptions): Promise<T> {
+  const {
+    url,
+    method = 'GET',
+    data,
+    header = {},
+    showLoading = false,
+    showError = true
+  } = options
+
+  // 显示加载
+  if (showLoading) {
+    uni.showLoading({ title: '加载中...', mask: true })
+  }
+
+  // 获取 Token
+  const token = uni.getStorageSync('access_token')
+
+  // 构建请求头
+  const requestHeader: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...header
+  }
+
+  if (token) {
+    requestHeader['Authorization'] = `Bearer ${token}`
+  }
+
+  try {
+    const res = await uni.request({
+      url: BASE_URL + url,
+      method,
+      data,
+      header: requestHeader
+    }) as ApiResponse<T>
+
+    // 隐藏加载
+    if (showLoading) {
+      uni.hideLoading()
+    }
+
+    // Token 过期处理
+    if (res.statusCode === 401) {
+      // 如果正在刷新，加入等待队列
+      if (isRefreshing) {
+        return new Promise((resolve, reject) => {
+          subscribeTokenRefresh(async (newToken: string) => {
+            try {
+              requestHeader['Authorization'] = `Bearer ${newToken}`
+              const retryRes = await uni.request({
+                url: BASE_URL + url,
+                method,
+                data,
+                header: requestHeader
+              }) as ApiResponse<T>
+              resolve(retryRes.data)
+            } catch (e) {
+              reject(e)
+            }
+          })
+        })
+      }
+
+      // 开始刷新 Token
+      isRefreshing = true
+
+      try {
+        const newToken = await refreshToken()
+        isRefreshing = false
+        onTokenRefreshed(newToken)
+
+        // 重试原请求
+        requestHeader['Authorization'] = `Bearer ${newToken}`
+        const retryRes = await uni.request({
+          url: BASE_URL + url,
+          method,
+          data,
+          header: requestHeader
+        }) as ApiResponse<T>
+
+        return retryRes.data
+      } catch (e) {
+        isRefreshing = false
+        // 刷新失败，清除登录状态
+        uni.removeStorageSync('access_token')
+        uni.removeStorageSync('refresh_token')
+
+        // 跳转到登录
+        uni.reLaunch({ url: '/pages/index/index' })
+        throw new Error('登录已过期，请重新登录')
+      }
+    }
+
+    // 其他错误
+    if (res.statusCode >= 400) {
+      const errorData = res.data as any
+      const errorMsg = errorData?.detail || '请求失败'
+
+      if (showError) {
+        uni.showToast({ title: errorMsg, icon: 'none' })
+      }
+
+      throw new Error(errorMsg)
+    }
+
+    return res.data
+  } catch (err: any) {
+    if (showLoading) {
+      uni.hideLoading()
+    }
+
+    if (showError && err.message) {
+      uni.showToast({ title: err.message, icon: 'none' })
+    }
+
+    throw err
+  }
+}
+
+// 导出便捷方法
+export default {
+  get<T = any>(url: string, options?: Partial<RequestOptions>) {
+    return request<T>({ url, method: 'GET', ...options })
+  },
+
+  post<T = any>(url: string, data?: any, options?: Partial<RequestOptions>) {
+    return request<T>({ url, method: 'POST', data, ...options })
+  },
+
+  put<T = any>(url: string, data?: any, options?: Partial<RequestOptions>) {
+    return request<T>({ url, method: 'PUT', data, ...options })
+  },
+
+  delete<T = any>(url: string, options?: Partial<RequestOptions>) {
+    return request<T>({ url, method: 'DELETE', ...options })
+  }
+}

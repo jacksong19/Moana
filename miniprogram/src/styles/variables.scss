@@ -1,0 +1,105 @@
+// ============================================
+// Moana 设计系统 - 温暖有机风格
+// ============================================
+
+// 主色调 - 温暖柔和
+$primary: #FF6B6B;           // 珊瑚红 - 按钮/强调
+$primary-light: #FF8E8E;     // 浅珊瑚红
+$primary-dark: #E85555;      // 深珊瑚红
+$secondary: #4ECDC4;         // 青绿色 - 辅助/图标
+$secondary-light: #7EDDD6;   // 浅青绿
+$accent: #FFE66D;            // 明黄色 - 高亮/徽章
+$accent-soft: #FFF3B0;       // 柔和黄
+
+// 背景色
+$bg-base: #FFF9F0;           // 奶油白 - 页面背景
+$bg-card: #FFFFFF;           // 纯白 - 卡片背景
+$bg-warm: #FFF5E6;           // 温暖背景
+$bg-overlay: rgba(255, 249, 240, 0.95); // 半透明背景
+
+// 文字色
+$text-primary: #2D3436;      // 主文字
+$text-secondary: #636E72;    // 次要文字
+$text-light: #B2BEC3;        // 占位文字
+$text-white: #FFFFFF;        // 白色文字
+
+// 功能色
+$success: #00B894;           // 成功
+$warning: #FDCB6E;           // 警告
+$error: #E17055;             // 错误
+$info: #74B9FF;              // 信息
+
+// 渐变
+$gradient-primary: linear-gradient(135deg, #FF6B6B 0%, #FF8E8E 100%);
+$gradient-secondary: linear-gradient(135deg, #4ECDC4 0%, #7EDDD6 100%);
+$gradient-warm: linear-gradient(180deg, #FFF9F0 0%, #FFF5E6 100%);
+$gradient-card: linear-gradient(145deg, #FFFFFF 0%, #FFF9F0 100%);
+$gradient-sunset: linear-gradient(135deg, #FF6B6B 0%, #FFE66D 100%);
+
+// 阴影
+$shadow-sm: 0 2rpx 8rpx rgba(45, 52, 54, 0.06);
+$shadow-md: 0 4rpx 16rpx rgba(45, 52, 54, 0.08);
+$shadow-lg: 0 8rpx 32rpx rgba(45, 52, 54, 0.12);
+$shadow-card: 0 6rpx 24rpx rgba(255, 107, 107, 0.1);
+$shadow-button: 0 4rpx 12rpx rgba(255, 107, 107, 0.25);
+$shadow-float: 0 12rpx 40rpx rgba(45, 52, 54, 0.15);
+
+// 圆角
+$radius-xs: 8rpx;            // 小标签
+$radius-sm: 16rpx;           // 小按钮
+$radius-md: 24rpx;           // 卡片
+$radius-lg: 36rpx;           // 大按钮/弹窗
+$radius-xl: 48rpx;           // 超大圆角
+$radius-full: 999rpx;        // 圆形
+
+// 间距
+$spacing-xs: 12rpx;
+$spacing-sm: 24rpx;
+$spacing-md: 32rpx;
+$spacing-lg: 48rpx;
+$spacing-xl: 64rpx;
+
+// 字体大小
+$font-xs: 22rpx;             // 小标签
+$font-sm: 24rpx;             // 说明文字
+$font-base: 28rpx;           // 正文
+$font-md: 32rpx;             // 卡片标题
+$font-lg: 36rpx;             // 小标题
+$font-xl: 40rpx;             // 页面标题
+$font-xxl: 48rpx;            // 大标题
+$font-hero: 64rpx;           // 主视觉标题
+
+// 字体粗细
+$font-normal: 400;
+$font-medium: 500;
+$font-semibold: 600;
+$font-bold: 700;
+
+// 行高
+$line-height-tight: 1.2;
+$line-height-base: 1.5;
+$line-height-loose: 1.8;
+
+// 儿童模式放大比例
+$child-scale: 1.2;
+
+// 动画时长
+$duration-fast: 150ms;
+$duration-base: 250ms;
+$duration-slow: 400ms;
+
+// 动画曲线
+$ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+$ease-in-out: cubic-bezier(0.45, 0, 0.55, 1);
+$ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+// Z-index 层级
+$z-base: 1;
+$z-dropdown: 100;
+$z-sticky: 200;
+$z-modal: 500;
+$z-toast: 1000;
+
+// 安全区域
+$safe-top: env(safe-area-inset-top);
+$safe-bottom: env(safe-area-inset-bottom);

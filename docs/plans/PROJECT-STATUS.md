@@ -1,10 +1,16 @@
 # Moana 项目开发状态
 
-> 最后更新：2025-12-09
+> 最后更新：2025-12-10
 
 ## 项目概述
 
 Moana 是一款 AI 原生的早教内容生成平台微信小程序，为 1-6 岁儿童家长提供个性化绘本、儿歌和视频内容。
+
+---
+
+## 当前开发阶段
+
+**MVP 阶段已完成** - 前后端联调基本打通，绘本生成和播放功能可用。
 
 ---
 
@@ -14,7 +20,6 @@ Moana 是一款 AI 原生的早教内容生成平台微信小程序，为 1-6 �
 
 #### 基础架构 ✅
 - [x] uni-app + Vue 3 + Vite 项目初始化
-- [x] Wot Design Uni 组件库配置
 - [x] Pinia 状态管理配置
 - [x] SCSS 设计系统变量 (`styles/variables.scss`)
 - [x] 通用样式 (`styles/common.scss`)
@@ -23,99 +28,86 @@ Moana 是一款 AI 原生的早教内容生成平台微信小程序，为 1-6 �
 #### API 层 ✅
 - [x] 请求封装 + Token 自动刷新队列 (`api/request.ts`)
 - [x] 认证 API (`api/auth.ts`)
-- [x] 内容生成 API (`api/content.ts`)
+- [x] 内容生成 API (`api/content.ts`) - 含删除接口
 - [x] 播放记录 API (`api/play.ts`)
 
 #### 状态管理 ✅
 - [x] 用户状态 (`stores/user.ts`)
 - [x] 孩子信息 + 时间设置 (`stores/child.ts`)
-- [x] 内容状态 (`stores/content.ts`)
-
-#### 工具函数 ✅
-- [x] 时间限制管理 (`utils/time-limit.ts`)
-- [x] 本地存储封装 (`utils/storage.ts`)
+- [x] 内容状态 (`stores/content.ts`) - 含删除方法
 
 #### 公共组件 ✅
 - [x] NavBar 自定义导航栏
-- [x] ContentCard 内容卡片
+- [x] ContentCard 内容卡片（支持长按删除）
 - [x] GeneratingProgress 生成进度动画
 
 #### 页面开发 ✅ (9个页面)
-| 页面 | 路径 | 功能 |
+| 页面 | 路径 | 状态 |
 |------|------|------|
-| 首页 | `pages/index/index.vue` | 欢迎卡片、功能入口、最近播放、推荐内容 |
-| 创作中心 | `pages/create/index.vue` | 内容类型选择入口 |
-| 绘本创作 | `pages/create/picture-book.vue` | 3步创作流程（主题→个性化→确认） |
-| 内容库 | `pages/library/index.vue` | 筛选、列表展示、播放入口 |
-| 绘本播放器 | `pages/play/picture-book.vue` | 全屏轮播、音频播放、互动元素、时间限制 |
-| 儿童模式 | `pages/child/index.vue` | 专注界面、退出保护（长按+算术题）、休息提醒 |
-| 设置 | `pages/settings/index.vue` | 时间管理、今日统计 |
-| 我的 | `pages/profile/index.vue` | 用户信息、孩子管理、功能菜单 |
-| 添加宝贝 | `pages/profile/add-child.vue` | 表单录入、兴趣标签 |
+| 首页 | `pages/index/index.vue` | ✅ 完成 |
+| 创作中心 | `pages/create/index.vue` | ✅ 完成 |
+| 绘本创作 | `pages/create/picture-book.vue` | ✅ 完成 |
+| 内容库 | `pages/library/index.vue` | ✅ 完成（含删除功能）|
+| 绘本播放器 | `pages/play/picture-book.vue` | ✅ 完成（真机音频已修复）|
+| 儿童模式 | `pages/child/index.vue` | ✅ 完成 |
+| 设置 | `pages/settings/index.vue` | ✅ 完成 |
+| 我的 | `pages/profile/index.vue` | ✅ 完成 |
+| 添加宝贝 | `pages/profile/add-child.vue` | ✅ 完成 |
 
-#### 静态资源 ✅
-- [x] TabBar 占位图标（需替换正式设计）
-- [x] Logo 图片
+### 后端对接 ✅
 
----
-
-## 待完成模块
-
-### 前端配置 🔲
-
-#### 高优先级
-- [ ] **配置后端 API 地址**
-  - 文件：`miniprogram/src/api/request.ts`
-  - 需要：后端 API 基础 URL
-
-- [ ] **配置微信 AppID**
-  - 文件：`miniprogram/src/manifest.json`
-  - 需要：微信公众平台注册的小程序 AppID
-
-- [ ] **替换 TabBar 图标**
-  - 目录：`miniprogram/src/static/tabbar/`
-  - 需要：8个 PNG 图标（81x81px，含未选中/选中状态）
-  - 图标：首页、创作、内容库、我的
-
-#### 中优先级
-- [ ] **微信登录对接**
-  - 确认后端 `code2session` 接口
-  - 测试登录流程
-
-- [ ] **内容生成对接**
-  - 确认后端生成接口响应格式
-  - 调整轮询/WebSocket 逻辑
-
-- [ ] **图片/音频资源上传**
-  - 配置云存储（阿里云 OSS / 腾讯云 COS）
-  - 集成上传 SDK
-
-#### 低优先级
-- [ ] 儿歌创作页面（`pages/create/nursery-rhyme.vue`）
-- [ ] 视频创作页面（`pages/create/video.vue`）
-- [ ] 收藏功能页面
-- [ ] 学习报告页面
-- [ ] 意见反馈页面
-
-### 后端 🔲
-- [ ] 用户认证服务
-- [ ] 孩子信息管理
-- [ ] AI 内容生成服务
-- [ ] 播放记录服务
-- [ ] 时间设置服务
+- [x] 后端 API 地址配置 (`https://kids.jackverse.cn/api/v1`)
+- [x] 微信登录对接
+- [x] 绘本生成接口对接（3分钟超时）
+- [x] 内容列表接口对接
+- [x] 内容详情接口对接
+- [x] 内容删除接口对接
+- [x] 媒体资源代理存储（解决第三方 URL 权限问题）
 
 ---
 
-## 下次开发所需信息
+## 已修复问题 (2025-12-10)
 
-开始下一阶段开发前，请准备：
+1. **真机音频播放** - 使用 `uni.setInnerAudioOption()` 替代属性设置
+2. **音频 URL 处理** - HTTP→HTTPS 自动转换 + URL 编码
+3. **音频实例管理** - 每次播放前销毁旧实例，避免状态污染
+4. **媒体资源访问** - 后端实现代理存储，避免第三方 OSS URL 过期问题
+5. **内容删除功能** - 长按卡片显示删除选项，支持确认弹窗
 
-```
-1. 后端 API 地址：_________________
-2. 微信小程序 AppID：_________________
-3. TabBar 图标方案：A(生成) / B(自备) / C(文字)
-4. 云存储配置（可选）：_________________
-```
+---
+
+## 待修复问题
+
+### 后端 (高优先级)
+- [ ] **`/content/themes` 接口 404**
+  - 原因：路由顺序问题，`themes` 被当作 `content_id` 参数处理
+  - 解决：将 `/content/themes` 路由定义在 `/content/{content_id}` 之前
+
+---
+
+## 下一步开发规划
+
+### Phase 1: 核心功能完善
+| 优先级 | 功能 | 说明 |
+|--------|------|------|
+| P0 | 修复主题接口 | 后端修复 `/content/themes` 路由 |
+| P1 | 用户体验优化 | 加载状态、错误提示、空状态设计 |
+| P1 | 播放体验优化 | 播放进度保存、续播功能 |
+
+### Phase 2: 功能扩展
+| 优先级 | 功能 | 说明 |
+|--------|------|------|
+| P2 | 儿歌创作页面 | `pages/create/nursery-rhyme.vue` |
+| P2 | 视频创作页面 | `pages/create/video.vue` |
+| P2 | 收藏功能 | 收藏/取消收藏、收藏列表 |
+| P2 | TabBar 图标替换 | 正式设计图标 |
+
+### Phase 3: 高级功能
+| 优先级 | 功能 | 说明 |
+|--------|------|------|
+| P3 | 学习报告 | 播放统计、学习时长分析 |
+| P3 | 意见反馈 | 用户反馈入口 |
+| P3 | 分享功能 | 分享绘本到朋友圈/好友 |
 
 ---
 
@@ -127,14 +119,16 @@ npm install
 npm run dev:mp-weixin
 ```
 
-然后在微信开发者工具中导入 `dist/dev/mp-weixin` 目录。
+在微信开发者工具中导入 `dist/dev/mp-weixin` 目录。
 
 ---
 
 ## Git 提交记录
 
-| Commit | 描述 |
-|--------|------|
-| `4f277eb` | feat(miniprogram): 完成 Moana 微信小程序前端 MVP 开发 |
-| `cee6ff1` | docs: 添加 Moana 前端 MVP 设计文档 |
-| `d0cb8fd` | docs: 添加 Moana 项目设计文档 |
+| Commit | 日期 | 描述 |
+|--------|------|------|
+| `3b9d51c` | 2025-12-10 | feat(miniprogram): 修复音频播放与添加删除功能 |
+| `8829dbd` | 2025-12-09 | docs: 添加项目开发状态文档 |
+| `4f277eb` | 2025-12-08 | feat(miniprogram): 完成 Moana 微信小程序前端 MVP 开发 |
+| `cee6ff1` | 2025-12-08 | docs: 添加 Moana 前端 MVP 设计文档 |
+| `d0cb8fd` | 2025-12-05 | docs: 添加 Moana 项目设计文档 |

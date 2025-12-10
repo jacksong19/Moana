@@ -22,30 +22,44 @@
               <text class="child-name">{{ childName }}</text>
             </view>
 
-            <view class="today-stats">
-              <view class="stat-item">
-                <view class="stat-icon stat-icon-time">⏱️</view>
-                <view class="stat-info">
-                  <text class="stat-value">{{ todayDuration }}</text>
-                  <text class="stat-label">今日学习</text>
+            <!-- 统计徽章区 -->
+            <view class="stats-badges">
+              <view class="badge badge-time">
+                <view class="badge-icon-wrap">
+                  <text class="badge-icon">⏱️</text>
+                </view>
+                <view class="badge-content">
+                  <text class="badge-value">{{ todayDuration }}</text>
+                  <text class="badge-label">今日学习</text>
                 </view>
               </view>
-              <view class="stat-divider"></view>
-              <view class="stat-item">
-                <view class="stat-icon stat-icon-streak">🔥</view>
-                <view class="stat-info">
-                  <text class="stat-value">{{ streakDays }}天</text>
-                  <text class="stat-label">连续学习</text>
+              <view class="badge badge-streak">
+                <view class="badge-icon-wrap">
+                  <text class="badge-icon">🔥</text>
+                </view>
+                <view class="badge-content">
+                  <text class="badge-value">{{ streakDays }}天</text>
+                  <text class="badge-label">连续打卡</text>
                 </view>
               </view>
             </view>
           </view>
 
-          <!-- 快速创作按钮 -->
-          <view class="quick-create" @tap="goToCreate">
-            <view class="create-btn">
-              <text class="create-icon">✨</text>
-              <text class="create-text">创作绘本</text>
+          <!-- 创作入口 - 独立突出显示 -->
+          <view class="create-entrance" @tap="goToCreate">
+            <view class="create-entrance-bg"></view>
+            <view class="create-entrance-content">
+              <view class="create-entrance-left">
+                <text class="create-entrance-icon">📚</text>
+                <view class="create-entrance-info">
+                  <text class="create-entrance-title">创作专属绘本</text>
+                  <text class="create-entrance-desc">AI 为 {{ childName }} 量身定制</text>
+                </view>
+              </view>
+              <view class="create-entrance-btn">
+                <text class="create-btn-icon">✨</text>
+                <text class="create-btn-text">开始</text>
+              </view>
             </view>
           </view>
         </view>
@@ -179,10 +193,12 @@ const greetingText = computed(() => {
 })
 
 const todayDuration = computed(() => {
-  const mins = childStore.todayDuration
-  if (mins < 1) return '0分钟'
+  const mins = childStore.todayDuration || 0
+  if (!mins || mins < 1) return '0分钟'
   if (mins < 60) return `${Math.round(mins)}分钟`
-  return `${Math.floor(mins / 60)}小时${Math.round(mins % 60)}分`
+  const hours = Math.floor(mins / 60)
+  const remainMins = Math.round(mins % 60)
+  return remainMins > 0 ? `${hours}小时${remainMins}分` : `${hours}小时`
 })
 
 // 功能入口
@@ -343,90 +359,174 @@ onShow(loadData)
 }
 
 .greeting-text {
-  font-size: $font-base;
+  font-size: $font-sm;
   color: $text-secondary;
+  letter-spacing: 2rpx;
 }
 
 .child-name {
   display: block;
-  font-size: $font-xxl;
+  font-size: 56rpx;
   font-weight: $font-bold;
   color: $text-primary;
-  margin-top: $spacing-xs;
+  margin-top: 8rpx;
+  line-height: 1.2;
 }
 
-.today-stats {
+// 统计徽章区
+.stats-badges {
+  display: flex;
+  gap: $spacing-sm;
+}
+
+.badge {
+  flex: 1;
   display: flex;
   align-items: center;
-  background: $bg-base;
-  border-radius: $radius-md;
+  gap: $spacing-sm;
   padding: $spacing-sm $spacing-md;
+  border-radius: $radius-lg;
+  background: $bg-base;
+  border: 2rpx solid transparent;
+  transition: all $duration-fast $ease-out;
+
+  &.badge-time {
+    background: linear-gradient(135deg, rgba(78, 205, 196, 0.08) 0%, rgba(78, 205, 196, 0.15) 100%);
+    border-color: rgba(78, 205, 196, 0.2);
+  }
+
+  &.badge-streak {
+    background: linear-gradient(135deg, rgba(255, 107, 107, 0.08) 0%, rgba(255, 107, 107, 0.15) 100%);
+    border-color: rgba(255, 107, 107, 0.2);
+  }
 }
 
-.stat-item {
-  flex: 1;
+.badge-icon-wrap {
+  width: 64rpx;
+  height: 64rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: $radius-md;
+  background: $bg-card;
+  box-shadow: $shadow-sm;
+}
+
+.badge-icon {
+  font-size: 32rpx;
+}
+
+.badge-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2rpx;
+}
+
+.badge-value {
+  font-size: $font-md;
+  font-weight: $font-bold;
+  color: $text-primary;
+  line-height: 1.2;
+}
+
+.badge-label {
+  font-size: $font-xs;
+  color: $text-secondary;
+}
+
+// 创作入口卡片
+.create-entrance {
+  position: relative;
+  margin-top: $spacing-md;
+  padding: $spacing-md;
+  border-radius: $radius-lg;
+  overflow: hidden;
+  background: linear-gradient(135deg, #FF6B6B 0%, #FF8E8E 60%, #FFB7B7 100%);
+  box-shadow: 0 8rpx 32rpx rgba(255, 107, 107, 0.35);
+  transition: transform $duration-fast $ease-out;
+
+  &:active {
+    transform: scale(0.98);
+  }
+}
+
+.create-entrance-bg {
+  position: absolute;
+  top: -40rpx;
+  right: -40rpx;
+  width: 180rpx;
+  height: 180rpx;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 50%;
+  pointer-events: none;
+
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: -60rpx;
+    left: -80rpx;
+    width: 120rpx;
+    height: 120rpx;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+  }
+}
+
+.create-entrance-content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.create-entrance-left {
   display: flex;
   align-items: center;
   gap: $spacing-sm;
 }
 
-.stat-icon {
-  font-size: 40rpx;
+.create-entrance-icon {
+  font-size: 56rpx;
+  filter: drop-shadow(0 4rpx 8rpx rgba(0, 0, 0, 0.1));
 }
 
-.stat-info {
+.create-entrance-info {
   display: flex;
   flex-direction: column;
+  gap: 4rpx;
 }
 
-.stat-value {
+.create-entrance-title {
   font-size: $font-md;
   font-weight: $font-bold;
-  color: $text-primary;
+  color: $text-white;
+  text-shadow: 0 2rpx 4rpx rgba(0, 0, 0, 0.1);
 }
 
-.stat-label {
-  font-size: $font-xs;
-  color: $text-secondary;
+.create-entrance-desc {
+  font-size: $font-sm;
+  color: rgba(255, 255, 255, 0.85);
 }
 
-.stat-divider {
-  width: 2rpx;
-  height: 48rpx;
-  background: $uni-border-color;
-  margin: 0 $spacing-md;
-}
-
-.quick-create {
-  position: absolute;
-  right: $spacing-lg;
-  bottom: $spacing-lg;
-  z-index: 2;
-}
-
-.create-btn {
+.create-entrance-btn {
   display: flex;
   align-items: center;
-  gap: $spacing-xs;
+  gap: 8rpx;
   padding: $spacing-sm $spacing-md;
-  background: $gradient-primary;
+  background: $bg-card;
   border-radius: $radius-full;
-  box-shadow: $shadow-button;
-  transition: transform $duration-fast $ease-out;
-
-  &:active {
-    transform: scale(0.95);
-  }
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.1);
 }
 
-.create-icon {
+.create-btn-icon {
   font-size: 28rpx;
 }
 
-.create-text {
+.create-btn-text {
   font-size: $font-base;
   font-weight: $font-semibold;
-  color: $text-white;
+  color: $primary;
 }
 
 // 区块通用样式

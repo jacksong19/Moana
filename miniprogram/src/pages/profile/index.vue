@@ -57,7 +57,7 @@
             </view>
             <view class="child-info">
               <text class="child-name">{{ child.name }}</text>
-              <text class="child-age">{{ getChildAge(child.age_months) }}</text>
+              <text class="child-age">{{ getChildAge(child.birth_date) }}</text>
             </view>
             <view v-if="childStore.currentChild?.id === child.id" class="child-check">
               <text>✓</text>
@@ -131,7 +131,15 @@ import NavBar from '@/components/NavBar/NavBar.vue'
 const userStore = useUserStore()
 const childStore = useChildStore()
 
-function getChildAge(months: number): string {
+function getChildAge(birthDate: string | undefined | null): string {
+  if (!birthDate) return '未知'
+
+  const birth = new Date(birthDate)
+  const now = new Date()
+  const months = (now.getFullYear() - birth.getFullYear()) * 12 + (now.getMonth() - birth.getMonth())
+
+  if (months <= 0) return '刚出生'
+
   const years = Math.floor(months / 12)
   const remainMonths = months % 12
   if (years === 0) return `${remainMonths}个月`
@@ -200,10 +208,15 @@ onShow(() => {
 .page-container {
   min-height: 100vh;
   background: $gradient-warm;
+  width: 750rpx;
+  overflow: hidden;
 }
 
 .main-scroll {
+  width: 750rpx;
+  height: calc(100vh - 88rpx); // 减去导航栏高度
   padding: 0 $spacing-md;
+  box-sizing: border-box;
 }
 
 // 用户卡片
@@ -215,12 +228,15 @@ onShow(() => {
   margin-bottom: $spacing-lg;
   box-shadow: $shadow-lg;
   overflow: hidden;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .card-bg {
   position: absolute;
   inset: 0;
   pointer-events: none;
+  overflow: hidden;
 }
 
 .bg-blob {
@@ -298,6 +314,8 @@ onShow(() => {
 // 区块
 .section {
   margin-bottom: $spacing-lg;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .section-header {
@@ -306,6 +324,7 @@ onShow(() => {
   justify-content: space-between;
   margin-bottom: $spacing-sm;
   padding: 0 $spacing-xs;
+  box-sizing: border-box;
 }
 
 .section-title {
@@ -373,6 +392,8 @@ onShow(() => {
   border: 2rpx solid transparent;
   box-shadow: $shadow-sm;
   transition: all $duration-fast;
+  width: 100%;
+  box-sizing: border-box;
 
   &.active {
     border-color: $primary;
@@ -434,6 +455,8 @@ onShow(() => {
   border-radius: $radius-md;
   overflow: hidden;
   box-shadow: $shadow-sm;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .menu-item {

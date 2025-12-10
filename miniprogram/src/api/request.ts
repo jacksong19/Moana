@@ -4,7 +4,7 @@
  */
 
 // API 基础配置
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1'
+const BASE_URL = import.meta.env.VITE_API_URL || 'https://kids.jackverse.cn/api/v1'
 
 // 请求配置接口
 interface RequestOptions {
@@ -14,6 +14,7 @@ interface RequestOptions {
   header?: Record<string, string>
   showLoading?: boolean
   showError?: boolean
+  timeout?: number // 超时时间（毫秒），默认 60000
 }
 
 // 响应接口
@@ -79,7 +80,8 @@ async function request<T = any>(options: RequestOptions): Promise<T> {
     data,
     header = {},
     showLoading = false,
-    showError = true
+    showError = true,
+    timeout = 60000
   } = options
 
   // 显示加载
@@ -101,11 +103,13 @@ async function request<T = any>(options: RequestOptions): Promise<T> {
   }
 
   try {
+    console.log(`[request] ${method} ${url} - timeout: ${timeout}ms`)
     const res = await uni.request({
       url: BASE_URL + url,
       method,
       data,
-      header: requestHeader
+      header: requestHeader,
+      timeout
     }) as ApiResponse<T>
 
     // 隐藏加载
@@ -168,7 +172,20 @@ async function request<T = any>(options: RequestOptions): Promise<T> {
     // 其他错误
     if (res.statusCode >= 400) {
       const errorData = res.data as any
-      const errorMsg = errorData?.detail || '请求失败'
+      // 处理各种错误格式
+      let errorMsg = '请求失败'
+      if (typeof errorData?.detail === 'string') {
+        errorMsg = errorData.detail
+      } else if (Array.isArray(errorData?.detail)) {
+        // FastAPI 验证错误格式: [{loc: [...], msg: "...", type: "..."}]
+        errorMsg = errorData.detail.map((e: any) => e.msg).join('; ')
+      } else if (typeof errorData?.message === 'string') {
+        errorMsg = errorData.message
+      } else if (typeof errorData === 'string') {
+        errorMsg = errorData
+      }
+
+      console.error('API Error:', res.statusCode, errorData)
 
       if (showError) {
         uni.showToast({ title: errorMsg, icon: 'none' })

@@ -48,6 +48,7 @@
           :show-play="true"
           @tap="goToDetail(item)"
           @play="goToPlay(item)"
+          @longpress="showActionSheet(item)"
         />
       </view>
 
@@ -127,6 +128,39 @@ function goToDetail(item: PictureBook) {
 function goToPlay(item: PictureBook) {
   uni.navigateTo({
     url: `/pages/play/picture-book?id=${item.id}&autoplay=1`
+  })
+}
+
+function showActionSheet(item: PictureBook) {
+  uni.showActionSheet({
+    itemList: ['删除'],
+    itemColor: '#FF4D4F',
+    success: (res) => {
+      if (res.tapIndex === 0) {
+        confirmDelete(item)
+      }
+    }
+  })
+}
+
+function confirmDelete(item: PictureBook) {
+  uni.showModal({
+    title: '确认删除',
+    content: `确定要删除「${item.title}」吗？删除后无法恢复。`,
+    confirmColor: '#FF4D4F',
+    success: async (res) => {
+      if (res.confirm) {
+        try {
+          uni.showLoading({ title: '删除中...' })
+          await contentStore.removeContent(item.id)
+          uni.hideLoading()
+          uni.showToast({ title: '删除成功', icon: 'success' })
+        } catch (e) {
+          uni.hideLoading()
+          uni.showToast({ title: '删除失败', icon: 'none' })
+        }
+      }
+    }
   })
 }
 

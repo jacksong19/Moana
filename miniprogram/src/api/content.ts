@@ -75,12 +75,24 @@ export async function getThemes(): Promise<ThemeList> {
 
 /**
  * 生成绘本
+ * AI 生成需要较长时间，设置 3 分钟超时
  */
 export async function generatePictureBook(params: GeneratePictureBookParams): Promise<PictureBook> {
-  return request.post<PictureBook>('/content/picture-book', params, {
-    showLoading: false, // 使用自定义加载动画
-    showError: true
-  })
+  console.log('[generatePictureBook] 开始请求，超时设置: 180000ms (3分钟)')
+  const startTime = Date.now()
+
+  try {
+    const result = await request.post<PictureBook>('/content/picture-book', params, {
+      showLoading: false, // 使用自定义加载动画
+      showError: true,
+      timeout: 180000 // 3 分钟超时，AI 生成需要较长时间
+    })
+    console.log(`[generatePictureBook] 请求成功，耗时: ${(Date.now() - startTime) / 1000}秒`)
+    return result
+  } catch (e: any) {
+    console.error(`[generatePictureBook] 请求失败，耗时: ${(Date.now() - startTime) / 1000}秒，错误:`, e)
+    throw e
+  }
 }
 
 /**
@@ -103,4 +115,11 @@ export async function getGeneratedList(params?: {
  */
 export async function getContentDetail(contentId: string): Promise<PictureBook> {
   return request.get<PictureBook>(`/content/${contentId}`)
+}
+
+/**
+ * 删除内容
+ */
+export async function deleteContent(contentId: string): Promise<void> {
+  return request.delete(`/content/${contentId}`)
 }

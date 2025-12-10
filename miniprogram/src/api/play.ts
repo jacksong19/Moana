@@ -1,82 +1,112 @@
 /**
  * 播放追踪相关 API
+ * 基于后端 OpenAPI 规范调整
  */
 import request from './request'
 
-// 播放会话接口
-export interface PlaySession {
-  session_id: string
+// 开始播放响应 (后端返回 play_history_id 用于断点续播)
+export interface StartPlayResponse {
+  play_history_id: string
   content_id: string
-  child_id: string
-  started_at: string
-  resumed_from: number
+  content_type: string
+  resumed_from?: {
+    page: number
+    progress: number
+  }
+  is_new: boolean
 }
 
-// 播放历史项接口
+// 播放历史项接口 (匹配后端 PlayHistoryItem)
 export interface PlayHistoryItem {
   id: string
   content_id: string
-  content_title: string
-  content_type: 'picture_book' | 'nursery_rhyme' | 'video'
-  duration: number
-  completed: boolean
-  progress: number
-  played_at: string
-  cover_url?: string
+  content_type: string
+  current_page: number
+  total_pages: number
+  completion_rate: number
+  started_at: string
+  last_played_at: string
+  completed_at: string | null
+  is_completed: boolean
 }
 
-// 播放统计接口
+// 播放统计接口 (匹配后端 PlayStatsResponse)
 export interface PlayStats {
-  child_id: string
-  today_duration: number
-  week_duration: number
-  total_plays: number
-  favorite_type: string
-  streak_days: number
+  total_questions: number
+  correct_count: number
+  accuracy_rate: number
+  by_type: Record<string, { total: number; correct: number }>
 }
 
-// 互动数据接口
+// 更新进度响应
+export interface UpdateProgressResponse {
+  current_page: number
+  completion_rate: number
+  time_spent_seconds: number
+}
+
+// 完成播放响应
+export interface CompletePlayResponse {
+  completed_at: string
+  total_time_seconds: number
+}
+
+// 互动提交响应
+export interface SubmitInteractionResponse {
+  is_correct: boolean
+  feedback?: string
+}
+
+// 互动数据接口 (匹配后端 SubmitInteractionRequest)
 export interface InteractionData {
-  interaction_type: 'tap' | 'drag' | 'shake'
+  play_history_id: string
   page_number: number
-  response_time: number
-  correct: boolean
+  interaction_type: 'tap' | 'drag' | 'shake' | 'question'
+  response_data: Record<string, any>
+  response_time_ms: number
 }
 
 /**
  * 开始播放
+ * 如果已有未完成的播放记录，返回断点位置（断点续播）
  */
-export async function startPlay(childId: string, contentId: string): Promise<PlaySession> {
-  return request.post<PlaySession>('/play/start', {
+export async function startPlay(childId: string, contentId: string, contentType: string = 'picture_book'): Promise<StartPlayResponse> {
+  return request.post<StartPlayResponse>('/play/start', {
     child_id: childId,
-    content_id: contentId
+    content_id: contentId,
+    content_type: contentType
   })
 }
 
 /**
  * 更新播放进度
  */
-export async function updateProgress(sessionId: string, progress: number, duration: number): Promise<void> {
-  return request.put(`/play/${sessionId}/progress`, {
-    progress,
-    duration
+export async function updateProgress(
+  playHistoryId: string,
+  currentPage: number,
+  timeSpentSeconds: number
+): Promise<UpdateProgressResponse> {
+  return request.post<UpdateProgressResponse>('/play/progress', {
+    play_history_id: playHistoryId,
+    current_page: currentPage,
+    time_spent_seconds: timeSpentSeconds
   })
 }
 
 /**
  * 完成播放
  */
-export async function completePlay(sessionId: string, totalDuration: number): Promise<void> {
-  return request.post(`/play/${sessionId}/complete`, {
-    total_duration: totalDuration
+export async function completePlay(playHistoryId: string): Promise<CompletePlayResponse> {
+  return request.post<CompletePlayResponse>('/play/complete', {
+    play_history_id: playHistoryId
   })
 }
 
 /**
- * 提交互动记录
+ * 提交互动记录（答题）
  */
-export async function submitInteraction(sessionId: string, data: InteractionData): Promise<void> {
-  return request.post(`/play/${sessionId}/interaction`, data)
+export async function submitInteraction(data: InteractionData): Promise<SubmitInteractionResponse> {
+  return request.post<SubmitInteractionResponse>('/play/interaction', data)
 }
 
 /**
@@ -85,16 +115,26 @@ export async function submitInteraction(sessionId: string, data: InteractionData
 export async function getPlayHistory(childId: string, params?: {
   limit?: number
   offset?: number
+  content_type?: string
 }): Promise<{
   items: PlayHistoryItem[]
   total: number
   has_more: boolean
 }> {
-  return request.get(`/play/history/${childId}`, { data: params })
+  // 手动构建查询字符串，微信小程序不支持 URLSearchParams
+  const queryParts: string[] = []
+  if (params?.limit) queryParts.push(`limit=${params.limit}`)
+  if (params?.offset) queryParts.push(`offset=${params.offset}`)
+  if (params?.content_type) queryParts.push(`content_type=${encodeURIComponent(params.content_type)}`)
+
+  const queryString = queryParts.join('&')
+  const url = `/play/history/${childId}${queryString ? '?' + queryString : ''}`
+
+  return request.get(url)
 }
 
 /**
- * 获取播放统计
+ * 获取答题统计
  */
 export async function getPlayStats(childId: string): Promise<PlayStats> {
   return request.get<PlayStats>(`/play/stats/${childId}`)

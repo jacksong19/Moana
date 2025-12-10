@@ -200,12 +200,13 @@ function formatTime(dateStr: string): string {
 }
 
 async function loadData() {
-  try {
-    await contentStore.fetchGeneratedList()
-    recentCreations.value = contentStore.generatedList.slice(0, 3)
-  } catch (e) {
-    console.log('加载历史创作失败')
-  }
+  // 历史创作功能暂时禁用，等待后端 /content/list 接口实现
+  // try {
+  //   await contentStore.fetchGeneratedList()
+  //   recentCreations.value = contentStore.generatedList.slice(0, 3)
+  // } catch (e) {
+  //   console.log('加载历史创作失败')
+  // }
 }
 
 onMounted(loadData)
@@ -218,10 +219,14 @@ onShow(loadData)
 .page-container {
   min-height: 100vh;
   background: $gradient-warm;
+  width: 750rpx;
+  overflow: hidden;
 }
 
 .main-content {
   padding: 0 $spacing-md $spacing-xl;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 // 页面标题
@@ -370,6 +375,8 @@ onShow(loadData)
   border-radius: $radius-lg;
   padding: $spacing-md;
   box-shadow: $shadow-sm;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .input-wrapper {
@@ -385,6 +392,7 @@ onShow(loadData)
   font-size: $font-base;
   color: $text-primary;
   line-height: 1.6;
+  box-sizing: border-box;
 }
 
 .input-count {

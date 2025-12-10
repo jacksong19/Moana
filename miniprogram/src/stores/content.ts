@@ -8,6 +8,7 @@ import {
   generatePictureBook,
   getGeneratedList,
   getContentDetail,
+  deleteContent,
   type ThemeList,
   type PictureBook,
   type GeneratePictureBookParams
@@ -40,12 +41,13 @@ export const useContentStore = defineStore('content', () => {
     generatingProgress.value = 0
 
     try {
-      // 模拟进度更新
+      // 模拟进度更新（限制最大值为 95%，避免超过 100%）
       const progressInterval = setInterval(() => {
         if (generatingProgress.value < 90) {
-          generatingProgress.value += Math.random() * 15
+          const increment = Math.random() * 10 + 2 // 2-12% 增量
+          generatingProgress.value = Math.min(95, generatingProgress.value + increment)
         }
-      }, 1000)
+      }, 1500)
 
       const result = await generatePictureBook(params)
 
@@ -84,10 +86,13 @@ export const useContentStore = defineStore('content', () => {
   // 获取内容详情
   async function fetchContentDetail(contentId: string) {
     try {
-      currentContent.value = await getContentDetail(contentId)
+      console.log('[fetchContentDetail] 请求内容详情:', contentId)
+      const result = await getContentDetail(contentId)
+      console.log('[fetchContentDetail] 响应数据:', JSON.stringify(result).slice(0, 500))
+      currentContent.value = result
       return currentContent.value
-    } catch (e) {
-      console.error('获取内容详情失败:', e)
+    } catch (e: any) {
+      console.error('[fetchContentDetail] 获取内容详情失败:', e?.message || e)
       throw e
     }
   }
@@ -103,6 +108,22 @@ export const useContentStore = defineStore('content', () => {
     generatingProgress.value = 0
   }
 
+  // 删除内容
+  async function removeContent(contentId: string) {
+    try {
+      await deleteContent(contentId)
+      // 从本地列表中移除
+      generatedList.value = generatedList.value.filter(item => item.id !== contentId)
+      // 如果删除的是当前内容，清空
+      if (currentContent.value?.id === contentId) {
+        currentContent.value = null
+      }
+    } catch (e) {
+      console.error('删除内容失败:', e)
+      throw e
+    }
+  }
+
   return {
     themes,
     generatedList,
@@ -114,6 +135,7 @@ export const useContentStore = defineStore('content', () => {
     fetchGeneratedList,
     fetchContentDetail,
     setCurrentContent,
-    clearGenerating
+    clearGenerating,
+    removeContent
   }
 })

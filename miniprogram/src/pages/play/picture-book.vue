@@ -140,8 +140,9 @@ const content = ref<PictureBook | null>(null)
 const loading = ref(true)
 const currentPage = ref(0)
 const isPlaying = ref(false)
-const sessionId = ref('')
+const playHistoryId = ref('')  // 后端返回的 play_history_id
 const showInteraction = ref(false)
+const playStartTime = ref(0)   // 播放开始时间戳
 
 // 时间提醒
 const showTimeWarning = ref(false)
@@ -168,11 +169,29 @@ const remainingTime = computed(() => {
   return timeLimitManager.formatMinutes(info.sessionRemaining)
 })
 
+// 标记音频是否已初始化
+const audioReady = ref(false)
+
 // 方法
 function onPageChange(e: any) {
   currentPage.value = e.detail.current
+  // 停止当前播放的音频（如果有）
+  stopCurrentAudio()
   playCurrentPageAudio()
   updatePlayProgress()
+}
+
+// 安全停止当前音频
+function stopCurrentAudio() {
+  if (audioContext) {
+    try {
+      if (audioReady.value) {
+        audioContext.pause()
+      }
+    } catch (e) {
+      console.log('[stopCurrentAudio] 暂停失败，忽略')
+    }
+  }
 }
 
 function prevPage() {
@@ -197,19 +216,90 @@ function togglePlay() {
     playCurrentPageAudio()
     startAutoPlay()
   } else {
-    audioContext?.pause()
+    stopCurrentAudio()
     stopAutoPlay()
   }
 }
 
 function playCurrentPageAudio() {
-  if (!content.value || !audioContext) return
+  if (!content.value) return
+
+  // 清除之前的定时器
+  stopAutoPlay()
 
   const page = content.value.pages[currentPage.value]
-  if (page.audio_url) {
-    audioContext.src = page.audio_url
+  if (page.audio_url && isPlaying.value) {
+    console.log('[playCurrentPageAudio] 播放音频，页:', currentPage.value, page.audio_url)
+
+    // 销毁旧的音频实例
+    if (audioContext) {
+      try {
+        audioContext.destroy()
+      } catch (e) {
+        console.log('[playCurrentPageAudio] 销毁旧实例失败，忽略')
+      }
+      audioContext = null
+    }
+    audioReady.value = false
+
+    // 延迟创建新实例，确保旧实例完全销毁
+    setTimeout(() => {
+      if (!isPlaying.value) return  // 如果已暂停，不再创建
+
+      // 【重要】使用 wx.setInnerAudioOption 设置全局音频选项
+      // 从微信 2.3.0 开始，innerAudioContext.obeyMuteSwitch 已失效
+      // 必须使用此接口才能在 iOS 静音模式下播放声音
+      uni.setInnerAudioOption({
+        obeyMuteSwitch: false,  // iOS 静音模式下也能播放
+        mixWithOther: true      // 可与其他音频混播
+      })
+
+      // 创建新的音频实例
+      audioContext = uni.createInnerAudioContext()
+      audioContext.volume = 1.0
+
+      // 绑定事件 - 必须在设置 src 之前
+      audioContext.onPlay(() => {
+        console.log('[onPlay] 音频开始播放')
+        audioReady.value = true
+      })
+
+      audioContext.onEnded(() => {
+        console.log('[onEnded] 音频播放完成')
+        onAudioEnded()
+      })
+
+      audioContext.onError((err: any) => {
+        console.error('[audioContext] 音频错误:', err)
+        audioReady.value = false
+        // 音频错误时使用定时器
+        startFallbackTimer()
+      })
+
+      // 设置音频源
+      // 1. 强制使用 HTTPS（微信小程序真机要求）
+      // 2. 使用 encodeURI 处理可能包含中文的 URL
+      let audioUrl = page.audio_url!
+      if (audioUrl.startsWith('http://')) {
+        audioUrl = audioUrl.replace('http://', 'https://')
+        console.log('[playCurrentPageAudio] 已将 HTTP 转换为 HTTPS')
+      }
+      audioContext.src = encodeURI(audioUrl)
+      console.log('[playCurrentPageAudio] 已设置 src, 准备播放')
+
+      // 延迟播放，确保 src 设置完成
+      setTimeout(() => {
+        if (audioContext && isPlaying.value) {
+          console.log('[playCurrentPageAudio] 调用 play()')
+          audioContext.play()
+        }
+      }, 100)
+    }, 50)
+  } else if (!page.audio_url) {
+    // 没有音频时，使用定时器翻页
+    console.log('[playCurrentPageAudio] 无音频，页:', currentPage.value)
     if (isPlaying.value) {
-      audioContext.play()
+      startFallbackTimer()
     }
   }
 
@@ -223,7 +313,23 @@ function playCurrentPageAudio() {
   }
 }
 
-function startAutoPlay() {
+// 音频播放完成后自动翻页
+function onAudioEnded() {
+  console.log('[onAudioEnded] 音频播放完成，当前页:', currentPage.value)
+  if (!isPlaying.value) return
+
+  // 延迟一小段时间再翻页，给用户看图的时间
+  setTimeout(() => {
+    if (currentPage.value < totalPages.value - 1) {
+      nextPage()
+    } else {
+      handleComplete()
+    }
+  }, 500)
+}
+
+// 没有音频时的备用定时器
+function startFallbackTimer() {
   stopAutoPlay()
 
   if (!content.value) return
@@ -231,14 +337,21 @@ function startAutoPlay() {
   const page = content.value.pages[currentPage.value]
   const duration = (page.duration || 5) * 1000
 
+  console.log('[startFallbackTimer] 无音频，使用定时器:', duration, 'ms')
+
   playTimer = setTimeout(() => {
     if (currentPage.value < totalPages.value - 1) {
       nextPage()
-      startAutoPlay()
     } else {
       handleComplete()
     }
   }, duration)
+}
+
+function startAutoPlay() {
+  // 自动播放模式：播放当前页音频
+  // 翻页由 onAudioEnded 控制
+  playCurrentPageAudio()
 }
 
 function stopAutoPlay() {
@@ -249,13 +362,14 @@ function stopAutoPlay() {
 }
 
 async function updatePlayProgress() {
-  if (!sessionId.value) return
+  if (!playHistoryId.value) return
 
   try {
+    const timeSpent = Math.round((Date.now() - playStartTime.value) / 1000)
     await updateProgress(
-      sessionId.value,
-      (currentPage.value + 1) / totalPages.value,
-      Math.round(timeLimitManager.getSessionMinutes() * 60)
+      playHistoryId.value,
+      currentPage.value + 1,  // 当前页码 (1-based)
+      timeSpent               // 已播放秒数
     )
   } catch (e) {
     console.log('更新进度失败')
@@ -266,12 +380,9 @@ async function handleComplete() {
   isPlaying.value = false
   stopAutoPlay()
 
-  if (sessionId.value) {
+  if (playHistoryId.value) {
     try {
-      await completePlay(
-        sessionId.value,
-        Math.round(timeLimitManager.getSessionMinutes() * 60)
-      )
+      await completePlay(playHistoryId.value)
     } catch (e) {
       console.log('完成播放失败')
     }
@@ -290,16 +401,18 @@ async function handleComplete() {
 }
 
 async function handleInteraction(page: PictureBookPage, pageIndex: number) {
-  if (!page.interaction || !sessionId.value) return
+  if (!page.interaction || !playHistoryId.value) return
 
   showInteraction.value = false
+  const startTime = Date.now()
 
   try {
-    await submitInteraction(sessionId.value, {
-      interaction_type: page.interaction.type,
+    await submitInteraction({
+      play_history_id: playHistoryId.value,
       page_number: pageIndex + 1,
-      response_time: 2.0,
-      correct: true
+      interaction_type: page.interaction.type,
+      response_data: { completed: true },
+      response_time_ms: Date.now() - startTime
     })
 
     uni.showToast({ title: '太棒了！', icon: 'success' })
@@ -314,7 +427,7 @@ function checkTimeLimit() {
   if (result.exceeded) {
     isPlaying.value = false
     stopAutoPlay()
-    audioContext?.pause()
+    stopCurrentAudio()
 
     warningType.value = result.type || 'session'
     warningTitle.value = result.type === 'daily' ? '今日时间到' : '休息时间到'
@@ -323,7 +436,7 @@ function checkTimeLimit() {
   } else if (result.reminder) {
     isPlaying.value = false
     stopAutoPlay()
-    audioContext?.pause()
+    stopCurrentAudio()
 
     warningType.value = 'rest'
     warningTitle.value = '眼睛休息'
@@ -361,7 +474,7 @@ function goToChildMode() {
 function handleClose() {
   isPlaying.value = false
   stopAutoPlay()
-  audioContext?.pause()
+  stopCurrentAudio()
 
   timeLimitManager.endSession()
   uni.navigateBack()
@@ -369,32 +482,50 @@ function handleClose() {
 
 // 加载内容
 async function loadContent() {
+  // 如果已经有内容（从生成页面跳转），跳过加载
+  if (content.value) return
+
   if (!contentId.value) return
 
   loading.value = true
 
   try {
+    console.log('[loadContent] 开始加载内容, contentId:', contentId.value)
     await contentStore.fetchContentDetail(contentId.value)
     content.value = contentStore.currentContent
+    console.log('[loadContent] 内容加载成功:', content.value?.title, 'pages:', content.value?.pages?.length)
 
     // 开始播放会话
     if (childStore.currentChild && content.value) {
-      const res = await startPlay(childStore.currentChild.id, content.value.id)
-      sessionId.value = res.session_id
+      console.log('[loadContent] 开始播放会话, childId:', childStore.currentChild.id)
+      try {
+        const res = await startPlay(childStore.currentChild.id, content.value.id, 'picture_book')
+        playHistoryId.value = res.play_history_id
+        playStartTime.value = Date.now()
+        console.log('[loadContent] 播放会话创建成功:', res.play_history_id)
+
+        // 断点续播：如果有上次的进度，恢复到那个位置
+        if (res.resumed_from && res.resumed_from.page > 0) {
+          currentPage.value = res.resumed_from.page - 1  // 转为 0-based index
+        }
+      } catch (playErr) {
+        // 播放会话创建失败不影响内容展示
+        console.warn('[loadContent] 播放会话创建失败，继续播放:', playErr)
+      }
+    } else {
+      console.log('[loadContent] 跳过播放会话: currentChild=', !!childStore.currentChild, 'content=', !!content.value)
     }
 
-    // 初始化音频
-    audioContext = uni.createInnerAudioContext()
-    audioContext.onEnded(() => {
-      // 音频播放完成
-    })
+    // 音频实例会在 playCurrentPageAudio 中按需创建
+    // 不需要在这里预先创建
 
     // 开始计时
     timeLimitManager.startSession()
 
     // 定时检查时间限制
     checkTimer = setInterval(checkTimeLimit, 30000)
-  } catch (e) {
+  } catch (e: any) {
+    console.error('[loadContent] 加载失败:', e?.message || e)
     uni.showToast({ title: '加载失败', icon: 'none' })
     setTimeout(() => uni.navigateBack(), 1500)
   } finally {
@@ -410,6 +541,16 @@ onLoad((options) => {
 
   if (options?.autoplay === '1') {
     isPlaying.value = true
+  }
+
+  // 如果是从生成页面跳转过来，直接使用 store 中的内容
+  if (options?.fromGenerate === '1') {
+    content.value = contentStore.currentContent
+    loading.value = false
+    // 音频实例会在 playCurrentPageAudio 中按需创建
+    // 不在这里预先创建，避免状态问题
+    timeLimitManager.startSession()
+    checkTimer = setInterval(checkTimeLimit, 30000) as unknown as number
   }
 })
 

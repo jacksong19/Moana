@@ -155,7 +155,8 @@ const ageText = computed(() => {
 })
 
 const canSubmit = computed(() => {
-  return form.name.trim() && form.gender && form.birthDate && !submitting.value
+  // 后端只需要 name 和 birth_date，gender 是可选的 UI 元素
+  return form.name.trim() && form.birthDate && !submitting.value
 })
 
 function onDateChange(e: any) {
@@ -178,16 +179,11 @@ async function handleSubmit() {
 
   submitting.value = true
   try {
-    // 计算月龄
-    const birth = new Date(form.birthDate)
-    const now = new Date()
-    const ageMonths = (now.getFullYear() - birth.getFullYear()) * 12 + (now.getMonth() - birth.getMonth())
-
+    // 只发送后端需要的字段 (CreateChildRequest)
     await childStore.addChild({
       name: form.name.trim(),
-      gender: form.gender as 'male' | 'female',
-      age_months: ageMonths,
-      interests: form.interests
+      birth_date: form.birthDate,  // YYYY-MM-DD 格式
+      interests: form.interests.length > 0 ? form.interests : undefined
     })
 
     uni.showToast({ title: '添加成功', icon: 'success' })
@@ -195,7 +191,9 @@ async function handleSubmit() {
       uni.navigateBack()
     }, 1500)
   } catch (e: any) {
-    uni.showToast({ title: e.message || '添加失败', icon: 'none' })
+    const errMsg = typeof e === 'string' ? e : (e?.message || e?.detail || '添加失败')
+    console.error('添加宝贝失败:', e)
+    uni.showToast({ title: errMsg, icon: 'none' })
   } finally {
     submitting.value = false
   }

@@ -1,5 +1,5 @@
 <template>
-  <view class="content-card" :class="{ 'card-large': large }" @tap="$emit('tap')">
+  <view class="content-card" :class="{ 'card-large': large }" @tap="$emit('tap')" @longpress="$emit('longpress')">
     <!-- 封面图 -->
     <view class="card-cover">
       <image
@@ -59,7 +59,7 @@ const props = defineProps<{
   showPlay?: boolean
 }>()
 
-defineEmits(['tap', 'play'])
+defineEmits(['tap', 'play', 'longpress'])
 
 const typeLabel = computed(() => {
   const labels = {

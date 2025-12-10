@@ -83,6 +83,7 @@ function handleBack() {
   right: 0;
   z-index: $z-sticky;
   background: $bg-base;
+  overflow: hidden;
 }
 
 .nav-bg {

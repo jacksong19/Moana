@@ -327,23 +327,40 @@ async function startGenerate() {
   generatingProgress.value = 0
 
   try {
+    // 使用 currentChildAgeMonths 计算属性获取月龄
+    const ageMonths = childStore.currentChildAgeMonths || 36 // 默认 3 岁
+
     const result = await contentStore.createPictureBook({
       child_name: childStore.currentChild.name,
-      age_months: childStore.currentChild.age_months,
+      age_months: ageMonths,
       theme_topic: selectedTheme.value.id,
       theme_category: selectedCategory.value,
       favorite_characters: selectedCharacters.value
     })
 
+    // 调试：打印后端返回的结果
+    console.log('生成绘本成功，后端返回:', JSON.stringify(result, null, 2))
+    console.log('result.id =', result.id, '类型:', typeof result.id)
+
     // 模拟进度完成
     generatingProgress.value = 100
 
     // 跳转到播放页
+    // 注意：后端目前不返回 id，所以使用 fromGenerate=1 标记，播放页直接使用 store 中的内容
     setTimeout(() => {
       isGenerating.value = false
-      uni.redirectTo({
-        url: `/pages/play/picture-book?id=${result.id}`
-      })
+      // 严格检查 id 是否存在且有效（非空字符串、非 undefined、非 null）
+      if (result.id && typeof result.id === 'string' && result.id.trim() !== '') {
+        // 后端返回了有效 ID，正常跳转
+        uni.redirectTo({
+          url: `/pages/play/picture-book?id=${result.id}`
+        })
+      } else {
+        // 后端未返回有效 ID，使用 store 中的数据
+        uni.redirectTo({
+          url: `/pages/play/picture-book?fromGenerate=1`
+        })
+      }
     }, 500)
   } catch (e) {
     isGenerating.value = false

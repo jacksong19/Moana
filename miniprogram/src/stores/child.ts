@@ -5,16 +5,15 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import request from '@/api/request'
 
-// 孩子信息接口
+// 孩子信息接口 (与后端 ChildResponse 对齐)
 export interface Child {
   id: string
   name: string
-  gender: 'male' | 'female'
-  age_months: number
-  avatar_url?: string
+  birth_date: string  // YYYY-MM-DD 格式
+  avatar_url?: string | null
   interests: string[]
-  favorite_characters?: string[]
-  created_at: string
+  favorite_characters: string[]
+  current_stage?: string | null
 }
 
 // 时间设置接口
@@ -39,9 +38,18 @@ export const useChildStore = defineStore('child', () => {
 
   // 计算属性
   const hasChild = computed(() => children.value.length > 0)
+
+  // 根据出生日期计算月龄
+  const currentChildAgeMonths = computed(() => {
+    if (!currentChild.value?.birth_date) return 0
+    const birth = new Date(currentChild.value.birth_date)
+    const now = new Date()
+    return (now.getFullYear() - birth.getFullYear()) * 12 + (now.getMonth() - birth.getMonth())
+  })
+
   const currentChildAge = computed(() => {
-    if (!currentChild.value) return ''
-    const months = currentChild.value.age_months
+    const months = currentChildAgeMonths.value
+    if (months <= 0) return ''
     const years = Math.floor(months / 12)
     const remainMonths = months % 12
     if (years === 0) return `${remainMonths}个月`
@@ -57,11 +65,12 @@ export const useChildStore = defineStore('child', () => {
     fetchSettings()
   }
 
-  // 添加孩子
+  // 添加孩子 (与后端 CreateChildRequest 对齐)
   async function addChild(data: {
     name: string
-    gender: 'male' | 'female'
-    age_months: number
+    birth_date: string  // 必填，YYYY-MM-DD 格式
+    avatar_url?: string
+    favorite_characters?: string[]
     interests?: string[]
   }): Promise<Child> {
     const child = await request.post<Child>('/child', data)
@@ -161,6 +170,7 @@ export const useChildStore = defineStore('child', () => {
     todayDuration,
     hasChild,
     currentChildAge,
+    currentChildAgeMonths,
     setCurrentChild,
     addChild,
     fetchChildren,

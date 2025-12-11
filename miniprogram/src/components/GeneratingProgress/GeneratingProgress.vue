@@ -55,17 +55,31 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   progress: number
-}>()
+  type?: 'book' | 'song'  // 内容类型
+}>(), {
+  type: 'book'
+})
 
-const stages = [
+// 绘本生成阶段
+const bookStages = [
   { id: 'story', name: '编写故事' },
   { id: 'image', name: '生成插画' },
   { id: 'audio', name: '合成语音' }
 ]
 
-const tips = [
+// 儿歌生成阶段
+const songStages = [
+  { id: 'lyrics', name: '编写歌词' },
+  { id: 'music', name: '生成音乐' },
+  { id: 'cover', name: '生成封面' }
+]
+
+// 根据类型选择阶段
+const stages = computed(() => props.type === 'song' ? songStages : bookStages)
+
+const bookTips = [
   '正在为宝贝编织一个温馨的故事...',
   'AI 正在创作独一无二的插画...',
   '每一页都充满爱与想象力...',
@@ -73,7 +87,21 @@ const tips = [
   '好故事值得等待～'
 ]
 
-const emojis = ['✨', '📚', '🎨', '🎵', '🌟']
+const songTips = [
+  '正在为宝贝创作专属歌词...',
+  'AI 正在谱写欢乐的旋律...',
+  '每一个音符都充满爱意...',
+  '即将完成，准备开唱～',
+  '好音乐值得等待～'
+]
+
+const tips = computed(() => props.type === 'song' ? songTips : bookTips)
+
+const emojis = computed(() =>
+  props.type === 'song'
+    ? ['✨', '🎵', '🎤', '🎶', '🌟']
+    : ['✨', '📚', '🎨', '🎵', '🌟']
+)
 
 const currentTipIndex = ref(0)
 const currentEmojiIndex = ref(0)
@@ -88,6 +116,13 @@ const currentStage = computed(() => {
 })
 
 const statusText = computed(() => {
+  if (props.type === 'song') {
+    if (props.progress < 30) return '歌词创作中'
+    if (props.progress < 70) return '音乐生成中'
+    if (props.progress < 95) return '封面绘制中'
+    return '即将完成'
+  }
+  // 绘本
   if (props.progress < 30) return '故事创作中'
   if (props.progress < 70) return '插画生成中'
   if (props.progress < 95) return '语音合成中'
@@ -95,22 +130,29 @@ const statusText = computed(() => {
 })
 
 const statusDesc = computed(() => {
+  if (props.type === 'song') {
+    if (props.progress < 30) return 'AI 正在为宝贝编写专属歌词'
+    if (props.progress < 70) return '正在谱写欢乐的旋律'
+    if (props.progress < 95) return '为儿歌绘制精美封面'
+    return '最后的润色中'
+  }
+  // 绘本
   if (props.progress < 30) return 'AI 正在为宝贝编写专属故事'
   if (props.progress < 70) return '正在绘制精美的插画'
   if (props.progress < 95) return '为每一页配上温柔的声音'
   return '最后的润色中'
 })
 
-const currentTip = computed(() => tips[currentTipIndex.value])
-const currentEmoji = computed(() => emojis[currentEmojiIndex.value])
+const currentTip = computed(() => tips.value[currentTipIndex.value])
+const currentEmoji = computed(() => emojis.value[currentEmojiIndex.value])
 
 onMounted(() => {
   tipInterval = setInterval(() => {
-    currentTipIndex.value = (currentTipIndex.value + 1) % tips.length
+    currentTipIndex.value = (currentTipIndex.value + 1) % tips.value.length
   }, 3000)
 
   emojiInterval = setInterval(() => {
-    currentEmojiIndex.value = (currentEmojiIndex.value + 1) % emojis.length
+    currentEmojiIndex.value = (currentEmojiIndex.value + 1) % emojis.value.length
   }, 800)
 })
 

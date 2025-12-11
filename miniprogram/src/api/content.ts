@@ -66,6 +66,34 @@ export interface GeneratePictureBookParams {
   voice_id?: string
 }
 
+// 儿歌音乐风格
+export type MusicStyle = 'cheerful' | 'gentle' | 'playful' | 'lullaby' | 'educational'
+
+// 生成儿歌参数
+export interface GenerateNurseryRhymeParams {
+  child_name: string
+  age_months: number
+  theme_topic: string
+  theme_category: string
+  music_style?: MusicStyle
+}
+
+// 儿歌接口
+export interface NurseryRhyme {
+  id: string
+  title: string
+  theme_topic: string
+  lyrics: string
+  audio_url: string
+  cover_url?: string
+  duration: number
+  music_style: MusicStyle
+  personalization: {
+    child_name: string
+  }
+  created_at: string
+}
+
 /**
  * 获取主题列表
  */
@@ -91,6 +119,28 @@ export async function generatePictureBook(params: GeneratePictureBookParams): Pr
     return result
   } catch (e: any) {
     console.error(`[generatePictureBook] 请求失败，耗时: ${(Date.now() - startTime) / 1000}秒，错误:`, e)
+    throw e
+  }
+}
+
+/**
+ * 生成儿歌
+ * AI 生成需要较长时间，设置 3 分钟超时
+ */
+export async function generateNurseryRhyme(params: GenerateNurseryRhymeParams): Promise<NurseryRhyme> {
+  console.log('[generateNurseryRhyme] 开始请求，超时设置: 180000ms (3分钟)')
+  const startTime = Date.now()
+
+  try {
+    const result = await request.post<NurseryRhyme>('/content/nursery-rhyme', params, {
+      showLoading: false,
+      showError: true,
+      timeout: 180000
+    })
+    console.log(`[generateNurseryRhyme] 请求成功，耗时: ${(Date.now() - startTime) / 1000}秒`)
+    return result
+  } catch (e: any) {
+    console.error(`[generateNurseryRhyme] 请求失败，耗时: ${(Date.now() - startTime) / 1000}秒，错误:`, e)
     throw e
   }
 }

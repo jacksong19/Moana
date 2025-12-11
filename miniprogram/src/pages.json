@@ -37,6 +37,13 @@
       }
     },
     {
+      "path": "pages/play/nursery-rhyme",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "儿歌播放"
+      }
+    },
+    {
       "path": "pages/child/index",
       "style": {
         "navigationStyle": "custom",

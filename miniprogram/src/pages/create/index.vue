@@ -164,11 +164,11 @@ function goToPictureBook() {
 }
 
 function goToNurseryRhyme() {
-  uni.showToast({ title: '儿歌功能即将上线', icon: 'none' })
+  uni.navigateTo({ url: '/pages/create/nursery-rhyme' })
 }
 
 function goToVideo() {
-  uni.showToast({ title: '视频功能即将上线', icon: 'none' })
+  uni.navigateTo({ url: '/pages/create/video' })
 }
 
 function goToLibrary() {

@@ -58,3 +58,29 @@ export function logout() {
   uni.removeStorageSync('access_token')
   uni.removeStorageSync('refresh_token')
 }
+
+/**
+ * 开发环境模拟登录（后端不可用时使用）
+ */
+export function mockLogin(): { user: User; tokens: LoginResponse } {
+  const mockUser: User = {
+    id: 'mock-user-001',
+    openid: 'mock-openid-001',
+    nickname: '测试用户',
+    avatar_url: '',
+    created_at: new Date().toISOString()
+  }
+
+  const mockTokens: LoginResponse = {
+    access_token: 'mock-access-token',
+    refresh_token: 'mock-refresh-token',
+    token_type: 'bearer',
+    expires_in: 3600
+  }
+
+  // 保存到本地
+  uni.setStorageSync('access_token', mockTokens.access_token)
+  uni.setStorageSync('refresh_token', mockTokens.refresh_token)
+
+  return { user: mockUser, tokens: mockTokens }
+}

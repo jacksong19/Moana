@@ -120,15 +120,25 @@ function goToCreate() {
 }
 
 function goToDetail(item: PictureBook) {
-  uni.navigateTo({
-    url: `/pages/play/picture-book?id=${item.id}`
-  })
+  const contentType = (item as any).content_type
+  if (contentType === 'nursery_rhyme') {
+    uni.navigateTo({ url: `/pages/play/nursery-rhyme?id=${item.id}` })
+  } else if (contentType === 'video') {
+    uni.navigateTo({ url: `/pages/play/video?id=${item.id}` })
+  } else {
+    uni.navigateTo({ url: `/pages/play/picture-book?id=${item.id}` })
+  }
 }
 
 function goToPlay(item: PictureBook) {
-  uni.navigateTo({
-    url: `/pages/play/picture-book?id=${item.id}&autoplay=1`
-  })
+  const contentType = (item as any).content_type
+  if (contentType === 'nursery_rhyme') {
+    uni.navigateTo({ url: `/pages/play/nursery-rhyme?id=${item.id}&autoplay=1` })
+  } else if (contentType === 'video') {
+    uni.navigateTo({ url: `/pages/play/video?id=${item.id}` })
+  } else {
+    uni.navigateTo({ url: `/pages/play/picture-book?id=${item.id}&autoplay=1` })
+  }
 }
 
 function showActionSheet(item: PictureBook) {

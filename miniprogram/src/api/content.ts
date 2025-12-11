@@ -173,3 +173,58 @@ export async function getContentDetail(contentId: string): Promise<PictureBook> 
 export async function deleteContent(contentId: string): Promise<void> {
   return request.delete(`/content/${contentId}`)
 }
+
+// 视频页面接口
+export interface VideoPage {
+  page_num: number
+  text: string
+  image_url: string
+  audio_url: string
+}
+
+// 生成视频参数
+export interface GenerateVideoParams {
+  picture_book: {
+    title: string
+    pages: VideoPage[]
+  }
+  child_name: string
+  theme_topic: string
+  theme_category: string
+}
+
+// 视频接口
+export interface Video {
+  id: string
+  title: string
+  video_url: string
+  cover_url?: string
+  duration: number
+  source_book_id?: string
+  personalization: {
+    child_name: string
+  }
+  created_at: string
+}
+
+/**
+ * 生成视频
+ * 视频生成需要较长时间（1-5分钟），设置 5 分钟超时
+ */
+export async function generateVideo(params: GenerateVideoParams): Promise<Video> {
+  console.log('[generateVideo] 开始请求，超时设置: 300000ms (5分钟)')
+  const startTime = Date.now()
+
+  try {
+    const result = await request.post<Video>('/content/video', params, {
+      showLoading: false,
+      showError: true,
+      timeout: 300000 // 5 分钟超时，视频生成需要更长时间
+    })
+    console.log(`[generateVideo] 请求成功，耗时: ${(Date.now() - startTime) / 1000}秒`)
+    return result
+  } catch (e: any) {
+    console.error(`[generateVideo] 请求失败，耗时: ${(Date.now() - startTime) / 1000}秒，错误:`, e)
+    throw e
+  }
+}

@@ -69,13 +69,21 @@ function goToLibrary() {
 }
 
 function goToDetail(item: FavoriteItem) {
-  if (item.content_type === 'picture_book') {
+  if (item.content_type === 'nursery_rhyme') {
+    uni.navigateTo({ url: `/pages/play/nursery-rhyme?id=${item.content_id}` })
+  } else if (item.content_type === 'video') {
+    uni.navigateTo({ url: `/pages/play/video?id=${item.content_id}` })
+  } else {
     uni.navigateTo({ url: `/pages/play/picture-book?id=${item.content_id}` })
   }
 }
 
 function goToPlay(item: FavoriteItem) {
-  if (item.content_type === 'picture_book') {
+  if (item.content_type === 'nursery_rhyme') {
+    uni.navigateTo({ url: `/pages/play/nursery-rhyme?id=${item.content_id}&autoplay=1` })
+  } else if (item.content_type === 'video') {
+    uni.navigateTo({ url: `/pages/play/video?id=${item.content_id}` })
+  } else {
     uni.navigateTo({ url: `/pages/play/picture-book?id=${item.content_id}&autoplay=1` })
   }
 }

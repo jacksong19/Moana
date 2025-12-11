@@ -57,7 +57,7 @@ import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 
 const props = withDefaults(defineProps<{
   progress: number
-  type?: 'book' | 'song'  // 内容类型
+  type?: 'book' | 'song' | 'video'  // 内容类型
 }>(), {
   type: 'book'
 })
@@ -76,8 +76,19 @@ const songStages = [
   { id: 'cover', name: '生成封面' }
 ]
 
+// 视频生成阶段
+const videoStages = [
+  { id: 'prepare', name: '准备素材' },
+  { id: 'render', name: '渲染动画' },
+  { id: 'compose', name: '合成视频' }
+]
+
 // 根据类型选择阶段
-const stages = computed(() => props.type === 'song' ? songStages : bookStages)
+const stages = computed(() => {
+  if (props.type === 'song') return songStages
+  if (props.type === 'video') return videoStages
+  return bookStages
+})
 
 const bookTips = [
   '正在为宝贝编织一个温馨的故事...',
@@ -95,13 +106,25 @@ const songTips = [
   '好音乐值得等待～'
 ]
 
-const tips = computed(() => props.type === 'song' ? songTips : bookTips)
+const videoTips = [
+  '正在为绘本注入生命力...',
+  'AI 正在创作精彩动画...',
+  '每一帧都充满童趣...',
+  '即将完成，敬请期待...',
+  '好视频值得等待～'
+]
 
-const emojis = computed(() =>
-  props.type === 'song'
-    ? ['✨', '🎵', '🎤', '🎶', '🌟']
-    : ['✨', '📚', '🎨', '🎵', '🌟']
-)
+const tips = computed(() => {
+  if (props.type === 'song') return songTips
+  if (props.type === 'video') return videoTips
+  return bookTips
+})
+
+const emojis = computed(() => {
+  if (props.type === 'song') return ['✨', '🎵', '🎤', '🎶', '🌟']
+  if (props.type === 'video') return ['✨', '🎬', '🎥', '🎞️', '🌟']
+  return ['✨', '📚', '🎨', '🎵', '🌟']
+})
 
 const currentTipIndex = ref(0)
 const currentEmojiIndex = ref(0)
@@ -122,6 +145,12 @@ const statusText = computed(() => {
     if (props.progress < 95) return '封面绘制中'
     return '即将完成'
   }
+  if (props.type === 'video') {
+    if (props.progress < 30) return '准备素材中'
+    if (props.progress < 70) return '渲染动画中'
+    if (props.progress < 95) return '合成视频中'
+    return '即将完成'
+  }
   // 绘本
   if (props.progress < 30) return '故事创作中'
   if (props.progress < 70) return '插画生成中'
@@ -134,6 +163,12 @@ const statusDesc = computed(() => {
     if (props.progress < 30) return 'AI 正在为宝贝编写专属歌词'
     if (props.progress < 70) return '正在谱写欢乐的旋律'
     if (props.progress < 95) return '为儿歌绘制精美封面'
+    return '最后的润色中'
+  }
+  if (props.type === 'video') {
+    if (props.progress < 30) return '正在处理绘本素材'
+    if (props.progress < 70) return 'AI 正在生成精彩动画'
+    if (props.progress < 95) return '正在合成最终视频'
     return '最后的润色中'
   }
   // 绘本

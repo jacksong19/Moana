@@ -44,6 +44,13 @@
       }
     },
     {
+      "path": "pages/play/video",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "视频播放"
+      }
+    },
+    {
       "path": "pages/child/index",
       "style": {
         "navigationStyle": "custom",

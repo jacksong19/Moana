@@ -9,81 +9,87 @@
 
     <!-- 主内容区 -->
     <view class="main-content">
-      <!-- 欢迎区域 -->
+      <!-- 欢迎区域 - 精简版 -->
       <view class="welcome-section animate-slideUp">
-        <view class="welcome-card">
-          <!-- 装饰元素 -->
-          <view class="decor-blob decor-1"></view>
-          <view class="decor-blob decor-2"></view>
-
-          <view class="welcome-content">
-            <view class="greeting">
-              <text class="greeting-text">{{ greetingText }}</text>
-              <text class="child-name">{{ childName }}</text>
-            </view>
-
-            <!-- 统计徽章区 -->
-            <view class="stats-badges">
-              <view class="badge badge-time">
-                <view class="badge-icon-wrap">
-                  <text class="badge-icon">⏱️</text>
-                </view>
-                <view class="badge-content">
-                  <text class="badge-value">{{ todayDuration }}</text>
-                  <text class="badge-label">今日学习</text>
-                </view>
-              </view>
-              <view class="badge badge-streak">
-                <view class="badge-icon-wrap">
-                  <text class="badge-icon">🔥</text>
-                </view>
-                <view class="badge-content">
-                  <text class="badge-value">{{ streakDays }}天</text>
-                  <text class="badge-label">连续打卡</text>
-                </view>
-              </view>
-            </view>
+        <view class="welcome-header">
+          <view class="greeting">
+            <text class="greeting-text">{{ greetingText }}</text>
+            <text class="child-name">{{ childName }}</text>
           </view>
-
-          <!-- 创作入口 - 独立突出显示 -->
-          <view class="create-entrance" @tap="goToCreate">
-            <view class="create-entrance-bg"></view>
-            <view class="create-entrance-content">
-              <view class="create-entrance-left">
-                <text class="create-entrance-icon">📚</text>
-                <view class="create-entrance-info">
-                  <text class="create-entrance-title">创作专属绘本</text>
-                  <text class="create-entrance-desc">AI 为 {{ childName }} 量身定制</text>
-                </view>
-              </view>
-              <view class="create-entrance-btn">
-                <text class="create-btn-icon">✨</text>
-                <text class="create-btn-text">开始</text>
-              </view>
+          <view class="stats-mini">
+            <view class="stat-item">
+              <text class="stat-icon">⏱️</text>
+              <text class="stat-value">{{ todayDuration }}</text>
+            </view>
+            <view class="stat-divider"></view>
+            <view class="stat-item">
+              <text class="stat-icon">🔥</text>
+              <text class="stat-value">{{ streakDays }}天</text>
             </view>
           </view>
         </view>
       </view>
 
-      <!-- 功能入口 -->
-      <view class="feature-section animate-slideUp delay-1">
+      <!-- 三大内容类型入口 -->
+      <view class="content-types-section animate-slideUp delay-1">
         <view class="section-header">
-          <text class="section-title">快速开始</text>
+          <text class="section-title">开始创作</text>
+          <text class="section-sub">为 {{ childName }} 量身定制</text>
         </view>
 
-        <view class="feature-grid">
-          <view
-            v-for="(feature, index) in features"
-            :key="feature.id"
-            class="feature-item"
-            :class="`feature-${feature.id}`"
-            @tap="handleFeature(feature)"
-          >
-            <view class="feature-icon">
-              <text>{{ feature.icon }}</text>
+        <view class="content-types-grid">
+          <!-- 绘本入口 -->
+          <view class="content-type-card card-book" @tap="goToCreateBook">
+            <view class="card-glow"></view>
+            <view class="card-inner">
+              <view class="card-icon-area">
+                <view class="icon-ring"></view>
+                <text class="card-icon">📚</text>
+              </view>
+              <view class="card-info">
+                <text class="card-title">AI 绘本</text>
+                <text class="card-desc">个性化故事插画</text>
+              </view>
+              <view class="card-arrow">
+                <text>›</text>
+              </view>
             </view>
-            <text class="feature-name">{{ feature.name }}</text>
-            <text class="feature-desc">{{ feature.desc }}</text>
+          </view>
+
+          <!-- 儿歌入口 -->
+          <view class="content-type-card card-song" @tap="goToCreateSong">
+            <view class="card-glow"></view>
+            <view class="card-inner">
+              <view class="card-icon-area">
+                <view class="icon-ring"></view>
+                <text class="card-icon">🎵</text>
+              </view>
+              <view class="card-info">
+                <text class="card-title">AI 儿歌</text>
+                <text class="card-desc">专属旋律伴成长</text>
+              </view>
+              <view class="card-arrow">
+                <text>›</text>
+              </view>
+            </view>
+          </view>
+
+          <!-- 视频入口 -->
+          <view class="content-type-card card-video" @tap="goToCreateVideo">
+            <view class="card-glow"></view>
+            <view class="card-inner">
+              <view class="card-icon-area">
+                <view class="icon-ring"></view>
+                <text class="card-icon">🎬</text>
+              </view>
+              <view class="card-info">
+                <text class="card-title">AI 视频</text>
+                <text class="card-desc">绘本转精彩动画</text>
+              </view>
+              <view class="card-arrow">
+                <text>›</text>
+              </view>
+            </view>
           </view>
         </view>
       </view>
@@ -113,28 +119,67 @@
         </scroll-view>
       </view>
 
-      <!-- 推荐主题 -->
+      <!-- 今日推荐 - 混合类型 -->
       <view class="recommend-section animate-slideUp delay-3">
         <view class="section-header">
           <text class="section-title">今日推荐</text>
-          <text class="section-sub">为 {{ childName }} 精选</text>
         </view>
 
-        <view class="recommend-grid">
+        <view class="recommend-list">
           <view
-            v-for="theme in recommendThemes"
-            :key="theme.id"
-            class="recommend-item"
-            @tap="goToCreateWithTheme(theme)"
+            v-for="item in mixedRecommendations"
+            :key="item.id"
+            class="recommend-card"
+            :class="`recommend-${item.type}`"
+            @tap="handleRecommend(item)"
           >
-            <view class="recommend-icon" :style="{ background: theme.bgColor }">
-              <text>{{ theme.icon }}</text>
+            <view class="recommend-type-tag">
+              <text class="tag-icon">{{ item.typeIcon }}</text>
+              <text class="tag-text">{{ item.typeLabel }}</text>
             </view>
-            <view class="recommend-info">
-              <text class="recommend-name">{{ theme.name }}</text>
-              <text class="recommend-desc">{{ theme.desc }}</text>
+            <view class="recommend-content">
+              <view class="recommend-icon-wrap" :style="{ background: item.iconBg }">
+                <text class="recommend-icon">{{ item.icon }}</text>
+              </view>
+              <view class="recommend-info">
+                <text class="recommend-title">{{ item.title }}</text>
+                <text class="recommend-desc">{{ item.desc }}</text>
+              </view>
             </view>
-            <view class="recommend-arrow">›</view>
+            <view class="recommend-action">
+              <text class="action-text">{{ item.actionText }}</text>
+              <text class="action-arrow">›</text>
+            </view>
+          </view>
+        </view>
+      </view>
+
+      <!-- 快捷工具 -->
+      <view class="tools-section animate-slideUp delay-4">
+        <view class="tools-grid">
+          <view class="tool-item" @tap="goToChildMode">
+            <view class="tool-icon tool-child">
+              <text>👶</text>
+            </view>
+            <text class="tool-name">儿童模式</text>
+          </view>
+          <view class="tool-item" @tap="goToStats">
+            <view class="tool-icon tool-stats">
+              <text>📊</text>
+            </view>
+            <text class="tool-name">学习报告</text>
+          </view>
+          <view class="tool-item" @tap="goToFavorites">
+            <view class="tool-icon tool-favorites">
+              <text>❤️</text>
+            </view>
+            <text class="tool-name">我的收藏</text>
+          </view>
+          <view class="tool-item" @tap="goToSettings">
+            <view class="tool-icon tool-settings">
+              <text>⚙️</text>
+            </view>
+            <text class="tool-name">设置</text>
           </view>
         </view>
       </view>
@@ -163,7 +208,6 @@ import { ref, computed, onMounted } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { useUserStore } from '@/stores/user'
 import { useChildStore } from '@/stores/child'
-import { useContentStore } from '@/stores/content'
 import NavBar from '@/components/NavBar/NavBar.vue'
 import ContentCard from '@/components/ContentCard/ContentCard.vue'
 import type { PlayHistoryItem } from '@/api/play'
@@ -171,7 +215,6 @@ import { getPlayHistory, getPlayStats } from '@/api/play'
 
 const userStore = useUserStore()
 const childStore = useChildStore()
-const contentStore = useContentStore()
 
 // 状态
 const recentPlays = ref<PlayHistoryItem[]>([])
@@ -201,19 +244,56 @@ const todayDuration = computed(() => {
   return remainMins > 0 ? `${hours}小时${remainMins}分` : `${hours}小时`
 })
 
-// 功能入口
-const features = [
-  { id: 'book', icon: '📚', name: '绘本', desc: '个性化故事' },
-  { id: 'song', icon: '🎵', name: '儿歌', desc: '欢乐旋律' },
-  { id: 'child', icon: '👶', name: '儿童模式', desc: '安全播放' },
-  { id: 'stats', icon: '📊', name: '学习报告', desc: '成长记录' }
-]
-
-// 推荐主题
-const recommendThemes = ref([
-  { id: 'brushing_teeth', icon: '🦷', name: '刷牙好习惯', desc: '培养口腔护理习惯', bgColor: 'linear-gradient(135deg, #FF6B6B 0%, #FF8E8E 100%)' },
-  { id: 'eating_vegetables', icon: '🥬', name: '爱上蔬菜', desc: '健康饮食启蒙', bgColor: 'linear-gradient(135deg, #4ECDC4 0%, #7EDDD6 100%)' },
-  { id: 'sleeping_early', icon: '🌙', name: '早睡早起', desc: '规律作息养成', bgColor: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }
+// 混合推荐列表 - 包含三种内容类型
+const mixedRecommendations = ref([
+  {
+    id: 'book_teeth',
+    type: 'book',
+    typeIcon: '📚',
+    typeLabel: '绘本',
+    icon: '🦷',
+    iconBg: 'linear-gradient(135deg, #FF6B6B 0%, #FF8E8E 100%)',
+    title: '刷牙好习惯',
+    desc: '培养口腔护理习惯',
+    actionText: '创作',
+    theme: 'brushing_teeth'
+  },
+  {
+    id: 'song_abc',
+    type: 'song',
+    typeIcon: '🎵',
+    typeLabel: '儿歌',
+    icon: '🔤',
+    iconBg: 'linear-gradient(135deg, #4ECDC4 0%, #7EDDD6 100%)',
+    title: 'ABC字母歌',
+    desc: '轻松学习英文字母',
+    actionText: '创作',
+    theme: 'abc_song'
+  },
+  {
+    id: 'book_veggie',
+    type: 'book',
+    typeIcon: '📚',
+    typeLabel: '绘本',
+    icon: '🥬',
+    iconBg: 'linear-gradient(135deg, #00B894 0%, #55EFC4 100%)',
+    title: '爱上蔬菜',
+    desc: '健康饮食启蒙',
+    actionText: '创作',
+    theme: 'eating_vegetables'
+  },
+  {
+    id: 'song_sleep',
+    type: 'song',
+    typeIcon: '🎵',
+    typeLabel: '儿歌',
+    icon: '🌙',
+    iconBg: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+    title: '摇篮曲',
+    desc: '温柔旋律助眠',
+    actionText: '创作',
+    theme: 'lullaby'
+  }
 ])
 
 // 方法
@@ -221,8 +301,16 @@ function goToProfile() {
   uni.switchTab({ url: '/pages/profile/index' })
 }
 
-function goToCreate() {
-  uni.switchTab({ url: '/pages/create/index' })
+function goToCreateBook() {
+  uni.navigateTo({ url: '/pages/create/picture-book' })
+}
+
+function goToCreateSong() {
+  uni.navigateTo({ url: '/pages/create/nursery-rhyme' })
+}
+
+function goToCreateVideo() {
+  uni.navigateTo({ url: '/pages/create/video' })
 }
 
 function goToLibrary() {
@@ -235,32 +323,40 @@ function goToAddChild() {
 }
 
 function goToPlay(item: PlayHistoryItem) {
-  uni.navigateTo({
-    url: `/pages/play/picture-book?id=${item.content_id}`
-  })
-}
-
-function goToCreateWithTheme(theme: any) {
-  uni.navigateTo({
-    url: `/pages/create/picture-book?theme=${theme.id}`
-  })
-}
-
-function handleFeature(feature: any) {
-  switch (feature.id) {
-    case 'book':
-      uni.navigateTo({ url: '/pages/create/picture-book' })
-      break
-    case 'song':
-      uni.showToast({ title: '儿歌功能即将上线', icon: 'none' })
-      break
-    case 'child':
-      uni.navigateTo({ url: '/pages/child/index' })
-      break
-    case 'stats':
-      uni.navigateTo({ url: '/pages/settings/index' })
-      break
+  const contentType = item.content_type
+  if (contentType === 'nursery_rhyme') {
+    uni.navigateTo({ url: `/pages/play/nursery-rhyme?id=${item.content_id}` })
+  } else if (contentType === 'video') {
+    uni.navigateTo({ url: `/pages/play/video?id=${item.content_id}` })
+  } else {
+    uni.navigateTo({ url: `/pages/play/picture-book?id=${item.content_id}` })
   }
+}
+
+function handleRecommend(item: any) {
+  if (item.type === 'book') {
+    uni.navigateTo({ url: `/pages/create/picture-book?theme=${item.theme}` })
+  } else if (item.type === 'song') {
+    uni.navigateTo({ url: `/pages/create/nursery-rhyme?theme=${item.theme}` })
+  } else {
+    uni.showToast({ title: '视频功能即将上线', icon: 'none' })
+  }
+}
+
+function goToChildMode() {
+  uni.navigateTo({ url: '/pages/child/index' })
+}
+
+function goToStats() {
+  uni.navigateTo({ url: '/pages/settings/index' })
+}
+
+function goToFavorites() {
+  uni.switchTab({ url: '/pages/library/index' })
+}
+
+function goToSettings() {
+  uni.navigateTo({ url: '/pages/settings/index' })
 }
 
 // 加载数据
@@ -305,57 +401,31 @@ onShow(loadData)
 .page-container {
   min-height: 100vh;
   background: $gradient-warm;
+  width: $page-width;
+  box-sizing: border-box;
 }
 
 .main-content {
-  padding: 0 $spacing-md;
+  padding: 0 $content-padding;
+  width: 100%;
+  box-sizing: border-box;
 }
 
-// 欢迎区域
+// === 欢迎区域 ===
 .welcome-section {
-  margin-bottom: $spacing-lg;
+  margin-bottom: $spacing-md;
 }
 
-.welcome-card {
-  position: relative;
-  background: $bg-card;
-  border-radius: $radius-lg;
-  padding: $spacing-lg;
-  box-shadow: $shadow-lg;
-  overflow: hidden;
-}
-
-.decor-blob {
-  position: absolute;
-  border-radius: 50%;
-  pointer-events: none;
-
-  &.decor-1 {
-    width: 200rpx;
-    height: 200rpx;
-    background: $accent-soft;
-    top: -80rpx;
-    right: -60rpx;
-    opacity: 0.7;
-  }
-
-  &.decor-2 {
-    width: 120rpx;
-    height: 120rpx;
-    background: rgba($secondary, 0.15);
-    bottom: -40rpx;
-    left: 20rpx;
-    opacity: 0.8;
-  }
-}
-
-.welcome-content {
-  position: relative;
-  z-index: 1;
+.welcome-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  padding: $spacing-sm 0;
 }
 
 .greeting {
-  margin-bottom: $spacing-md;
+  display: flex;
+  flex-direction: column;
 }
 
 .greeting-text {
@@ -365,177 +435,52 @@ onShow(loadData)
 }
 
 .child-name {
-  display: block;
-  font-size: 56rpx;
+  font-size: 48rpx;
   font-weight: $font-bold;
   color: $text-primary;
-  margin-top: 8rpx;
+  margin-top: 4rpx;
   line-height: 1.2;
 }
 
-// 统计徽章区
-.stats-badges {
-  display: flex;
-  gap: $spacing-sm;
-}
-
-.badge {
-  flex: 1;
+.stats-mini {
   display: flex;
   align-items: center;
-  gap: $spacing-sm;
-  padding: $spacing-sm $spacing-md;
-  border-radius: $radius-lg;
-  background: $bg-base;
-  border: 2rpx solid transparent;
-  transition: all $duration-fast $ease-out;
-
-  &.badge-time {
-    background: linear-gradient(135deg, rgba(78, 205, 196, 0.08) 0%, rgba(78, 205, 196, 0.15) 100%);
-    border-color: rgba(78, 205, 196, 0.2);
-  }
-
-  &.badge-streak {
-    background: linear-gradient(135deg, rgba(255, 107, 107, 0.08) 0%, rgba(255, 107, 107, 0.15) 100%);
-    border-color: rgba(255, 107, 107, 0.2);
-  }
-}
-
-.badge-icon-wrap {
-  width: 64rpx;
-  height: 64rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: $radius-md;
   background: $bg-card;
+  padding: $spacing-xs $spacing-sm;
+  border-radius: $radius-full;
   box-shadow: $shadow-sm;
 }
 
-.badge-icon {
-  font-size: 32rpx;
-}
-
-.badge-content {
-  display: flex;
-  flex-direction: column;
-  gap: 2rpx;
-}
-
-.badge-value {
-  font-size: $font-md;
-  font-weight: $font-bold;
-  color: $text-primary;
-  line-height: 1.2;
-}
-
-.badge-label {
-  font-size: $font-xs;
-  color: $text-secondary;
-}
-
-// 创作入口卡片
-.create-entrance {
-  position: relative;
-  margin-top: $spacing-md;
-  padding: $spacing-md;
-  border-radius: $radius-lg;
-  overflow: hidden;
-  background: linear-gradient(135deg, #FF6B6B 0%, #FF8E8E 60%, #FFB7B7 100%);
-  box-shadow: 0 8rpx 32rpx rgba(255, 107, 107, 0.35);
-  transition: transform $duration-fast $ease-out;
-
-  &:active {
-    transform: scale(0.98);
-  }
-}
-
-.create-entrance-bg {
-  position: absolute;
-  top: -40rpx;
-  right: -40rpx;
-  width: 180rpx;
-  height: 180rpx;
-  background: rgba(255, 255, 255, 0.15);
-  border-radius: 50%;
-  pointer-events: none;
-
-  &::after {
-    content: '';
-    position: absolute;
-    bottom: -60rpx;
-    left: -80rpx;
-    width: 120rpx;
-    height: 120rpx;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 50%;
-  }
-}
-
-.create-entrance-content {
-  position: relative;
-  z-index: 1;
+.stat-item {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 6rpx;
 }
 
-.create-entrance-left {
-  display: flex;
-  align-items: center;
-  gap: $spacing-sm;
+.stat-icon {
+  font-size: 24rpx;
 }
 
-.create-entrance-icon {
-  font-size: 56rpx;
-  filter: drop-shadow(0 4rpx 8rpx rgba(0, 0, 0, 0.1));
-}
-
-.create-entrance-info {
-  display: flex;
-  flex-direction: column;
-  gap: 4rpx;
-}
-
-.create-entrance-title {
-  font-size: $font-md;
-  font-weight: $font-bold;
-  color: $text-white;
-  text-shadow: 0 2rpx 4rpx rgba(0, 0, 0, 0.1);
-}
-
-.create-entrance-desc {
+.stat-value {
   font-size: $font-sm;
-  color: rgba(255, 255, 255, 0.85);
-}
-
-.create-entrance-btn {
-  display: flex;
-  align-items: center;
-  gap: 8rpx;
-  padding: $spacing-sm $spacing-md;
-  background: $bg-card;
-  border-radius: $radius-full;
-  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.1);
-}
-
-.create-btn-icon {
-  font-size: 28rpx;
-}
-
-.create-btn-text {
-  font-size: $font-base;
   font-weight: $font-semibold;
-  color: $primary;
+  color: $text-primary;
 }
 
-// 区块通用样式
+.stat-divider {
+  width: 2rpx;
+  height: 24rpx;
+  background: $text-light;
+  margin: 0 $spacing-sm;
+  opacity: 0.3;
+}
+
+// === 区块通用样式 ===
 .section-header {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
   margin-bottom: $spacing-sm;
-  padding: 0 $spacing-xs;
 }
 
 .section-title {
@@ -555,74 +500,154 @@ onShow(loadData)
   color: $primary;
 }
 
-// 功能入口
-.feature-section {
+// === 三大内容类型入口 ===
+.content-types-section {
   margin-bottom: $spacing-lg;
 }
 
-.feature-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
+.content-types-grid {
+  display: flex;
+  flex-direction: column;
   gap: $spacing-sm;
 }
 
-.feature-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: $spacing-md $spacing-xs;
-  background: $bg-card;
-  border-radius: $radius-md;
-  box-shadow: $shadow-sm;
-  transition: transform $duration-fast $ease-out;
+.content-type-card {
+  position: relative;
+  border-radius: $radius-lg;
+  overflow: hidden;
+  transition: transform $duration-fast $ease-bounce;
 
   &:active {
-    transform: scale(0.95);
+    transform: scale(0.98);
   }
 }
 
-.feature-icon {
-  width: 80rpx;
-  height: 80rpx;
+.card-glow {
+  position: absolute;
+  top: -50%;
+  right: -30%;
+  width: 200rpx;
+  height: 200rpx;
+  border-radius: 50%;
+  opacity: 0.3;
+  pointer-events: none;
+}
+
+.card-inner {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  padding: $spacing-md;
+}
+
+.card-icon-area {
+  position: relative;
+  width: 88rpx;
+  height: 88rpx;
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
+}
+
+.icon-ring {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   border-radius: $radius-md;
-  margin-bottom: $spacing-xs;
-  font-size: 40rpx;
-
-  .feature-book & { background: rgba($primary, 0.1); }
-  .feature-song & { background: rgba($secondary, 0.1); }
-  .feature-child & { background: rgba($accent, 0.2); }
-  .feature-stats & { background: rgba($info, 0.1); }
+  opacity: 0.15;
 }
 
-.feature-name {
+.card-icon {
+  font-size: 48rpx;
+  position: relative;
+  z-index: 1;
+}
+
+.card-info {
+  flex: 1;
+  margin-left: $spacing-md;
+}
+
+.card-title {
+  display: block;
+  font-size: $font-md;
+  font-weight: $font-bold;
+  color: $text-white;
+  text-shadow: 0 2rpx 4rpx rgba(0, 0, 0, 0.1);
+}
+
+.card-desc {
+  display: block;
   font-size: $font-sm;
-  font-weight: $font-semibold;
-  color: $text-primary;
-}
-
-.feature-desc {
-  font-size: $font-xs;
-  color: $text-light;
+  color: rgba(255, 255, 255, 0.85);
   margin-top: 4rpx;
 }
 
-// 最近播放
+.card-arrow {
+  width: 56rpx;
+  height: 56rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: $radius-full;
+  font-size: 32rpx;
+  color: $text-white;
+}
+
+.card-badge {
+  padding: 6rpx 16rpx;
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: $radius-full;
+  font-size: $font-xs;
+  color: $text-white;
+}
+
+// 绘本卡片 - 珊瑚红
+.card-book {
+  background: $book-gradient;
+  box-shadow: $shadow-colored-book;
+
+  .card-glow { background: rgba(255, 255, 255, 0.4); }
+  .icon-ring { background: $text-white; }
+}
+
+// 儿歌卡片 - 薄荷绿
+.card-song {
+  background: $song-gradient;
+  box-shadow: $shadow-colored-song;
+
+  .card-glow { background: rgba(255, 255, 255, 0.4); }
+  .icon-ring { background: $text-white; }
+}
+
+// 视频卡片 - 琥珀橙
+.card-video {
+  background: $video-gradient;
+  box-shadow: $shadow-colored-video;
+
+  .card-glow { background: rgba(255, 255, 255, 0.4); }
+  .icon-ring { background: $text-white; }
+}
+
+// === 最近播放 ===
 .recent-section {
   margin-bottom: $spacing-lg;
 }
 
 .recent-scroll {
-  margin: 0 #{-$spacing-md};
-  padding: 0 $spacing-md;
+  margin: 0 #{-$content-padding};
+  padding: 0 $content-padding;
 }
 
 .recent-list {
   display: flex;
   gap: $spacing-sm;
-  padding-right: $spacing-md;
+  padding-right: $content-padding;
 }
 
 .recent-card {
@@ -630,24 +655,24 @@ onShow(loadData)
   width: 280rpx;
 }
 
-// 推荐主题
+// === 今日推荐 ===
 .recommend-section {
   margin-bottom: $spacing-lg;
 }
 
-.recommend-grid {
+.recommend-list {
   display: flex;
   flex-direction: column;
   gap: $spacing-sm;
 }
 
-.recommend-item {
-  display: flex;
-  align-items: center;
-  padding: $spacing-md;
+.recommend-card {
+  position: relative;
   background: $bg-card;
   border-radius: $radius-md;
-  box-shadow: $shadow-sm;
+  padding: $spacing-md;
+  box-shadow: $shadow-soft;
+  overflow: hidden;
   transition: transform $duration-fast $ease-out;
 
   &:active {
@@ -655,23 +680,68 @@ onShow(loadData)
   }
 }
 
-.recommend-icon {
-  width: 88rpx;
-  height: 88rpx;
+.recommend-type-tag {
+  position: absolute;
+  top: $spacing-sm;
+  right: $spacing-sm;
+  display: flex;
+  align-items: center;
+  gap: 4rpx;
+  padding: 4rpx 12rpx;
+  border-radius: $radius-full;
+  font-size: $font-xs;
+}
+
+.recommend-book .recommend-type-tag {
+  background: rgba($book-primary, 0.1);
+  color: $book-primary;
+}
+
+.recommend-song .recommend-type-tag {
+  background: rgba($song-primary, 0.1);
+  color: $song-primary;
+}
+
+.recommend-video .recommend-type-tag {
+  background: rgba($video-primary, 0.1);
+  color: $video-primary;
+}
+
+.tag-icon {
+  font-size: 18rpx;
+}
+
+.tag-text {
+  font-weight: $font-medium;
+}
+
+.recommend-content {
+  display: flex;
+  align-items: center;
+  margin-bottom: $spacing-sm;
+}
+
+.recommend-icon-wrap {
+  width: 72rpx;
+  height: 72rpx;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: $radius-md;
-  font-size: 40rpx;
   flex-shrink: 0;
+}
+
+.recommend-icon {
+  font-size: 36rpx;
 }
 
 .recommend-info {
   flex: 1;
   margin-left: $spacing-md;
+  padding-right: 100rpx;
 }
 
-.recommend-name {
+.recommend-title {
   display: block;
   font-size: $font-base;
   font-weight: $font-semibold;
@@ -685,20 +755,93 @@ onShow(loadData)
   margin-top: 4rpx;
 }
 
-.recommend-arrow {
-  font-size: $font-xl;
-  color: $text-light;
+.recommend-action {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4rpx;
 }
 
-// 底部安全区
+.action-text {
+  font-size: $font-sm;
+  font-weight: $font-medium;
+}
+
+.action-arrow {
+  font-size: $font-lg;
+}
+
+.recommend-book .recommend-action {
+  color: $book-primary;
+}
+
+.recommend-song .recommend-action {
+  color: $song-primary;
+}
+
+.recommend-video .recommend-action {
+  color: $video-primary;
+}
+
+// === 快捷工具 ===
+.tools-section {
+  margin-bottom: $spacing-lg;
+}
+
+.tools-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: $spacing-sm;
+}
+
+.tool-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: $spacing-xs;
+  padding: $spacing-md $spacing-xs;
+  background: $bg-card;
+  border-radius: $radius-md;
+  box-shadow: $shadow-sm;
+  transition: transform $duration-fast $ease-out;
+
+  &:active {
+    transform: scale(0.95);
+  }
+}
+
+.tool-icon {
+  width: 72rpx;
+  height: 72rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: $radius-md;
+  font-size: 32rpx;
+
+  &.tool-child { background: rgba($accent, 0.15); }
+  &.tool-stats { background: rgba($info, 0.15); }
+  &.tool-favorites { background: rgba($primary, 0.1); }
+  &.tool-settings { background: rgba($text-secondary, 0.1); }
+}
+
+.tool-name {
+  font-size: $font-xs;
+  color: $text-secondary;
+}
+
+// === 底部安全区 ===
 .safe-bottom-space {
   height: calc(#{$spacing-xl} + 100rpx);
 }
 
-// 引导弹窗
+// === 引导弹窗 ===
 .guide-overlay {
   position: fixed;
-  inset: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   background: rgba(0, 0, 0, 0.5);
   display: flex;
   align-items: center;
@@ -768,6 +911,43 @@ onShow(loadData)
 
   &:active {
     transform: scale(0.95);
+  }
+}
+
+// === 动画 ===
+.animate-slideUp {
+  animation: slideUp 0.5s $ease-out forwards;
+  opacity: 0;
+}
+
+.delay-1 { animation-delay: 0.1s; }
+.delay-2 { animation-delay: 0.2s; }
+.delay-3 { animation-delay: 0.3s; }
+.delay-4 { animation-delay: 0.4s; }
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30rpx);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-scaleIn {
+  animation: scaleIn 0.3s $ease-bounce forwards;
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
   }
 }
 </style>

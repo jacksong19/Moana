@@ -164,7 +164,7 @@ let playTimer: number | null = null
 let checkTimer: number | null = null
 
 // 计算属性
-const totalPages = computed(() => content.value?.pages.length || 0)
+const totalPages = computed(() => content.value?.pages?.length || 0)
 const progressPercent = computed(() => {
   if (totalPages.value === 0) return 0
   return ((currentPage.value + 1) / totalPages.value) * 100
@@ -227,12 +227,14 @@ function togglePlay() {
 }
 
 function playCurrentPageAudio() {
-  if (!content.value) return
+  if (!content.value?.pages?.length) return
 
   // 清除之前的定时器
   stopAutoPlay()
 
   const page = content.value.pages[currentPage.value]
+  if (!page) return
+
   if (page.audio_url && isPlaying.value) {
     console.log('[playCurrentPageAudio] 播放音频，页:', currentPage.value, page.audio_url)
 
@@ -337,9 +339,11 @@ function onAudioEnded() {
 function startFallbackTimer() {
   stopAutoPlay()
 
-  if (!content.value) return
+  if (!content.value?.pages?.length) return
 
   const page = content.value.pages[currentPage.value]
+  if (!page) return
+
   const duration = (page.duration || 5) * 1000
 
   console.log('[startFallbackTimer] 无音频，使用定时器:', duration, 'ms')

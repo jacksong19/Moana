@@ -299,25 +299,23 @@ async function startGenerate() {
     })
 
     console.log('生成儿歌成功:', result)
+    console.log('生成儿歌 - 返回的 keys:', Object.keys(result))
+    console.log('生成儿歌 - lyrics 字段:', result.lyrics?.substring(0, 100))
+    console.log('生成儿歌 - audio_url:', result.audio_url)
     generatedSong.value = result
     generatingProgress.value = 100
 
     clearInterval(progressTimer)
 
-    // 跳转到播放页
+    // 跳转到播放页 - 始终存储数据到临时存储，确保播放页能立即获取内容
     setTimeout(() => {
       isGenerating.value = false
-      if (result.id) {
-        uni.redirectTo({
-          url: `/pages/play/nursery-rhyme?id=${result.id}`
-        })
-      } else {
-        // 临时存储到全局，播放页读取
-        uni.setStorageSync('temp_nursery_rhyme', result)
-        uni.redirectTo({
-          url: `/pages/play/nursery-rhyme?fromGenerate=1`
-        })
-      }
+      // 临时存储到全局，播放页读取
+      console.log('[create] 存储到临时存储:', JSON.stringify(result).substring(0, 200))
+      uni.setStorageSync('temp_nursery_rhyme', result)
+      uni.redirectTo({
+        url: `/pages/play/nursery-rhyme?id=${result.id || ''}&fromGenerate=1`
+      })
     }, 500)
   } catch (e: any) {
     clearInterval(progressTimer)

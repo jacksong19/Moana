@@ -1,6 +1,6 @@
 # Moana 项目开发状态
 
-> 最后更新：2025-12-11
+> 最后更新：2025-12-15
 
 ## 项目概述
 
@@ -10,7 +10,7 @@ Moana 是一款 AI 原生的早教内容生成平台微信小程序，为 1-6 �
 
 ## 当前开发阶段
 
-**P1-P3 功能开发完成** - 前后端联调完成，绘本生成、播放、收藏、分享等核心功能均已实现。
+**P1-P4 功能开发中** - 绘本、儿歌、视频三大核心功能均已上线，正在优化加载体验和回调机制。
 
 ---
 
@@ -47,17 +47,19 @@ Moana 是一款 AI 原生的早教内容生成平台微信小程序，为 1-6 �
 - [x] ErrorState 错误状态
 - [x] FavoriteButton 收藏按钮（心跳动画）
 
-#### 页面开发 ✅ (14个页面)
+#### 页面开发 ✅ (16个页面)
 | 页面 | 路径 | 状态 |
 |------|------|------|
-| 首页 | `pages/index/index.vue` | ✅ 完成 |
-| 创作中心 | `pages/create/index.vue` | ✅ 完成 |
+| 首页 | `pages/index/index.vue` | ✅ 完成（含视频推荐）|
+| 创作中心 | `pages/create/index.vue` | ✅ 完成（视频已上线）|
 | 绘本创作 | `pages/create/picture-book.vue` | ✅ 完成 |
-| 儿歌创作 | `pages/create/nursery-rhyme.vue` | ✅ 完成（占位页）|
-| 视频创作 | `pages/create/video.vue` | ✅ 完成（占位页）|
+| 儿歌创作 | `pages/create/nursery-rhyme.vue` | ✅ 完成（Suno 回调）|
+| 视频创作 | `pages/create/video.vue` | ✅ 完成 |
 | 内容库 | `pages/library/index.vue` | ✅ 完成（含删除功能）|
 | 收藏列表 | `pages/favorites/index.vue` | ✅ 完成 |
-| 绘本播放器 | `pages/play/picture-book.vue` | ✅ 完成（含分享功能）|
+| 绘本播放器 | `pages/play/picture-book.vue` | ✅ 完成（含预加载）|
+| 儿歌播放器 | `pages/play/nursery-rhyme.vue` | ✅ 完成（含缓冲状态）|
+| 视频播放器 | `pages/play/video.vue` | ✅ 完成 |
 | 儿童模式 | `pages/child/index.vue` | ✅ 完成 |
 | 设置 | `pages/settings/index.vue` | ✅ 完成 |
 | 我的 | `pages/profile/index.vue` | ✅ 完成 |
@@ -70,6 +72,9 @@ Moana 是一款 AI 原生的早教内容生成平台微信小程序，为 1-6 �
 - [x] 后端 API 地址配置 (`https://kids.jackverse.cn/api/v1`)
 - [x] 微信登录对接
 - [x] 绘本生成接口对接（3分钟超时）
+- [x] 儿歌生成接口对接（Suno 回调机制）
+- [x] 视频生成接口对接（5分钟超时）
+- [x] Suno 任务状态轮询接口
 - [x] 内容列表接口对接
 - [x] 内容详情接口对接
 - [x] 内容删除接口对接
@@ -77,8 +82,17 @@ Moana 是一款 AI 原生的早教内容生成平台微信小程序，为 1-6 �
 
 ---
 
-## 已修复问题 (2025-12-11)
+## 已修复问题
 
+### 2025-12-15
+1. **绘本图片显示** - aspectFit 完整显示，添加预加载和 loading 动画
+2. **儿歌加载体验** - 封面预加载 + 音频缓冲状态指示
+3. **Suno 回调适配** - 支持 text/first/complete 三阶段进度
+4. **CSS 兼容性** - 替换 inset 为 top/left/right/bottom
+5. **歌词类型修复** - lyrics 字段支持 string | object 格式
+6. **视频功能上线** - 移除"即将上线"标签，添加首页推荐
+
+### 2025-12-11
 1. **真机音频播放** - 使用 `uni.setInnerAudioOption()` 替代属性设置
 2. **音频 URL 处理** - HTTP→HTTPS 自动转换 + URL 编码
 3. **音频实例管理** - 每次播放前销毁旧实例，避免状态污染
@@ -93,7 +107,9 @@ Moana 是一款 AI 原生的早教内容生成平台微信小程序，为 1-6 �
 
 ## 待修复问题
 
-暂无阻塞性问题。
+### 后端待处理
+1. **儿歌歌词显示** - 当前显示的是提示词而非 Suno 生成的歌词，后端需从 tracks[0].lyrics 或 Suno 回调中提取真实歌词
+2. **Suno 进度回调** - 进度值始终为 0，需要后端在状态轮询接口返回真实进度
 
 ---
 
@@ -150,6 +166,10 @@ npm run dev:mp-weixin
 
 | Commit | 日期 | 描述 |
 |--------|------|------|
+| `8a8ec91` | 2025-12-15 | feat(miniprogram): 优化内容加载体验与儿歌生成流程 |
+| `de362a0` | 2025-12-14 | feat(miniprogram): 添加视频创作功能并重设计今日页面 |
+| `ee830ce` | 2025-12-13 | feat(GeneratingProgress): 支持绘本和儿歌两种类型 |
+| `f51a70c` | 2025-12-12 | feat(nursery-rhyme): 实现完整的儿歌创作与播放功能 |
 | `e7c4231` | 2025-12-11 | feat(miniprogram): 添加绘本分享功能 |
 | `039780d` | 2025-12-11 | feat(feedback): 添加意见反馈页面 |
 | `dd28534` | 2025-12-11 | feat(report): 添加学习报告页面 |

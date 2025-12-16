@@ -390,16 +390,41 @@ function parseLyrics(lyrics: any, totalDuration: number): { lines: string[], dat
     'intro': '【前奏】',
     'outro': '【尾奏】',
     'pre-chorus': '【预副歌】',
-    'hook': '【记忆点】'
+    'pre chorus': '【预副歌】',
+    'hook': '【记忆点】',
+    'refrain': '【副歌】',
+    'interlude': '【间奏】'
   }
+
+  // 构建匹配所有结构关键词的正则（不区分大小写）
+  const structureKeys = Object.keys(structureMap).join('|').replace(/-/g, '[- ]?')
 
   const cleanLines = rawLines
     .map(line => {
-      // 替换结构标记为中文
-      return line.replace(/\[([A-Za-z-]+)(?:\s*\d*)?\]/gi, (match, tag) => {
-        const key = tag.toLowerCase()
-        return structureMap[key] || ''  // 未知标记直接移除
-      }).trim()
+      let result = line
+
+      // 匹配格式1: [Verse] / [Chorus 1] / [VERSE]
+      result = result.replace(/\[([A-Za-z][A-Za-z\s-]*)(?:\s*\d*)?\]/gi, (match, tag) => {
+        const key = tag.toLowerCase().trim().replace(/\s+/g, ' ').replace(/ /g, '-')
+        // 尝试多种格式匹配
+        return structureMap[key] || structureMap[key.replace(/-/g, ' ')] || structureMap[key.replace(/-/g, '')] || ''
+      })
+
+      // 匹配格式2: **Verse** / **Chorus 1**
+      result = result.replace(/\*\*([A-Za-z][A-Za-z\s-]*)(?:\s*\d*)?\*\*/gi, (match, tag) => {
+        const key = tag.toLowerCase().trim().replace(/\s+/g, '-')
+        return structureMap[key] || structureMap[key.replace(/-/g, ' ')] || ''
+      })
+
+      // 匹配格式3: 单独一行的结构标记（如 "Verse:" / "Chorus 1:" / "VERSE"）
+      const lineOnlyPattern = new RegExp(`^\\s*(${structureKeys})(?:\\s*\\d*)?\\s*:?\\s*$`, 'i')
+      const lineMatch = result.match(lineOnlyPattern)
+      if (lineMatch) {
+        const key = lineMatch[1].toLowerCase().trim().replace(/\s+/g, '-')
+        result = structureMap[key] || structureMap[key.replace(/-/g, ' ')] || ''
+      }
+
+      return result.trim()
     })
     .filter(line => line.length > 0)
 

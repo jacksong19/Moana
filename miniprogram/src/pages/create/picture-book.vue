@@ -417,14 +417,24 @@ async function startGenerate() {
             return null
           }
 
-          // 检查失败状态
+          // 检查失败状态 - 直接抛出，不要被下面的 catch 重试
           if (status.status === 'failed') {
-            throw new Error(status.error || '绘本生成失败')
+            const errorMsg = status.error || '绘本生成失败'
+            console.error('[绘本] 生成失败:', errorMsg)
+            // 创建带标记的错误，避免被当作网络错误重试
+            const businessError = new Error(errorMsg)
+            ;(businessError as any).isBusinessError = true
+            throw businessError
           }
 
           // 等待后继续轮询
           await new Promise(resolve => setTimeout(resolve, pollInterval))
         } catch (e: any) {
+          // 业务错误（如 failed 状态）直接抛出，不重试
+          if (e.isBusinessError) {
+            throw e
+          }
+
           consecutiveErrors++
           console.error(`[绘本] 轮询出错 (${consecutiveErrors}/${maxConsecutiveErrors}):`, e?.errMsg || e?.message || e)
 

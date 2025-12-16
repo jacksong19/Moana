@@ -25,7 +25,7 @@
               class="story-image"
               :class="{ loaded: imageLoaded[index] }"
               :src="page.image_url"
-              mode="aspectFill"
+              mode="aspectFit"
               @load="onImageLoad(index)"
               @error="onImageError(index)"
             />
@@ -705,6 +705,7 @@ $font-story: -apple-system, 'PingFang SC', 'Hiragino Sans GB', sans-serif;
   height: 100%;
   opacity: 0;
   transition: opacity 0.6s ease;
+  object-fit: contain;
 
   &.loaded {
     opacity: 1;

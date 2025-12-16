@@ -72,61 +72,140 @@
 
       <!-- 步骤 2: 风格设置 -->
       <view v-if="currentStep === 1" class="step-content animate-fadeIn">
-        <text class="step-title">画面风格</text>
-        <text class="step-desc">为 {{ childName }} 选择喜欢的绘本风格</text>
+        <view class="style-header">
+          <text class="step-title">画面风格</text>
+          <text class="step-desc">为 {{ childName }} 选择喜欢的绘本风格</text>
+        </view>
 
-        <view class="form-section">
-          <!-- 艺术风格 -->
-          <view class="form-item">
-            <text class="form-label">艺术风格</text>
-            <view class="style-grid">
+        <view class="style-sections">
+          <!-- 艺术风格 - 大卡片展示 -->
+          <view class="style-section art-section">
+            <view class="section-header">
+              <view class="section-icon-wrap">
+                <text class="section-icon">🎨</text>
+              </view>
+              <text class="section-title">艺术风格</text>
+            </view>
+            <view class="art-style-carousel">
               <view
                 v-for="style in artStyles"
                 :key="style.value"
-                class="style-card"
-                :class="{ selected: selectedArtStyle === style.value }"
+                class="art-card"
+                :class="{ selected: selectedArtStyle === style.value, recommended: style.value === 'pixar_3d' }"
                 @tap="selectedArtStyle = style.value"
               >
-                <text class="style-icon">{{ style.icon }}</text>
-                <text class="style-name">{{ style.label }}</text>
-                <text class="style-desc">{{ style.desc }}</text>
+                <view class="art-card-bg" :class="style.value"></view>
+                <view class="art-card-content">
+                  <text class="art-icon">{{ style.icon }}</text>
+                  <text class="art-name">{{ style.label }}</text>
+                  <text class="art-desc">{{ style.desc }}</text>
+                </view>
+                <view v-if="selectedArtStyle === style.value" class="art-check">
+                  <text>✓</text>
+                </view>
+                <view v-if="style.value === 'pixar_3d'" class="art-badge">推荐</view>
               </view>
             </view>
           </view>
 
-          <!-- 主角动物 -->
-          <view class="form-item">
-            <text class="form-label">故事主角</text>
-            <text class="form-hint">选择陪伴宝贝的小动物</text>
-            <view class="character-grid">
+          <!-- 故事主角 - 可爱动物选择 -->
+          <view class="style-section character-section">
+            <view class="section-header">
+              <view class="section-icon-wrap bunny">
+                <text class="section-icon">🐰</text>
+              </view>
+              <view class="section-header-text">
+                <text class="section-title">故事主角</text>
+                <text class="section-hint">选择陪伴宝贝的小动物</text>
+              </view>
+            </view>
+            <view class="character-carousel">
               <view
                 v-for="animal in protagonistAnimals"
                 :key="animal.value"
-                class="character-item"
+                class="character-card"
                 :class="{ selected: selectedAnimal === animal.value }"
                 @tap="selectedAnimal = animal.value"
               >
-                <text class="char-emoji">{{ animal.emoji }}</text>
+                <view class="character-avatar">
+                  <text class="char-emoji">{{ animal.emoji }}</text>
+                </view>
                 <text class="char-name">{{ animal.label }}</text>
+                <view v-if="selectedAnimal === animal.value" class="char-ring"></view>
               </view>
             </view>
           </view>
 
-          <!-- 色调 -->
-          <view class="form-item">
-            <text class="form-label">画面色调</text>
-            <view class="palette-grid">
+          <!-- 画面色调 - 色彩条展示 -->
+          <view class="style-section palette-section">
+            <view class="section-header">
+              <view class="section-icon-wrap palette">
+                <text class="section-icon">🌈</text>
+              </view>
+              <text class="section-title">画面色调</text>
+            </view>
+            <view class="palette-list">
               <view
                 v-for="palette in colorPalettes"
                 :key="palette.value"
-                class="palette-item"
-                :class="[palette.value, { selected: selectedPalette === palette.value }]"
+                class="palette-card"
+                :class="{ selected: selectedPalette === palette.value }"
                 @tap="selectedPalette = palette.value"
               >
-                <view class="palette-colors">
-                  <view class="color-dot" v-for="i in 3" :key="i"></view>
+                <view class="palette-preview" :class="palette.value">
+                  <view class="palette-stripe" v-for="i in 4" :key="i"></view>
                 </view>
-                <text class="palette-name">{{ palette.label }}</text>
+                <view class="palette-info">
+                  <text class="palette-name">{{ palette.label }}</text>
+                  <text class="palette-desc">{{ palette.description }}</text>
+                </view>
+                <view v-if="selectedPalette === palette.value" class="palette-check">
+                  <text>✓</text>
+                </view>
+              </view>
+            </view>
+          </view>
+
+          <!-- 旁白音色 - 音波效果 -->
+          <view class="style-section voice-section">
+            <view class="section-header">
+              <view class="section-icon-wrap voice">
+                <text class="section-icon">🔊</text>
+              </view>
+              <view class="section-header-text">
+                <text class="section-title">旁白音色</text>
+                <text class="section-hint">选择讲故事的声音</text>
+              </view>
+            </view>
+            <view class="voice-list">
+              <view
+                v-for="voice in voiceOptions"
+                :key="voice.id"
+                class="voice-card"
+                :class="{ selected: selectedVoiceId === voice.id, [voice.gender]: true }"
+                @tap="selectedVoiceId = voice.id"
+              >
+                <view class="voice-avatar">
+                  <text class="voice-emoji">{{ voice.emoji }}</text>
+                  <view class="voice-waves">
+                    <view class="wave"></view>
+                    <view class="wave"></view>
+                    <view class="wave"></view>
+                  </view>
+                </view>
+                <view class="voice-content">
+                  <view class="voice-name-row">
+                    <text class="voice-name">{{ voice.name }}</text>
+                    <text v-if="voice.recommended" class="voice-badge">推荐</text>
+                    <text class="voice-gender-tag" :class="voice.gender">
+                      {{ voice.gender === 'female' ? '女声' : voice.gender === 'male' ? '男声' : '童声' }}
+                    </text>
+                  </view>
+                  <text class="voice-style">{{ voice.style }}</text>
+                </view>
+                <view v-if="selectedVoiceId === voice.id" class="voice-check">
+                  <text>✓</text>
+                </view>
               </view>
             </view>
           </view>
@@ -158,6 +237,10 @@
           <view class="confirm-item">
             <text class="confirm-label">画面色调</text>
             <text class="confirm-value">{{ currentPaletteName }}</text>
+          </view>
+          <view class="confirm-item">
+            <text class="confirm-label">旁白音色</text>
+            <text class="confirm-value">{{ currentVoiceName }}</text>
           </view>
         </view>
 
@@ -204,7 +287,8 @@ import {
   type PictureBook,
   type ArtStyle,
   type ProtagonistAnimal,
-  type ColorPalette
+  type ColorPalette,
+  type VoiceId
 } from '@/api/content'
 
 const childStore = useChildStore()
@@ -254,13 +338,25 @@ const selectedAnimal = ref<ProtagonistAnimal>('bunny')
 
 // 色调选项
 const colorPalettes = [
-  { value: 'pastel' as ColorPalette, label: '马卡龙' },
-  { value: 'vibrant' as ColorPalette, label: '鲜艳活泼' },
-  { value: 'warm' as ColorPalette, label: '暖色温馨' },
-  { value: 'cool' as ColorPalette, label: '清新冷调' },
-  { value: 'monochrome' as ColorPalette, label: '黑白经典' }
+  { value: 'pastel' as ColorPalette, label: '马卡龙', description: '柔和温馨' },
+  { value: 'vibrant' as ColorPalette, label: '鲜艳活泼', description: '明快活泼' },
+  { value: 'warm' as ColorPalette, label: '暖色温馨', description: '温暖舒适' },
+  { value: 'cool' as ColorPalette, label: '清新冷调', description: '清爽宁静' },
+  { value: 'monochrome' as ColorPalette, label: '黑白经典', description: '优雅简洁' }
 ]
 const selectedPalette = ref<ColorPalette>('pastel')
+
+// TTS 音色选项
+const voiceOptions = [
+  { id: 'Cherry' as VoiceId, name: '樱桃', gender: 'female', style: '温柔亲切', emoji: '🍒', recommended: true },
+  { id: 'Serena' as VoiceId, name: '思睿', gender: 'female', style: '知性优雅', emoji: '📚' },
+  { id: 'Chelsie' as VoiceId, name: '晨曦', gender: 'female', style: '活泼可爱', emoji: '☀️' },
+  { id: 'Brittany' as VoiceId, name: '贝蒂', gender: 'female', style: '甜美清新', emoji: '🌸' },
+  { id: 'Ethan' as VoiceId, name: '伊森', gender: 'male', style: '成熟稳重', emoji: '👔' },
+  { id: 'Luke' as VoiceId, name: '卢克', gender: 'male', style: '温暖亲和', emoji: '🌟' },
+  { id: 'Stella' as VoiceId, name: '星星', gender: 'child', style: '童真可爱', emoji: '⭐' }
+]
+const selectedVoiceId = ref<VoiceId>('Cherry')
 
 // 生成状态
 const isGenerating = ref(false)
@@ -284,6 +380,11 @@ const currentAnimalName = computed(() => {
 
 const currentPaletteName = computed(() => {
   return colorPalettes.find(p => p.value === selectedPalette.value)?.label || ''
+})
+
+const currentVoiceName = computed(() => {
+  const voice = voiceOptions.find(v => v.id === selectedVoiceId.value)
+  return voice ? `${voice.emoji} ${voice.name}` : ''
 })
 
 const canNext = computed(() => {
@@ -364,18 +465,20 @@ async function startGenerate() {
     const ageMonths = childStore.currentChildAgeMonths || 36 // 默认 3 岁
 
     // 1. 发起异步生成请求
-    console.log('[绘本] 发起异步生成请求，风格:', selectedArtStyle.value, selectedAnimal.value, selectedPalette.value)
+    console.log('[绘本] 发起异步生成请求，风格:', selectedArtStyle.value, selectedAnimal.value, selectedPalette.value, '音色:', selectedVoiceId.value)
     const asyncResult = await generatePictureBookAsync({
       child_name: childStore.currentChild.name,
       age_months: ageMonths,
       theme_topic: selectedTheme.value.id,
       theme_category: selectedCategory.value,
-      // 新增风格参数
+      // 风格参数
       art_style: selectedArtStyle.value,
       protagonist: {
         animal: selectedAnimal.value
       },
-      color_palette: selectedPalette.value
+      color_palette: selectedPalette.value,
+      // TTS 音色
+      voice_id: selectedVoiceId.value
     })
 
     const taskId = asyncResult.task_id
@@ -766,79 +869,267 @@ onLoad((options) => {
   }
 }
 
-// 表单
-.form-section {
+// ==========================================
+// 风格选择页 - 增强版 UI
+// ==========================================
+
+.style-header {
+  margin-bottom: $spacing-lg;
+}
+
+.style-sections {
   display: flex;
   flex-direction: column;
   gap: $spacing-lg;
 }
 
-.form-item {
+.style-section {
   background: $bg-card;
-  border-radius: $radius-md;
+  border-radius: $radius-lg;
   padding: $spacing-md;
+  box-shadow: $shadow-soft;
 }
 
-.form-label {
-  display: block;
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  margin-bottom: $spacing-md;
+}
+
+.section-header-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+}
+
+.section-icon-wrap {
+  width: 56rpx;
+  height: 56rpx;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #FFE8E8 0%, #FFF0E8 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+
+  &.bunny { background: linear-gradient(135deg, #FFE0F0 0%, #FFF0E8 100%); }
+  &.palette { background: linear-gradient(135deg, #E8F4FF 0%, #E8FFF0 100%); }
+  &.voice { background: linear-gradient(135deg, #F0E8FF 0%, #FFE8F8 100%); }
+}
+
+.section-icon {
+  font-size: 28rpx;
+}
+
+.section-title {
   font-size: $font-md;
+  font-weight: $font-bold;
+  color: $text-primary;
+}
+
+.section-hint {
+  font-size: $font-xs;
+  color: $text-secondary;
+}
+
+// ==========================================
+// 艺术风格卡片 - 横向滚动大卡片
+// ==========================================
+.art-style-carousel {
+  display: flex;
+  gap: $spacing-sm;
+  overflow-x: auto;
+  padding-bottom: $spacing-xs;
+  margin: 0 -#{$spacing-md};
+  padding-left: $spacing-md;
+  padding-right: $spacing-md;
+
+  &::-webkit-scrollbar { display: none; }
+}
+
+.art-card {
+  position: relative;
+  flex-shrink: 0;
+  width: 200rpx;
+  height: 180rpx;
+  border-radius: $radius-md;
+  overflow: hidden;
+  border: 3rpx solid transparent;
+  transition: all $duration-base $ease-bounce;
+
+  &.selected {
+    border-color: $primary;
+    transform: scale(1.02);
+    box-shadow: $shadow-colored-book;
+  }
+
+  &:active {
+    transform: scale(0.96);
+  }
+}
+
+.art-card-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+
+  &.pixar_3d { background: linear-gradient(145deg, #FFE8F0 0%, #E8F0FF 50%, #E8FFF0 100%); }
+  &.watercolor { background: linear-gradient(145deg, #E8F4FF 0%, #FFF0E8 50%, #E8FFE8 100%); }
+  &.flat_vector { background: linear-gradient(145deg, #FFF5E8 0%, #FFE8F0 50%, #E8EFFF 100%); }
+  &.crayon { background: linear-gradient(145deg, #FFFAE8 0%, #FFE8E8 50%, #E8FFF8 100%); }
+  &.anime { background: linear-gradient(145deg, #FFE8F8 0%, #F0E8FF 50%, #E8F8FF 100%); }
+}
+
+.art-card-content {
+  position: relative;
+  z-index: 1;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: $spacing-sm;
+}
+
+.art-icon {
+  font-size: 48rpx;
+  margin-bottom: $spacing-xs;
+}
+
+.art-name {
+  font-size: $font-sm;
   font-weight: $font-semibold;
   color: $text-primary;
   margin-bottom: 4rpx;
 }
 
-.form-hint {
-  display: block;
-  font-size: $font-sm;
+.art-desc {
+  font-size: $font-xs;
   color: $text-secondary;
-  margin-bottom: $spacing-sm;
+  text-align: center;
 }
 
-// 角色选择
-.character-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: $spacing-sm;
-}
-
-.character-item {
+.art-check {
+  position: absolute;
+  top: 8rpx;
+  right: 8rpx;
+  width: 36rpx;
+  height: 36rpx;
+  border-radius: 50%;
+  background: $primary;
   display: flex;
-  flex-direction: column;
   align-items: center;
-  padding: $spacing-sm;
-  background: $bg-base;
-  border-radius: $radius-md;
-  border: 2rpx solid transparent;
-  transition: all $duration-fast;
+  justify-content: center;
+  z-index: 2;
 
-  &.selected {
-    border-color: $primary;
-    background: rgba($primary, 0.1);
+  text {
+    font-size: 20rpx;
+    color: $text-white;
   }
 }
 
+.art-badge {
+  position: absolute;
+  top: 8rpx;
+  left: 8rpx;
+  padding: 4rpx 12rpx;
+  background: $accent;
+  border-radius: $radius-sm;
+  font-size: 18rpx;
+  font-weight: $font-semibold;
+  color: #8B6914;
+  z-index: 2;
+}
+
+// ==========================================
+// 角色选择 - 圆形头像卡片
+// ==========================================
+.character-carousel {
+  display: flex;
+  gap: $spacing-sm;
+  flex-wrap: wrap;
+  justify-content: space-between;
+}
+
+.character-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: calc(33.33% - 16rpx);
+  padding: $spacing-sm 0;
+  transition: all $duration-base $ease-bounce;
+
+  &.selected .character-avatar {
+    background: rgba($primary, 0.15);
+    border-color: $primary;
+  }
+
+  &.selected .char-ring {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  &:active {
+    transform: scale(0.92);
+  }
+}
+
+.character-avatar {
+  position: relative;
+  width: 100rpx;
+  height: 100rpx;
+  border-radius: 50%;
+  background: $bg-base;
+  border: 3rpx solid transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: $spacing-xs;
+  transition: all $duration-base;
+}
+
 .char-emoji {
-  font-size: 40rpx;
-  margin-bottom: 4rpx;
+  font-size: 48rpx;
 }
 
 .char-name {
   font-size: $font-xs;
   color: $text-primary;
+  font-weight: $font-medium;
 }
 
-// 艺术风格网格
-.style-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
+.char-ring {
+  position: absolute;
+  top: -6rpx;
+  left: -6rpx;
+  right: -6rpx;
+  bottom: -6rpx;
+  border: 3rpx solid $primary;
+  border-radius: 50%;
+  opacity: 0;
+  transform: scale(0.8);
+  transition: all $duration-base $ease-bounce;
+  pointer-events: none;
+}
+
+// ==========================================
+// 色彩风格 - 条纹预览卡片
+// ==========================================
+.palette-list {
+  display: flex;
+  flex-direction: column;
   gap: $spacing-sm;
 }
 
-.style-card {
+.palette-card {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  padding: $spacing-md $spacing-sm;
+  gap: $spacing-md;
+  padding: $spacing-sm $spacing-md;
   background: $bg-base;
   border-radius: $radius-md;
   border: 2rpx solid transparent;
@@ -846,43 +1137,111 @@ onLoad((options) => {
 
   &.selected {
     border-color: $primary;
-    background: rgba($primary, 0.1);
+    background: rgba($primary, 0.05);
   }
 
   &:active {
-    transform: scale(0.96);
+    transform: scale(0.98);
   }
 }
 
-.style-icon {
-  font-size: 40rpx;
-  margin-bottom: 8rpx;
+.palette-preview {
+  width: 80rpx;
+  height: 48rpx;
+  border-radius: $radius-sm;
+  overflow: hidden;
+  display: flex;
+  flex-shrink: 0;
+
+  &.pastel .palette-stripe {
+    &:nth-child(1) { background: #FFB5BA; }
+    &:nth-child(2) { background: #B5D8FF; }
+    &:nth-child(3) { background: #C5F0A4; }
+    &:nth-child(4) { background: #FFF5BA; }
+  }
+
+  &.vibrant .palette-stripe {
+    &:nth-child(1) { background: #FF4757; }
+    &:nth-child(2) { background: #3742FA; }
+    &:nth-child(3) { background: #2ED573; }
+    &:nth-child(4) { background: #FFA502; }
+  }
+
+  &.warm .palette-stripe {
+    &:nth-child(1) { background: #FF6B35; }
+    &:nth-child(2) { background: #F7C566; }
+    &:nth-child(3) { background: #E8A87C; }
+    &:nth-child(4) { background: #FFE4C4; }
+  }
+
+  &.cool .palette-stripe {
+    &:nth-child(1) { background: #74B9FF; }
+    &:nth-child(2) { background: #81ECEC; }
+    &:nth-child(3) { background: #A29BFE; }
+    &:nth-child(4) { background: #DFE6E9; }
+  }
+
+  &.monochrome .palette-stripe {
+    &:nth-child(1) { background: #2D3436; }
+    &:nth-child(2) { background: #636E72; }
+    &:nth-child(3) { background: #B2BEC3; }
+    &:nth-child(4) { background: #DFE6E9; }
+  }
 }
 
-.style-name {
-  font-size: $font-base;
+.palette-stripe {
+  flex: 1;
+  height: 100%;
+}
+
+.palette-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2rpx;
+}
+
+.palette-name {
+  font-size: $font-sm;
   font-weight: $font-medium;
   color: $text-primary;
-  margin-bottom: 4rpx;
 }
 
-.style-desc {
+.palette-desc {
   font-size: $font-xs;
   color: $text-secondary;
 }
 
-// 色调选择
-.palette-grid {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
+.palette-check {
+  width: 36rpx;
+  height: 36rpx;
+  border-radius: 50%;
+  background: $primary;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+
+  text {
+    font-size: 20rpx;
+    color: $text-white;
+  }
+}
+
+// ==========================================
+// 音色选择 - 带音波效果
+// ==========================================
+.voice-list {
+  display: flex;
+  flex-direction: column;
   gap: $spacing-sm;
 }
 
-.palette-item {
+.voice-card {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  padding: $spacing-sm;
+  gap: $spacing-md;
+  padding: $spacing-md;
   background: $bg-base;
   border-radius: $radius-md;
   border: 2rpx solid transparent;
@@ -890,62 +1249,119 @@ onLoad((options) => {
 
   &.selected {
     border-color: $primary;
-    transform: scale(1.05);
+    background: rgba($primary, 0.05);
+
+    .voice-waves .wave {
+      animation: waveAnim 0.8s ease-in-out infinite;
+    }
   }
 
   &:active {
-    transform: scale(0.96);
+    transform: scale(0.98);
   }
 }
 
-.palette-colors {
+.voice-avatar {
+  position: relative;
+  width: 64rpx;
+  height: 64rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.voice-emoji {
+  font-size: 40rpx;
+  position: relative;
+  z-index: 1;
+}
+
+.voice-waves {
+  position: absolute;
+  right: -8rpx;
+  top: 50%;
+  transform: translateY(-50%);
   display: flex;
   gap: 4rpx;
-  margin-bottom: 8rpx;
+  align-items: center;
 }
 
-.color-dot {
-  width: 16rpx;
+.wave {
+  width: 4rpx;
   height: 16rpx;
-  border-radius: 50%;
-  background: #ccc;
+  background: $primary;
+  border-radius: 2rpx;
+  opacity: 0.3;
+
+  &:nth-child(1) { animation-delay: 0s; }
+  &:nth-child(2) { animation-delay: 0.15s; height: 24rpx; }
+  &:nth-child(3) { animation-delay: 0.3s; }
 }
 
-// 不同色调的颜色点
-.palette-item.pastel .color-dot {
-  &:nth-child(1) { background: #FFB5BA; }
-  &:nth-child(2) { background: #B5D8FF; }
-  &:nth-child(3) { background: #C5F0C5; }
+@keyframes waveAnim {
+  0%, 100% { transform: scaleY(0.5); opacity: 0.3; }
+  50% { transform: scaleY(1); opacity: 1; }
 }
 
-.palette-item.vibrant .color-dot {
-  &:nth-child(1) { background: #FF4757; }
-  &:nth-child(2) { background: #3742FA; }
-  &:nth-child(3) { background: #2ED573; }
+.voice-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
 }
 
-.palette-item.warm .color-dot {
-  &:nth-child(1) { background: #FF6B35; }
-  &:nth-child(2) { background: #F7C566; }
-  &:nth-child(3) { background: #E8A87C; }
+.voice-name-row {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
 }
 
-.palette-item.cool .color-dot {
-  &:nth-child(1) { background: #74B9FF; }
-  &:nth-child(2) { background: #81ECEC; }
-  &:nth-child(3) { background: #A29BFE; }
-}
-
-.palette-item.monochrome .color-dot {
-  &:nth-child(1) { background: #2D3436; }
-  &:nth-child(2) { background: #636E72; }
-  &:nth-child(3) { background: #B2BEC3; }
-}
-
-.palette-name {
-  font-size: 20rpx;
+.voice-name {
+  font-size: $font-base;
+  font-weight: $font-medium;
   color: $text-primary;
-  text-align: center;
+}
+
+.voice-badge {
+  font-size: 18rpx;
+  padding: 2rpx 8rpx;
+  background: $accent;
+  color: #8B6914;
+  border-radius: $radius-xs;
+  font-weight: $font-semibold;
+}
+
+.voice-gender-tag {
+  font-size: 18rpx;
+  padding: 2rpx 8rpx;
+  border-radius: $radius-xs;
+  font-weight: $font-medium;
+
+  &.female { background: #FFE8F0; color: #D63384; }
+  &.male { background: #E8F0FF; color: #0D6EFD; }
+  &.child { background: #FFF5E8; color: #FD7E14; }
+}
+
+.voice-style {
+  font-size: $font-xs;
+  color: $text-secondary;
+}
+
+.voice-check {
+  width: 36rpx;
+  height: 36rpx;
+  border-radius: 50%;
+  background: $primary;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+
+  text {
+    font-size: 20rpx;
+    color: $text-white;
+  }
 }
 
 // 确认卡片

@@ -70,25 +70,126 @@
         </view>
       </view>
 
-      <!-- 步骤 2: 音乐风格 -->
+      <!-- 步骤 2: 风格设置 -->
       <view v-if="currentStep === 1" class="step-content animate-fadeIn">
-        <text class="step-title">选择音乐风格</text>
-        <text class="step-desc">选择 {{ childName }} 喜欢的旋律风格</text>
+        <view class="style-header">
+          <text class="step-title">风格设置</text>
+          <text class="step-desc">选择 {{ childName }} 喜欢的音乐和封面风格</text>
+        </view>
 
-        <view class="form-section">
-          <view class="style-grid">
-            <view
-              v-for="style in musicStyles"
-              :key="style.value"
-              class="style-card"
-              :class="{ selected: selectedStyle === style.value }"
-              @tap="selectedStyle = style.value"
-            >
-              <text class="style-icon">{{ style.icon }}</text>
-              <text class="style-name">{{ style.name }}</text>
-              <text class="style-desc">{{ style.desc }}</text>
-              <view v-if="selectedStyle === style.value" class="style-check">
-                <text>✓</text>
+        <view class="style-sections">
+          <!-- 音乐情绪 - 大卡片展示 -->
+          <view class="style-section music-section">
+            <view class="section-header">
+              <view class="section-icon-wrap music">
+                <text class="section-icon">🎵</text>
+              </view>
+              <text class="section-title">音乐情绪</text>
+            </view>
+            <view class="music-mood-grid">
+              <view
+                v-for="style in musicStyles"
+                :key="style.value"
+                class="music-mood-card"
+                :class="{ selected: selectedStyle === style.value }"
+                @tap="selectedStyle = style.value"
+              >
+                <view class="mood-visual" :class="style.value">
+                  <text class="mood-icon">{{ style.icon }}</text>
+                  <view class="mood-bars">
+                    <view class="bar" v-for="i in 5" :key="i"></view>
+                  </view>
+                </view>
+                <view class="mood-info">
+                  <text class="mood-name">{{ style.name }}</text>
+                  <text class="mood-desc">{{ style.desc }}</text>
+                </view>
+                <view v-if="selectedStyle === style.value" class="mood-check">
+                  <text>✓</text>
+                </view>
+              </view>
+            </view>
+          </view>
+
+          <!-- 封面艺术风格 - 横向滚动 -->
+          <view class="style-section cover-section">
+            <view class="section-header">
+              <view class="section-icon-wrap art">
+                <text class="section-icon">🎨</text>
+              </view>
+              <text class="section-title">封面风格</text>
+            </view>
+            <view class="cover-art-carousel">
+              <view
+                v-for="style in artStyles"
+                :key="style.value"
+                class="cover-art-card"
+                :class="{ selected: selectedArtStyle === style.value }"
+                @tap="selectedArtStyle = style.value"
+              >
+                <view class="cover-art-bg" :class="style.value"></view>
+                <view class="cover-art-content">
+                  <text class="cover-art-icon">{{ style.icon }}</text>
+                  <text class="cover-art-name">{{ style.label }}</text>
+                </view>
+                <view v-if="selectedArtStyle === style.value" class="cover-art-check">
+                  <text>✓</text>
+                </view>
+              </view>
+            </view>
+          </view>
+
+          <!-- 封面主角 - 圆形头像 -->
+          <view class="style-section character-section">
+            <view class="section-header">
+              <view class="section-icon-wrap bunny">
+                <text class="section-icon">🐰</text>
+              </view>
+              <text class="section-title">封面主角</text>
+            </view>
+            <view class="character-carousel">
+              <view
+                v-for="animal in protagonistAnimals"
+                :key="animal.value"
+                class="character-card"
+                :class="{ selected: selectedAnimal === animal.value }"
+                @tap="selectedAnimal = animal.value"
+              >
+                <view class="character-avatar">
+                  <text class="char-emoji">{{ animal.emoji }}</text>
+                </view>
+                <text class="char-name">{{ animal.label }}</text>
+                <view v-if="selectedAnimal === animal.value" class="char-ring"></view>
+              </view>
+            </view>
+          </view>
+
+          <!-- 画面色调 - 条纹预览 -->
+          <view class="style-section palette-section">
+            <view class="section-header">
+              <view class="section-icon-wrap palette">
+                <text class="section-icon">🌈</text>
+              </view>
+              <text class="section-title">画面色调</text>
+            </view>
+            <view class="palette-list">
+              <view
+                v-for="palette in colorPalettes"
+                :key="palette.value"
+                class="palette-card"
+                :class="{ selected: selectedPalette === palette.value }"
+                @tap="selectedPalette = palette.value"
+              >
+                <view class="palette-preview" :class="palette.value">
+                  <view class="palette-stripe" v-for="i in 4" :key="i"></view>
+                </view>
+                <view class="palette-info">
+                  <text class="palette-name">{{ palette.label }}</text>
+                  <text class="palette-desc">{{ palette.description }}</text>
+                </view>
+                <view v-if="selectedPalette === palette.value" class="palette-check">
+                  <text>✓</text>
+                </view>
               </view>
             </view>
           </view>
@@ -112,6 +213,18 @@
           <view class="confirm-item">
             <text class="confirm-label">音乐风格</text>
             <text class="confirm-value">{{ currentStyleName }}</text>
+          </view>
+          <view class="confirm-item">
+            <text class="confirm-label">封面风格</text>
+            <text class="confirm-value">{{ currentArtStyleName }}</text>
+          </view>
+          <view class="confirm-item">
+            <text class="confirm-label">封面主角</text>
+            <text class="confirm-value">{{ currentAnimalName }}</text>
+          </view>
+          <view class="confirm-item">
+            <text class="confirm-label">画面色调</text>
+            <text class="confirm-value">{{ currentPaletteName }}</text>
           </view>
         </view>
 
@@ -154,7 +267,16 @@ import { useChildStore } from '@/stores/child'
 import { useContentStore } from '@/stores/content'
 import GeneratingProgress from '@/components/GeneratingProgress/GeneratingProgress.vue'
 import { generateNurseryRhymeAsync, getNurseryRhymeTaskStatus, getContentDetail } from '@/api/content'
-import type { ThemeItem, MusicStyle, NurseryRhyme, SunoTaskStage, NurseryRhymeTaskStatus } from '@/api/content'
+import type {
+  ThemeItem,
+  MusicStyle,
+  NurseryRhyme,
+  SunoTaskStage,
+  NurseryRhymeTaskStatus,
+  ArtStyle,
+  ProtagonistAnimal,
+  ColorPalette
+} from '@/api/content'
 
 const childStore = useChildStore()
 const contentStore = useContentStore()
@@ -188,6 +310,37 @@ const musicStyles: { value: MusicStyle; name: string; icon: string; desc: string
   { value: 'educational', name: '启蒙教育', icon: '📚', desc: '寓教于乐，知识丰富' }
 ]
 const selectedStyle = ref<MusicStyle>('cheerful')
+
+// 封面艺术风格选项
+const artStyles = [
+  { value: 'pixar_3d' as ArtStyle, label: '3D 动画', icon: '🎬', desc: '皮克斯风格' },
+  { value: 'watercolor' as ArtStyle, label: '水彩', icon: '🎨', desc: '柔和温馨' },
+  { value: 'flat_vector' as ArtStyle, label: '扁平插画', icon: '✨', desc: '现代简约' },
+  { value: 'crayon' as ArtStyle, label: '蜡笔画', icon: '🖍️', desc: '童趣手绘' },
+  { value: 'anime' as ArtStyle, label: '日系动漫', icon: '🌸', desc: '可爱细腻' }
+]
+const selectedArtStyle = ref<ArtStyle>('pixar_3d')
+
+// 主角动物选项
+const protagonistAnimals = [
+  { value: 'bunny' as ProtagonistAnimal, label: '小兔子', emoji: '🐰' },
+  { value: 'bear' as ProtagonistAnimal, label: '小熊', emoji: '🐻' },
+  { value: 'cat' as ProtagonistAnimal, label: '小猫咪', emoji: '🐱' },
+  { value: 'dog' as ProtagonistAnimal, label: '小狗狗', emoji: '🐶' },
+  { value: 'panda' as ProtagonistAnimal, label: '熊猫', emoji: '🐼' },
+  { value: 'fox' as ProtagonistAnimal, label: '小狐狸', emoji: '🦊' }
+]
+const selectedAnimal = ref<ProtagonistAnimal>('bunny')
+
+// 色调选项
+const colorPalettes = [
+  { value: 'pastel' as ColorPalette, label: '马卡龙', description: '柔和温馨' },
+  { value: 'vibrant' as ColorPalette, label: '鲜艳活泼', description: '明快活泼' },
+  { value: 'warm' as ColorPalette, label: '暖色温馨', description: '温暖舒适' },
+  { value: 'cool' as ColorPalette, label: '清新冷调', description: '清爽宁静' },
+  { value: 'monochrome' as ColorPalette, label: '黑白经典', description: '优雅简洁' }
+]
+const selectedPalette = ref<ColorPalette>('pastel')
 
 // 生成状态
 const isGenerating = ref(false)
@@ -229,6 +382,18 @@ const filteredThemes = computed(() => {
 
 const currentStyleName = computed(() => {
   return musicStyles.find(s => s.value === selectedStyle.value)?.name || ''
+})
+
+const currentArtStyleName = computed(() => {
+  return artStyles.find(s => s.value === selectedArtStyle.value)?.label || ''
+})
+
+const currentAnimalName = computed(() => {
+  return protagonistAnimals.find(a => a.value === selectedAnimal.value)?.label || ''
+})
+
+const currentPaletteName = computed(() => {
+  return colorPalettes.find(p => p.value === selectedPalette.value)?.label || ''
 })
 
 const canNext = computed(() => {
@@ -539,7 +704,14 @@ async function startGenerate() {
       age_months: ageMonths,
       theme_topic: selectedTheme.value.name,
       theme_category: selectedCategory.value,
-      music_style: selectedStyle.value
+      music_style: selectedStyle.value,
+      // 新增封面风格参数
+      music_mood: selectedStyle.value,
+      art_style: selectedArtStyle.value,
+      protagonist: {
+        animal: selectedAnimal.value
+      },
+      color_palette: selectedPalette.value
     })
 
     console.log('[startGenerate] 异步请求返回:', asyncResult)
@@ -860,30 +1032,354 @@ onLoad((options) => {
   }
 }
 
-// 表单
-.form-section {
+// ==========================================
+// 风格选择页 - 增强版 UI（儿歌专属）
+// ==========================================
+
+.style-header {
+  margin-bottom: $spacing-lg;
+}
+
+.style-sections {
   display: flex;
   flex-direction: column;
   gap: $spacing-lg;
 }
 
-// 音乐风格网格
-.style-grid {
+.style-section {
+  background: $bg-card;
+  border-radius: $radius-lg;
+  padding: $spacing-md;
+  box-shadow: $shadow-soft;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  margin-bottom: $spacing-md;
+}
+
+.section-icon-wrap {
+  width: 56rpx;
+  height: 56rpx;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #E8FFF0 0%, #E0FFF9 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+
+  &.music { background: linear-gradient(135deg, #E8FFF8 0%, #E8F4FF 100%); }
+  &.art { background: linear-gradient(135deg, #FFE8E8 0%, #FFF0E8 100%); }
+  &.bunny { background: linear-gradient(135deg, #FFE0F0 0%, #FFF0E8 100%); }
+  &.palette { background: linear-gradient(135deg, #E8F4FF 0%, #E8FFF0 100%); }
+}
+
+.section-icon {
+  font-size: 28rpx;
+}
+
+.section-title {
+  font-size: $font-md;
+  font-weight: $font-bold;
+  color: $text-primary;
+}
+
+// ==========================================
+// 音乐情绪 - 大卡片带音量条
+// ==========================================
+.music-mood-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: $spacing-sm;
 }
 
-.style-card {
+.music-mood-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background: $bg-base;
+  border-radius: $radius-md;
+  border: 2rpx solid transparent;
+  overflow: hidden;
+  transition: all $duration-base $ease-bounce;
+
+  &.selected {
+    border-color: $secondary;
+    box-shadow: $shadow-colored-song;
+
+    .mood-bars .bar {
+      animation: barBounce 0.6s ease-in-out infinite;
+    }
+  }
+
+  &:active {
+    transform: scale(0.96);
+  }
+}
+
+.mood-visual {
+  height: 100rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: $spacing-sm;
+  position: relative;
+
+  &.cheerful { background: linear-gradient(135deg, #FFF5E8 0%, #FFE8F0 100%); }
+  &.gentle { background: linear-gradient(135deg, #F0E8FF 0%, #E8F0FF 100%); }
+  &.playful { background: linear-gradient(135deg, #E8FFF0 0%, #FFFAE8 100%); }
+  &.lullaby { background: linear-gradient(135deg, #E8F0FF 0%, #F0E8FF 100%); }
+  &.educational { background: linear-gradient(135deg, #FFF0E8 0%, #E8FFF8 100%); }
+}
+
+.mood-icon {
+  font-size: 40rpx;
+}
+
+.mood-bars {
+  display: flex;
+  gap: 4rpx;
+  align-items: flex-end;
+  height: 40rpx;
+}
+
+.bar {
+  width: 6rpx;
+  background: $secondary;
+  border-radius: 3rpx;
+  opacity: 0.4;
+
+  &:nth-child(1) { height: 16rpx; animation-delay: 0s; }
+  &:nth-child(2) { height: 28rpx; animation-delay: 0.1s; }
+  &:nth-child(3) { height: 20rpx; animation-delay: 0.2s; }
+  &:nth-child(4) { height: 32rpx; animation-delay: 0.3s; }
+  &:nth-child(5) { height: 24rpx; animation-delay: 0.4s; }
+}
+
+@keyframes barBounce {
+  0%, 100% { transform: scaleY(0.6); opacity: 0.4; }
+  50% { transform: scaleY(1); opacity: 1; }
+}
+
+.mood-info {
+  padding: $spacing-sm;
+  text-align: center;
+}
+
+.mood-name {
+  display: block;
+  font-size: $font-sm;
+  font-weight: $font-semibold;
+  color: $text-primary;
+  margin-bottom: 4rpx;
+}
+
+.mood-desc {
+  display: block;
+  font-size: $font-xs;
+  color: $text-secondary;
+}
+
+.mood-check {
+  position: absolute;
+  top: 8rpx;
+  right: 8rpx;
+  width: 32rpx;
+  height: 32rpx;
+  border-radius: 50%;
+  background: $secondary;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  text {
+    font-size: 18rpx;
+    color: $text-white;
+  }
+}
+
+// ==========================================
+// 封面艺术风格 - 横向滚动卡片
+// ==========================================
+.cover-art-carousel {
+  display: flex;
+  gap: $spacing-sm;
+  overflow-x: auto;
+  padding-bottom: $spacing-xs;
+  margin: 0 -#{$spacing-md};
+  padding-left: $spacing-md;
+  padding-right: $spacing-md;
+
+  &::-webkit-scrollbar { display: none; }
+}
+
+.cover-art-card {
+  position: relative;
+  flex-shrink: 0;
+  width: 140rpx;
+  height: 120rpx;
+  border-radius: $radius-md;
+  overflow: hidden;
+  border: 3rpx solid transparent;
+  transition: all $duration-base $ease-bounce;
+
+  &.selected {
+    border-color: $secondary;
+    transform: scale(1.05);
+    box-shadow: $shadow-colored-song;
+  }
+
+  &:active {
+    transform: scale(0.94);
+  }
+}
+
+.cover-art-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+
+  &.pixar_3d { background: linear-gradient(145deg, #E8FFF0 0%, #E8F4FF 50%, #FFE8F0 100%); }
+  &.watercolor { background: linear-gradient(145deg, #E8F4FF 0%, #FFF0E8 50%, #E8FFE8 100%); }
+  &.flat_vector { background: linear-gradient(145deg, #FFF5E8 0%, #E8FFF8 50%, #E8EFFF 100%); }
+  &.crayon { background: linear-gradient(145deg, #FFFAE8 0%, #FFE8E8 50%, #E8FFF8 100%); }
+  &.anime { background: linear-gradient(145deg, #FFE8F8 0%, #F0E8FF 50%, #E8F8FF 100%); }
+}
+
+.cover-art-content {
+  position: relative;
+  z-index: 1;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: $spacing-xs;
+}
+
+.cover-art-icon {
+  font-size: 36rpx;
+  margin-bottom: 4rpx;
+}
+
+.cover-art-name {
+  font-size: 20rpx;
+  font-weight: $font-medium;
+  color: $text-primary;
+}
+
+.cover-art-check {
+  position: absolute;
+  top: 6rpx;
+  right: 6rpx;
+  width: 28rpx;
+  height: 28rpx;
+  border-radius: 50%;
+  background: $secondary;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+
+  text {
+    font-size: 16rpx;
+    color: $text-white;
+  }
+}
+
+// ==========================================
+// 角色选择 - 圆形头像卡片
+// ==========================================
+.character-carousel {
+  display: flex;
+  gap: $spacing-sm;
+  flex-wrap: wrap;
+  justify-content: space-between;
+}
+
+.character-card {
   position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: $spacing-lg $spacing-sm;
-  background: $bg-card;
+  width: calc(33.33% - 16rpx);
+  padding: $spacing-sm 0;
+  transition: all $duration-base $ease-bounce;
+
+  &.selected .character-avatar {
+    background: rgba($secondary, 0.15);
+    border-color: $secondary;
+  }
+
+  &.selected .char-ring {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  &:active {
+    transform: scale(0.92);
+  }
+}
+
+.character-avatar {
+  position: relative;
+  width: 88rpx;
+  height: 88rpx;
+  border-radius: 50%;
+  background: $bg-base;
+  border: 3rpx solid transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: $spacing-xs;
+  transition: all $duration-base;
+}
+
+.char-emoji {
+  font-size: 40rpx;
+}
+
+.char-name {
+  font-size: $font-xs;
+  color: $text-primary;
+  font-weight: $font-medium;
+}
+
+.char-ring {
+  position: absolute;
+  top: -6rpx;
+  left: -6rpx;
+  right: -6rpx;
+  bottom: -6rpx;
+  border: 3rpx solid $secondary;
+  border-radius: 50%;
+  opacity: 0;
+  transform: scale(0.8);
+  transition: all $duration-base $ease-bounce;
+  pointer-events: none;
+}
+
+// ==========================================
+// 色彩风格 - 条纹预览卡片
+// ==========================================
+.palette-list {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+}
+
+.palette-card {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  padding: $spacing-sm $spacing-md;
+  background: $bg-base;
   border-radius: $radius-md;
   border: 2rpx solid transparent;
-  box-shadow: $shadow-sm;
   transition: all $duration-fast;
 
   &.selected {
@@ -892,39 +1388,86 @@ onLoad((options) => {
   }
 
   &:active {
-    transform: scale(0.96);
+    transform: scale(0.98);
   }
 }
 
-.style-icon {
-  font-size: 56rpx;
-  margin-bottom: $spacing-xs;
+.palette-preview {
+  width: 72rpx;
+  height: 44rpx;
+  border-radius: $radius-sm;
+  overflow: hidden;
+  display: flex;
+  flex-shrink: 0;
+
+  &.pastel .palette-stripe {
+    &:nth-child(1) { background: #FFB5BA; }
+    &:nth-child(2) { background: #B5D8FF; }
+    &:nth-child(3) { background: #C5F0A4; }
+    &:nth-child(4) { background: #FFF5BA; }
+  }
+
+  &.vibrant .palette-stripe {
+    &:nth-child(1) { background: #FF4757; }
+    &:nth-child(2) { background: #3742FA; }
+    &:nth-child(3) { background: #2ED573; }
+    &:nth-child(4) { background: #FFA502; }
+  }
+
+  &.warm .palette-stripe {
+    &:nth-child(1) { background: #FF6B35; }
+    &:nth-child(2) { background: #F7C566; }
+    &:nth-child(3) { background: #E8A87C; }
+    &:nth-child(4) { background: #FFE4C4; }
+  }
+
+  &.cool .palette-stripe {
+    &:nth-child(1) { background: #74B9FF; }
+    &:nth-child(2) { background: #81ECEC; }
+    &:nth-child(3) { background: #A29BFE; }
+    &:nth-child(4) { background: #DFE6E9; }
+  }
+
+  &.monochrome .palette-stripe {
+    &:nth-child(1) { background: #2D3436; }
+    &:nth-child(2) { background: #636E72; }
+    &:nth-child(3) { background: #B2BEC3; }
+    &:nth-child(4) { background: #DFE6E9; }
+  }
 }
 
-.style-name {
-  font-size: $font-md;
-  font-weight: $font-semibold;
+.palette-stripe {
+  flex: 1;
+  height: 100%;
+}
+
+.palette-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2rpx;
+}
+
+.palette-name {
+  font-size: $font-sm;
+  font-weight: $font-medium;
   color: $text-primary;
-  margin-bottom: 4rpx;
 }
 
-.style-desc {
+.palette-desc {
   font-size: $font-xs;
   color: $text-secondary;
-  text-align: center;
 }
 
-.style-check {
-  position: absolute;
-  top: 8rpx;
-  right: 8rpx;
+.palette-check {
   width: 32rpx;
   height: 32rpx;
-  background: $secondary;
   border-radius: 50%;
+  background: $secondary;
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 
   text {
     font-size: 18rpx;

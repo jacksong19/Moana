@@ -96,6 +96,98 @@
             <text class="preview-value">约 {{ estimatedDuration }} 秒</text>
           </view>
         </view>
+
+        <!-- 动效风格选择 -->
+        <view class="style-section">
+          <text class="style-title">
+            <text class="title-icon">🎬</text>
+            动效风格
+          </text>
+          <view class="motion-style-carousel">
+            <view
+              v-for="style in motionStyles"
+              :key="style.value"
+              class="motion-card"
+              :class="{ active: selectedMotionStyle === style.value }"
+              @tap="selectedMotionStyle = style.value"
+            >
+              <view class="motion-preview" :class="style.value">
+                <view class="preview-element element-1"></view>
+                <view class="preview-element element-2"></view>
+                <view class="preview-element element-3"></view>
+              </view>
+              <view class="motion-info">
+                <text class="motion-name">{{ style.label }}</text>
+                <text class="motion-desc">{{ style.desc }}</text>
+              </view>
+              <view v-if="selectedMotionStyle === style.value" class="motion-check">
+                <text>✓</text>
+              </view>
+            </view>
+          </view>
+        </view>
+
+        <!-- 分辨率选择 -->
+        <view class="style-section">
+          <text class="style-title">
+            <text class="title-icon">📐</text>
+            视频分辨率
+          </text>
+          <view class="resolution-list">
+            <view
+              v-for="res in resolutionOptions"
+              :key="res.value"
+              class="resolution-item"
+              :class="{ active: selectedResolution === res.value }"
+              @tap="selectedResolution = res.value"
+            >
+              <view class="res-ratio" :style="{ aspectRatio: res.ratio }"></view>
+              <text class="res-label">{{ res.label }}</text>
+              <text v-if="res.recommended" class="res-badge">推荐</text>
+            </view>
+          </view>
+        </view>
+
+        <!-- 视频时长选择 -->
+        <view class="style-section">
+          <text class="style-title">
+            <text class="title-icon">⏱️</text>
+            视频时长
+          </text>
+          <view class="duration-tabs">
+            <view
+              v-for="dur in durationOptions"
+              :key="dur.value"
+              class="duration-tab"
+              :class="{ active: selectedDuration === dur.value }"
+              @tap="selectedDuration = dur.value"
+            >
+              <text class="dur-value">{{ dur.label }}</text>
+              <text class="dur-desc">{{ dur.desc }}</text>
+            </view>
+          </view>
+        </view>
+
+        <!-- 镜头类型选择 -->
+        <view class="style-section">
+          <text class="style-title">
+            <text class="title-icon">🎥</text>
+            镜头类型
+          </text>
+          <view class="shot-type-grid">
+            <view
+              v-for="shot in shotTypeOptions"
+              :key="shot.value"
+              class="shot-type-item"
+              :class="{ active: selectedShotType === shot.value }"
+              @tap="selectedShotType = shot.value"
+            >
+              <text class="shot-icon">{{ shot.icon }}</text>
+              <text class="shot-label">{{ shot.label }}</text>
+            </view>
+          </view>
+        </view>
+
         <text class="preview-tip">视频生成需要 1-5 分钟，请耐心等待</text>
       </view>
 
@@ -122,7 +214,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
-import type { PictureBook, Video, VideoPage } from '@/api/content'
+import type { PictureBook, Video, VideoPage, MotionStyle } from '@/api/content'
 import { getGeneratedList, getContentDetail, generateVideo } from '@/api/content'
 import { useChildStore } from '@/stores/child'
 import GeneratingProgress from '@/components/GeneratingProgress/GeneratingProgress.vue'
@@ -138,6 +230,40 @@ const generating = ref(false)
 const generateProgress = ref(0)
 const pictureBooks = ref<PictureBook[]>([])
 const selectedBook = ref<PictureBook | null>(null)
+
+// 动效风格选项
+const motionStyles = [
+  { value: 'gentle' as MotionStyle, label: '柔和流动', desc: '轻柔缓慢的过渡动画，适合睡前故事' },
+  { value: 'dynamic' as MotionStyle, label: '活泼跳跃', desc: '生动明快的动态效果，适合冒险故事' },
+  { value: 'static' as MotionStyle, label: '静态展示', desc: '稳定优雅的图片展示，专注画面欣赏' }
+]
+const selectedMotionStyle = ref<MotionStyle>('gentle')
+
+// 分辨率选项
+const resolutionOptions = [
+  { value: '720p', label: '720P', ratio: '16/9', recommended: false },
+  { value: '1080p', label: '1080P', ratio: '16/9', recommended: true },
+  { value: '9:16', label: '竖屏', ratio: '9/16', recommended: false }
+]
+const selectedResolution = ref('1080p')
+
+// 时长选项
+const durationOptions = [
+  { value: 'auto', label: '自动', desc: '根据内容' },
+  { value: '30s', label: '30秒', desc: '精简版' },
+  { value: '60s', label: '60秒', desc: '标准版' },
+  { value: '90s', label: '90秒', desc: '完整版' }
+]
+const selectedDuration = ref('auto')
+
+// 镜头类型选项
+const shotTypeOptions = [
+  { value: 'zoom', label: '缩放', icon: '🔍' },
+  { value: 'pan', label: '平移', icon: '↔️' },
+  { value: 'fade', label: '淡入淡出', icon: '🌓' },
+  { value: 'mixed', label: '混合', icon: '🎭' }
+]
+const selectedShotType = ref('mixed')
 
 // 格式化时长
 function formatDuration(seconds?: number): string {
@@ -287,7 +413,8 @@ async function handleGenerate() {
       },
       child_name: child.name,
       theme_topic: selectedBook.value.theme_topic || '',
-      theme_category: 'habit' // 默认分类
+      theme_category: 'habit', // 默认分类
+      motion_style: selectedMotionStyle.value
     }
 
     const video = await generateVideo(params)
@@ -671,6 +798,323 @@ onMounted(() => {
   color: $text-light;
   text-align: center;
   margin-top: $spacing-sm;
+}
+
+// 风格选择区块
+.style-section {
+  margin-top: $spacing-lg;
+}
+
+.style-title {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  font-size: $font-base;
+  font-weight: $font-semibold;
+  color: $text-primary;
+  margin-bottom: $spacing-md;
+
+  .title-icon {
+    font-size: $font-md;
+  }
+}
+
+// 动效风格卡片轮播
+.motion-style-carousel {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+}
+
+.motion-card {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  padding: $spacing-md;
+  background: $bg-card;
+  border-radius: $radius-lg;
+  border: 3rpx solid transparent;
+  transition: all $duration-base;
+  position: relative;
+
+  &.active {
+    border-color: $video-primary;
+    background: rgba($video-primary, 0.08);
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
+}
+
+.motion-preview {
+  width: 120rpx;
+  height: 80rpx;
+  border-radius: $radius-sm;
+  background: linear-gradient(135deg, rgba($video-primary, 0.15), rgba($video-primary, 0.05));
+  position: relative;
+  overflow: hidden;
+  flex-shrink: 0;
+
+  .preview-element {
+    position: absolute;
+    border-radius: $radius-xs;
+    background: $video-primary;
+  }
+
+  &.gentle {
+    .element-1 {
+      width: 40rpx;
+      height: 40rpx;
+      top: 20rpx;
+      left: 20rpx;
+      animation: gentleFloat 3s ease-in-out infinite;
+    }
+    .element-2 {
+      width: 24rpx;
+      height: 24rpx;
+      top: 30rpx;
+      right: 20rpx;
+      animation: gentleFloat 3s ease-in-out infinite 0.5s;
+      opacity: 0.7;
+    }
+    .element-3 {
+      width: 16rpx;
+      height: 16rpx;
+      bottom: 15rpx;
+      left: 50rpx;
+      animation: gentleFloat 3s ease-in-out infinite 1s;
+      opacity: 0.5;
+    }
+  }
+
+  &.dynamic {
+    .element-1 {
+      width: 30rpx;
+      height: 30rpx;
+      top: 25rpx;
+      left: 15rpx;
+      animation: dynamicBounce 0.8s ease-in-out infinite;
+    }
+    .element-2 {
+      width: 24rpx;
+      height: 24rpx;
+      top: 20rpx;
+      left: 55rpx;
+      animation: dynamicBounce 0.8s ease-in-out infinite 0.2s;
+      opacity: 0.8;
+    }
+    .element-3 {
+      width: 20rpx;
+      height: 20rpx;
+      top: 30rpx;
+      right: 15rpx;
+      animation: dynamicBounce 0.8s ease-in-out infinite 0.4s;
+      opacity: 0.6;
+    }
+  }
+
+  &.static {
+    .element-1 {
+      width: 50rpx;
+      height: 35rpx;
+      top: 22rpx;
+      left: 35rpx;
+      opacity: 0.9;
+    }
+    .element-2, .element-3 {
+      display: none;
+    }
+  }
+}
+
+@keyframes gentleFloat {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-8rpx) scale(1.05); }
+}
+
+@keyframes dynamicBounce {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-15rpx) scale(1.15); }
+}
+
+.motion-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+}
+
+.motion-name {
+  font-size: $font-base;
+  font-weight: $font-semibold;
+  color: $text-primary;
+}
+
+.motion-desc {
+  font-size: $font-xs;
+  color: $text-secondary;
+  line-height: 1.4;
+}
+
+.motion-check {
+  width: 40rpx;
+  height: 40rpx;
+  border-radius: 50%;
+  background: $video-primary;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+
+  text {
+    font-size: 24rpx;
+    color: $text-white;
+    font-weight: $font-bold;
+  }
+}
+
+// 分辨率选择
+.resolution-list {
+  display: flex;
+  gap: $spacing-sm;
+}
+
+.resolution-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: $spacing-xs;
+  padding: $spacing-md $spacing-sm;
+  background: $bg-card;
+  border-radius: $radius-md;
+  border: 3rpx solid transparent;
+  transition: all $duration-base;
+  position: relative;
+
+  &.active {
+    border-color: $video-primary;
+    background: rgba($video-primary, 0.08);
+  }
+
+  &:active {
+    transform: scale(0.96);
+  }
+}
+
+.res-ratio {
+  width: 60rpx;
+  max-height: 50rpx;
+  background: linear-gradient(135deg, rgba($video-primary, 0.3), rgba($video-primary, 0.1));
+  border: 2rpx solid rgba($video-primary, 0.5);
+  border-radius: $radius-xs;
+}
+
+.res-label {
+  font-size: $font-sm;
+  font-weight: $font-semibold;
+  color: $text-primary;
+}
+
+.res-badge {
+  position: absolute;
+  top: -8rpx;
+  right: -8rpx;
+  padding: 4rpx 12rpx;
+  background: $video-primary;
+  border-radius: $radius-sm;
+  font-size: 20rpx;
+  color: $text-white;
+  font-weight: $font-medium;
+}
+
+// 时长选择
+.duration-tabs {
+  display: flex;
+  gap: $spacing-xs;
+  background: rgba(0, 0, 0, 0.03);
+  padding: $spacing-xs;
+  border-radius: $radius-md;
+}
+
+.duration-tab {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4rpx;
+  padding: $spacing-sm $spacing-xs;
+  border-radius: $radius-sm;
+  transition: all $duration-base;
+
+  &.active {
+    background: $bg-card;
+    box-shadow: $shadow-sm;
+
+    .dur-value {
+      color: $video-primary;
+    }
+  }
+
+  &:active {
+    transform: scale(0.96);
+  }
+}
+
+.dur-value {
+  font-size: $font-sm;
+  font-weight: $font-semibold;
+  color: $text-primary;
+  transition: color $duration-base;
+}
+
+.dur-desc {
+  font-size: 20rpx;
+  color: $text-light;
+}
+
+// 镜头类型选择
+.shot-type-grid {
+  display: flex;
+  gap: $spacing-sm;
+}
+
+.shot-type-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: $spacing-xs;
+  padding: $spacing-md $spacing-sm;
+  background: $bg-card;
+  border-radius: $radius-md;
+  border: 3rpx solid transparent;
+  transition: all $duration-base;
+
+  &.active {
+    border-color: $video-primary;
+    background: rgba($video-primary, 0.08);
+
+    .shot-icon {
+      transform: scale(1.1);
+    }
+  }
+
+  &:active {
+    transform: scale(0.96);
+  }
+}
+
+.shot-icon {
+  font-size: 36rpx;
+  transition: transform $duration-base;
+}
+
+.shot-label {
+  font-size: $font-xs;
+  font-weight: $font-medium;
+  color: $text-primary;
 }
 
 // 底部

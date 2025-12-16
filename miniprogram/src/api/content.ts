@@ -65,6 +65,18 @@ export type ProtagonistAnimal = 'bunny' | 'bear' | 'cat' | 'dog' | 'panda' | 'fo
 // 色调类型
 export type ColorPalette = 'pastel' | 'vibrant' | 'warm' | 'cool' | 'monochrome'
 
+// TTS 音色 ID
+export type VoiceId = 'Cherry' | 'Serena' | 'Chelsie' | 'Brittany' | 'Ethan' | 'Luke' | 'Stella'
+
+// TTS 音色配置
+export interface VoiceOption {
+  id: VoiceId
+  name: string        // 中文名
+  gender: 'female' | 'male' | 'child'
+  style: string       // 风格描述
+  recommended?: boolean
+}
+
 // 主角配置
 export interface ProtagonistConfig {
   animal: ProtagonistAnimal
@@ -86,15 +98,113 @@ export interface GeneratePictureBookParams {
   color_palette?: ColorPalette
 }
 
-// 风格选项响应
-export interface StyleOptions {
-  art_styles: Array<{ value: ArtStyle; label: string; description: string }>
-  protagonist_animals: Array<{ value: ProtagonistAnimal; label: string; emoji: string }>
-  color_palettes: Array<{ value: ColorPalette; label: string; description: string }>
+// 音乐情绪类型
+export type MusicMood = 'cheerful' | 'gentle' | 'playful' | 'lullaby' | 'educational'
+
+// 视频动效类型
+export type MotionStyle = 'gentle' | 'dynamic' | 'static'
+
+// 艺术风格选项
+export interface ArtStyleOption {
+  id: ArtStyle
+  name: string
+  name_en: string
+  description: string
+  preview_url?: string
+  recommended?: boolean
 }
 
-// 儿歌音乐风格
-export type MusicStyle = 'cheerful' | 'gentle' | 'playful' | 'lullaby' | 'educational'
+// 主角选项
+export interface ProtagonistOption {
+  animal: ProtagonistAnimal
+  name: string
+  default_color: string
+  default_accessory: string
+  preview_url?: string
+}
+
+// 色彩风格选项
+export interface ColorPaletteOption {
+  id: ColorPalette
+  name: string
+  description: string
+  colors: string[]
+}
+
+// 配饰选项
+export interface AccessoryOption {
+  id: string
+  name: string
+  name_en: string
+}
+
+// 音乐情绪选项
+export interface MusicMoodOption {
+  id: MusicMood
+  name: string
+  description: string
+}
+
+// 动效风格选项
+export interface MotionStyleOption {
+  id: MotionStyle
+  name: string
+  description: string
+}
+
+// 视频模型选项
+export interface VideoModelOption {
+  id: string
+  description: string
+  resolutions: string[]
+  durations: number[]
+  has_audio: boolean
+  shot_types: string[]
+  recommended?: boolean
+}
+
+// 分辨率选项
+export interface ResolutionOption {
+  id: string
+  name: string
+  sizes: string[]
+}
+
+// 时长选项
+export interface DurationOption {
+  value: number
+  label: string
+}
+
+// 镜头类型选项
+export interface ShotTypeOption {
+  id: string
+  name: string
+  description: string
+}
+
+// 视频选项
+export interface VideoOptionsConfig {
+  models: VideoModelOption[]
+  resolutions: ResolutionOption[]
+  durations: DurationOption[]
+  shot_types: ShotTypeOption[]
+}
+
+// 风格选项响应（完整版，匹配后端 API）
+export interface StyleOptions {
+  art_styles: ArtStyleOption[]
+  protagonists: ProtagonistOption[]
+  color_palettes: ColorPaletteOption[]
+  accessories: AccessoryOption[]
+  music_moods: MusicMoodOption[]
+  video_motion_styles: MotionStyleOption[]
+  tts_voices: VoiceOption[]
+  video_options: VideoOptionsConfig
+}
+
+// 儿歌音乐风格（兼容旧版）
+export type MusicStyle = MusicMood
 
 // 生成儿歌参数
 export interface GenerateNurseryRhymeParams {
@@ -103,6 +213,11 @@ export interface GenerateNurseryRhymeParams {
   theme_topic: string
   theme_category: string
   music_style?: MusicStyle
+  // 新增风格参数
+  music_mood?: MusicMood
+  art_style?: ArtStyle
+  protagonist?: ProtagonistConfig
+  color_palette?: ColorPalette
 }
 
 // 歌词段落接口
@@ -163,11 +278,102 @@ export async function getThemes(): Promise<ThemeList> {
   return request.get<ThemeList>('/content/themes')
 }
 
+// 默认风格选项（后端未返回时使用）
+const DEFAULT_STYLE_OPTIONS: StyleOptions = {
+  art_styles: [
+    { id: 'pixar_3d', name: '皮克斯3D', name_en: 'Pixar 3D', description: '使用皮克斯3D风格绘制', recommended: true },
+    { id: 'watercolor', name: '水彩手绘', name_en: 'Watercolor', description: '柔和温馨的水彩画风' },
+    { id: 'flat_vector', name: '扁平插画', name_en: 'Flat Vector', description: '现代简约的扁平设计' },
+    { id: 'crayon', name: '蜡笔涂鸦', name_en: 'Crayon', description: '童趣十足的蜡笔画风' },
+    { id: 'anime', name: '日系动漫', name_en: 'Anime', description: '可爱细腻的日系风格' }
+  ],
+  protagonists: [
+    { animal: 'bunny', name: '小兔子', default_color: 'white', default_accessory: 'blue overalls' },
+    { animal: 'bear', name: '小熊', default_color: 'brown', default_accessory: 'red scarf' },
+    { animal: 'cat', name: '小猫咪', default_color: 'orange', default_accessory: 'bell collar' },
+    { animal: 'dog', name: '小狗狗', default_color: 'golden', default_accessory: 'blue bandana' },
+    { animal: 'panda', name: '熊猫', default_color: 'black and white', default_accessory: 'bamboo' },
+    { animal: 'fox', name: '小狐狸', default_color: 'orange', default_accessory: 'green scarf' }
+  ],
+  color_palettes: [
+    { id: 'pastel', name: '马卡龙色', description: '柔和温馨', colors: ['#FFB5BA', '#B5D8FF', '#C5F0A4', '#FFF5BA'] },
+    { id: 'vibrant', name: '活力鲜艳', description: '明快活泼', colors: ['#FF4757', '#3742FA', '#2ED573', '#FFA502'] },
+    { id: 'warm', name: '暖暖阳光', description: '温暖舒适', colors: ['#FF6B35', '#F7C566', '#E8A87C', '#FFE4C4'] },
+    { id: 'cool', name: '清新冷调', description: '清爽宁静', colors: ['#74B9FF', '#81ECEC', '#A29BFE', '#DFE6E9'] },
+    { id: 'monochrome', name: '简约单色', description: '优雅简洁', colors: ['#2D3436', '#636E72', '#B2BEC3', '#DFE6E9'] }
+  ],
+  accessories: [
+    { id: 'blue_overalls', name: '蓝色背带裤', name_en: 'blue overalls' },
+    { id: 'red_scarf', name: '红色围巾', name_en: 'red scarf' },
+    { id: 'yellow_raincoat', name: '黄色雨衣', name_en: 'yellow raincoat' },
+    { id: 'pink_bow', name: '粉色蝴蝶结', name_en: 'pink bow' },
+    { id: 'green_hat', name: '绿色小帽', name_en: 'green hat' }
+  ],
+  music_moods: [
+    { id: 'cheerful', name: '欢快活泼', description: '适合日常活动主题' },
+    { id: 'gentle', name: '温柔舒缓', description: '适合睡前或安静时刻' },
+    { id: 'playful', name: '调皮有趣', description: '适合游戏互动主题' },
+    { id: 'lullaby', name: '摇篮曲', description: '适合哄睡' },
+    { id: 'educational', name: '教育启蒙', description: '适合认知学习主题' }
+  ],
+  video_motion_styles: [
+    { id: 'gentle', name: '柔和过渡', description: '轻柔自然的动画效果' },
+    { id: 'dynamic', name: '活泼生动', description: '充满活力的动态效果' },
+    { id: 'static', name: '静态展示', description: '稳定清晰的展示效果' }
+  ],
+  tts_voices: [
+    { id: 'Cherry', name: '樱桃', gender: 'female', style: '温柔亲切', recommended: true },
+    { id: 'Serena', name: '思睿', gender: 'female', style: '知性优雅' },
+    { id: 'Chelsie', name: '晨曦', gender: 'female', style: '活泼可爱' },
+    { id: 'Brittany', name: '贝蒂', gender: 'female', style: '甜美清新' },
+    { id: 'Ethan', name: '伊森', gender: 'male', style: '成熟稳重' },
+    { id: 'Luke', name: '卢克', gender: 'male', style: '温暖亲和' },
+    { id: 'Stella', name: '星星', gender: 'child', style: '童真可爱' }
+  ],
+  video_options: {
+    models: [
+      { id: 'wan2.1-i2v-plus', description: '专业版（推荐）', resolutions: ['480P', '720P'], durations: [5], has_audio: false, shot_types: ['single'], recommended: true },
+      { id: 'wan2.1-i2v-turbo', description: '极速版', resolutions: ['480P', '720P'], durations: [5], has_audio: false, shot_types: ['single'] }
+    ],
+    resolutions: [
+      { id: '480P', name: '480P 标清', sizes: ['832*480', '480*832', '624*624'] },
+      { id: '720P', name: '720P 高清', sizes: ['1280*720', '720*1280', '960*960'] }
+    ],
+    durations: [
+      { value: 5, label: '5秒' }
+    ],
+    shot_types: [
+      { id: 'single', name: '单镜头', description: '单一场景连贯运动' }
+    ]
+  }
+}
+
 /**
- * 获取绘本风格选项
+ * 获取风格选项
+ * 优先从后端获取，失败时使用本地默认值
  */
 export async function getStyleOptions(): Promise<StyleOptions> {
-  return request.get<StyleOptions>('/content/style-options')
+  try {
+    const result = await request.get<StyleOptions>('/content/style-options', {
+      showError: false,
+      timeout: 10000
+    })
+    // 合并后端返回和本地默认值，确保字段完整
+    return {
+      ...DEFAULT_STYLE_OPTIONS,
+      ...result,
+      // 如果后端返回的数组为空，使用默认值
+      art_styles: result.art_styles?.length ? result.art_styles : DEFAULT_STYLE_OPTIONS.art_styles,
+      protagonists: result.protagonists?.length ? result.protagonists : DEFAULT_STYLE_OPTIONS.protagonists,
+      color_palettes: result.color_palettes?.length ? result.color_palettes : DEFAULT_STYLE_OPTIONS.color_palettes,
+      music_moods: result.music_moods?.length ? result.music_moods : DEFAULT_STYLE_OPTIONS.music_moods,
+      tts_voices: result.tts_voices?.length ? result.tts_voices : DEFAULT_STYLE_OPTIONS.tts_voices,
+      video_options: result.video_options?.models?.length ? result.video_options : DEFAULT_STYLE_OPTIONS.video_options
+    }
+  } catch (e) {
+    console.warn('[getStyleOptions] 获取后端风格选项失败，使用本地默认值:', e)
+    return DEFAULT_STYLE_OPTIONS
+  }
 }
 
 /**
@@ -368,6 +574,8 @@ export interface GenerateVideoParams {
   child_name: string
   theme_topic: string
   theme_category: string
+  // 新增视频动效风格
+  motion_style?: MotionStyle
 }
 
 // 视频接口

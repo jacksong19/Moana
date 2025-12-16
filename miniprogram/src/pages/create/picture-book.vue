@@ -70,43 +70,63 @@
         </view>
       </view>
 
-      <!-- 步骤 2: 个性化设置 -->
+      <!-- 步骤 2: 风格设置 -->
       <view v-if="currentStep === 1" class="step-content animate-fadeIn">
-        <text class="step-title">个性化设置</text>
-        <text class="step-desc">让故事更贴近 {{ childName }}</text>
+        <text class="step-title">画面风格</text>
+        <text class="step-desc">为 {{ childName }} 选择喜欢的绘本风格</text>
 
         <view class="form-section">
-          <!-- 角色选择 -->
+          <!-- 艺术风格 -->
           <view class="form-item">
-            <text class="form-label">故事角色</text>
-            <text class="form-hint">选择宝贝喜欢的角色出现在故事中</text>
-            <view class="character-grid">
+            <text class="form-label">艺术风格</text>
+            <view class="style-grid">
               <view
-                v-for="char in characters"
-                :key="char.id"
-                class="character-item"
-                :class="{ selected: selectedCharacters.includes(char.id) }"
-                @tap="toggleCharacter(char.id)"
+                v-for="style in artStyles"
+                :key="style.value"
+                class="style-card"
+                :class="{ selected: selectedArtStyle === style.value }"
+                @tap="selectedArtStyle = style.value"
               >
-                <text class="char-emoji">{{ char.emoji }}</text>
-                <text class="char-name">{{ char.name }}</text>
+                <text class="style-icon">{{ style.icon }}</text>
+                <text class="style-name">{{ style.label }}</text>
+                <text class="style-desc">{{ style.desc }}</text>
               </view>
             </view>
           </view>
 
-          <!-- 故事长度 -->
+          <!-- 主角动物 -->
           <view class="form-item">
-            <text class="form-label">故事长度</text>
-            <view class="length-options">
+            <text class="form-label">故事主角</text>
+            <text class="form-hint">选择陪伴宝贝的小动物</text>
+            <view class="character-grid">
               <view
-                v-for="len in lengthOptions"
-                :key="len.value"
-                class="length-item"
-                :class="{ selected: storyLength === len.value }"
-                @tap="storyLength = len.value"
+                v-for="animal in protagonistAnimals"
+                :key="animal.value"
+                class="character-item"
+                :class="{ selected: selectedAnimal === animal.value }"
+                @tap="selectedAnimal = animal.value"
               >
-                <text class="length-name">{{ len.name }}</text>
-                <text class="length-desc">{{ len.desc }}</text>
+                <text class="char-emoji">{{ animal.emoji }}</text>
+                <text class="char-name">{{ animal.label }}</text>
+              </view>
+            </view>
+          </view>
+
+          <!-- 色调 -->
+          <view class="form-item">
+            <text class="form-label">画面色调</text>
+            <view class="palette-grid">
+              <view
+                v-for="palette in colorPalettes"
+                :key="palette.value"
+                class="palette-item"
+                :class="[palette.value, { selected: selectedPalette === palette.value }]"
+                @tap="selectedPalette = palette.value"
+              >
+                <view class="palette-colors">
+                  <view class="color-dot" v-for="i in 3" :key="i"></view>
+                </view>
+                <text class="palette-name">{{ palette.label }}</text>
               </view>
             </view>
           </view>
@@ -128,12 +148,16 @@
             <text class="confirm-value">{{ childName }}</text>
           </view>
           <view class="confirm-item">
-            <text class="confirm-label">故事角色</text>
-            <text class="confirm-value">{{ selectedCharacterNames }}</text>
+            <text class="confirm-label">艺术风格</text>
+            <text class="confirm-value">{{ currentArtStyleName }}</text>
           </view>
           <view class="confirm-item">
-            <text class="confirm-label">故事长度</text>
-            <text class="confirm-value">{{ currentLengthName }}</text>
+            <text class="confirm-label">故事主角</text>
+            <text class="confirm-value">{{ currentAnimalName }}</text>
+          </view>
+          <view class="confirm-item">
+            <text class="confirm-label">画面色调</text>
+            <text class="confirm-value">{{ currentPaletteName }}</text>
           </view>
         </view>
 
@@ -177,7 +201,10 @@ import {
   getPictureBookTaskStatus,
   getContentDetail,
   type ThemeItem,
-  type PictureBook
+  type PictureBook,
+  type ArtStyle,
+  type ProtagonistAnimal,
+  type ColorPalette
 } from '@/api/content'
 
 const childStore = useChildStore()
@@ -204,24 +231,36 @@ const themeCategories = [
 const selectedCategory = ref('habit')
 const selectedTheme = ref<ThemeItem | null>(null)
 
-// 角色
-const characters = [
-  { id: 'bear', name: '小熊', emoji: '🐻' },
-  { id: 'rabbit', name: '小兔子', emoji: '🐰' },
-  { id: 'cat', name: '小猫咪', emoji: '🐱' },
-  { id: 'dog', name: '小狗狗', emoji: '🐶' },
-  { id: 'elephant', name: '小象', emoji: '🐘' },
-  { id: 'panda', name: '熊猫', emoji: '🐼' }
+// 艺术风格选项
+const artStyles = [
+  { value: 'pixar_3d' as ArtStyle, label: '3D 动画', icon: '🎬', desc: '皮克斯风格' },
+  { value: 'watercolor' as ArtStyle, label: '水彩', icon: '🎨', desc: '柔和温馨' },
+  { value: 'flat_vector' as ArtStyle, label: '扁平插画', icon: '✨', desc: '现代简约' },
+  { value: 'crayon' as ArtStyle, label: '蜡笔画', icon: '🖍️', desc: '童趣手绘' },
+  { value: 'anime' as ArtStyle, label: '日系动漫', icon: '🌸', desc: '可爱细腻' }
 ]
-const selectedCharacters = ref<string[]>(['bear'])
+const selectedArtStyle = ref<ArtStyle>('pixar_3d')
 
-// 故事长度
-const lengthOptions = [
-  { value: 'short', name: '简短版', desc: '5-6页，约2分钟' },
-  { value: 'medium', name: '标准版', desc: '8-10页，约4分钟' },
-  { value: 'long', name: '完整版', desc: '12-15页，约6分钟' }
+// 主角动物选项
+const protagonistAnimals = [
+  { value: 'bunny' as ProtagonistAnimal, label: '小兔子', emoji: '🐰' },
+  { value: 'bear' as ProtagonistAnimal, label: '小熊', emoji: '🐻' },
+  { value: 'cat' as ProtagonistAnimal, label: '小猫咪', emoji: '🐱' },
+  { value: 'dog' as ProtagonistAnimal, label: '小狗狗', emoji: '🐶' },
+  { value: 'panda' as ProtagonistAnimal, label: '熊猫', emoji: '🐼' },
+  { value: 'fox' as ProtagonistAnimal, label: '小狐狸', emoji: '🦊' }
 ]
-const storyLength = ref('medium')
+const selectedAnimal = ref<ProtagonistAnimal>('bunny')
+
+// 色调选项
+const colorPalettes = [
+  { value: 'pastel' as ColorPalette, label: '马卡龙' },
+  { value: 'vibrant' as ColorPalette, label: '鲜艳活泼' },
+  { value: 'warm' as ColorPalette, label: '暖色温馨' },
+  { value: 'cool' as ColorPalette, label: '清新冷调' },
+  { value: 'monochrome' as ColorPalette, label: '黑白经典' }
+]
+const selectedPalette = ref<ColorPalette>('pastel')
 
 // 生成状态
 const isGenerating = ref(false)
@@ -235,15 +274,16 @@ const filteredThemes = computed(() => {
   return themes.length > 0 ? themes : defaultThemes[selectedCategory.value] || []
 })
 
-const selectedCharacterNames = computed(() => {
-  return selectedCharacters.value
-    .map(id => characters.find(c => c.id === id)?.name)
-    .filter(Boolean)
-    .join('、') || '无'
+const currentArtStyleName = computed(() => {
+  return artStyles.find(s => s.value === selectedArtStyle.value)?.label || ''
 })
 
-const currentLengthName = computed(() => {
-  return lengthOptions.find(l => l.value === storyLength.value)?.name || ''
+const currentAnimalName = computed(() => {
+  return protagonistAnimals.find(a => a.value === selectedAnimal.value)?.label || ''
+})
+
+const currentPaletteName = computed(() => {
+  return colorPalettes.find(p => p.value === selectedPalette.value)?.label || ''
 })
 
 const canNext = computed(() => {
@@ -297,19 +337,6 @@ function selectTheme(theme: ThemeItem) {
   selectedTheme.value = theme
 }
 
-function toggleCharacter(id: string) {
-  const index = selectedCharacters.value.indexOf(id)
-  if (index > -1) {
-    if (selectedCharacters.value.length > 1) {
-      selectedCharacters.value.splice(index, 1)
-    }
-  } else {
-    if (selectedCharacters.value.length < 3) {
-      selectedCharacters.value.push(id)
-    }
-  }
-}
-
 function prevStep() {
   if (currentStep.value > 0) {
     currentStep.value--
@@ -337,13 +364,18 @@ async function startGenerate() {
     const ageMonths = childStore.currentChildAgeMonths || 36 // 默认 3 岁
 
     // 1. 发起异步生成请求
-    console.log('[绘本] 发起异步生成请求')
+    console.log('[绘本] 发起异步生成请求，风格:', selectedArtStyle.value, selectedAnimal.value, selectedPalette.value)
     const asyncResult = await generatePictureBookAsync({
       child_name: childStore.currentChild.name,
       age_months: ageMonths,
       theme_topic: selectedTheme.value.id,
       theme_category: selectedCategory.value,
-      favorite_characters: selectedCharacters.value
+      // 新增风格参数
+      art_style: selectedArtStyle.value,
+      protagonist: {
+        animal: selectedAnimal.value
+      },
+      color_palette: selectedPalette.value
     })
 
     const taskId = asyncResult.task_id
@@ -785,18 +817,18 @@ onLoad((options) => {
   color: $text-primary;
 }
 
-// 长度选择
-.length-options {
-  display: flex;
-  flex-direction: column;
+// 艺术风格网格
+.style-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
   gap: $spacing-sm;
 }
 
-.length-item {
+.style-card {
   display: flex;
-  justify-content: space-between;
+  flex-direction: column;
   align-items: center;
-  padding: $spacing-sm $spacing-md;
+  padding: $spacing-md $spacing-sm;
   background: $bg-base;
   border-radius: $radius-md;
   border: 2rpx solid transparent;
@@ -806,17 +838,104 @@ onLoad((options) => {
     border-color: $primary;
     background: rgba($primary, 0.1);
   }
+
+  &:active {
+    transform: scale(0.96);
+  }
 }
 
-.length-name {
+.style-icon {
+  font-size: 40rpx;
+  margin-bottom: 8rpx;
+}
+
+.style-name {
   font-size: $font-base;
   font-weight: $font-medium;
   color: $text-primary;
+  margin-bottom: 4rpx;
 }
 
-.length-desc {
-  font-size: $font-sm;
+.style-desc {
+  font-size: $font-xs;
   color: $text-secondary;
+}
+
+// 色调选择
+.palette-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: $spacing-sm;
+}
+
+.palette-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: $spacing-sm;
+  background: $bg-base;
+  border-radius: $radius-md;
+  border: 2rpx solid transparent;
+  transition: all $duration-fast;
+
+  &.selected {
+    border-color: $primary;
+    transform: scale(1.05);
+  }
+
+  &:active {
+    transform: scale(0.96);
+  }
+}
+
+.palette-colors {
+  display: flex;
+  gap: 4rpx;
+  margin-bottom: 8rpx;
+}
+
+.color-dot {
+  width: 16rpx;
+  height: 16rpx;
+  border-radius: 50%;
+  background: #ccc;
+}
+
+// 不同色调的颜色点
+.palette-item.pastel .color-dot {
+  &:nth-child(1) { background: #FFB5BA; }
+  &:nth-child(2) { background: #B5D8FF; }
+  &:nth-child(3) { background: #C5F0C5; }
+}
+
+.palette-item.vibrant .color-dot {
+  &:nth-child(1) { background: #FF4757; }
+  &:nth-child(2) { background: #3742FA; }
+  &:nth-child(3) { background: #2ED573; }
+}
+
+.palette-item.warm .color-dot {
+  &:nth-child(1) { background: #FF6B35; }
+  &:nth-child(2) { background: #F7C566; }
+  &:nth-child(3) { background: #E8A87C; }
+}
+
+.palette-item.cool .color-dot {
+  &:nth-child(1) { background: #74B9FF; }
+  &:nth-child(2) { background: #81ECEC; }
+  &:nth-child(3) { background: #A29BFE; }
+}
+
+.palette-item.monochrome .color-dot {
+  &:nth-child(1) { background: #2D3436; }
+  &:nth-child(2) { background: #636E72; }
+  &:nth-child(3) { background: #B2BEC3; }
+}
+
+.palette-name {
+  font-size: 20rpx;
+  color: $text-primary;
+  text-align: center;
 }
 
 // 确认卡片

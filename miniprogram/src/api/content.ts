@@ -56,6 +56,22 @@ export interface PictureBook {
   created_at: string
 }
 
+// 艺术风格类型
+export type ArtStyle = 'pixar_3d' | 'watercolor' | 'flat_vector' | 'crayon' | 'anime'
+
+// 主角动物类型
+export type ProtagonistAnimal = 'bunny' | 'bear' | 'cat' | 'dog' | 'panda' | 'fox'
+
+// 色调类型
+export type ColorPalette = 'pastel' | 'vibrant' | 'warm' | 'cool' | 'monochrome'
+
+// 主角配置
+export interface ProtagonistConfig {
+  animal: ProtagonistAnimal
+  color?: string
+  accessory?: string
+}
+
 // 生成绘本参数
 export interface GeneratePictureBookParams {
   child_name: string
@@ -64,6 +80,17 @@ export interface GeneratePictureBookParams {
   theme_category: string
   favorite_characters?: string[]
   voice_id?: string
+  // 新增风格参数
+  art_style?: ArtStyle
+  protagonist?: ProtagonistConfig
+  color_palette?: ColorPalette
+}
+
+// 风格选项响应
+export interface StyleOptions {
+  art_styles: Array<{ value: ArtStyle; label: string; description: string }>
+  protagonist_animals: Array<{ value: ProtagonistAnimal; label: string; emoji: string }>
+  color_palettes: Array<{ value: ColorPalette; label: string; description: string }>
 }
 
 // 儿歌音乐风格
@@ -134,6 +161,13 @@ export interface NurseryRhyme {
  */
 export async function getThemes(): Promise<ThemeList> {
   return request.get<ThemeList>('/content/themes')
+}
+
+/**
+ * 获取绘本风格选项
+ */
+export async function getStyleOptions(): Promise<StyleOptions> {
+  return request.get<StyleOptions>('/content/style-options')
 }
 
 /**

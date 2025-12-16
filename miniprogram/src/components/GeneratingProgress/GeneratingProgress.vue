@@ -76,11 +76,12 @@ const bookStages = [
   { id: 'audio', name: '合成语音' }
 ]
 
-// 儿歌生成阶段
+// 儿歌生成阶段（严格对应 Suno 回调阶段）
+// text: 文本生成完成 → first: 第一首音乐完成 → complete: 所有音乐完成
 const songStages = [
-  { id: 'lyrics', name: '编写歌词' },
-  { id: 'music', name: '生成音乐' },
-  { id: 'cover', name: '生成封面' }
+  { id: 'text', name: '文本生成' },      // waiting 进行中 → text 完成
+  { id: 'first', name: '首曲生成' },     // text 后进行中 → first 完成
+  { id: 'complete', name: '全部完成' }   // first 后进行中 → complete 完成
 ]
 
 // 视频生成阶段
@@ -138,13 +139,15 @@ const currentEmojiIndex = ref(0)
 let tipInterval: number
 let emojiInterval: number
 
-// 根据后端阶段映射到 UI 阶段索引（后端回调: text, first, complete）
+// 根据 Suno 回调阶段映射到 UI 阶段索引
+// Suno 回调: text(文本完成) → first(首曲完成) → complete(全部完成)
+// 映射值表示"当前进行中的阶段索引"，用于判断 active 和 done 状态
 const stageMapping: Record<string, number> = {
-  waiting: 0,
-  text: 1,      // 歌词生成完成
-  first: 2,     // 第一首歌曲完成
-  complete: 3,  // 全部完成
-  error: 0
+  waiting: 0,   // 初始状态，"文本生成"进行中
+  text: 1,      // text 回调 = 文本完成，"首曲生成"进行中
+  first: 2,     // first 回调 = 首曲完成，"全部完成"进行中
+  complete: 3,  // complete 回调 = 全部完成，所有阶段 done
+  error: -1     // 错误状态
 }
 
 const currentStage = computed(() => {
@@ -159,12 +162,12 @@ const currentStage = computed(() => {
   return 3
 })
 
-// 阶段标题映射（后端回调: text, first, complete）
+// 阶段标题映射（严格对应 Suno 回调阶段）
 const songStageTexts: Record<string, string> = {
-  waiting: 'AI 启动中',
-  text: '歌词创作完成',
-  first: '第一首就绪',
-  complete: '生成完成',
+  waiting: '文本生成中',      // 初始状态，正在生成歌词文本
+  text: '音乐生成中',         // text 回调后，文本完成，正在生成音乐
+  first: '继续生成中',        // first 回调后，首曲完成，生成第二首
+  complete: '生成完成',       // complete 回调，全部完成
   error: '生成失败'
 }
 

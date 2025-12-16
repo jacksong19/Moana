@@ -1,102 +1,198 @@
 <template>
-  <view class="play-container">
-    <!-- 背景 -->
-    <view class="background">
-      <image v-if="song?.cover_url" :src="song.cover_url" mode="aspectFill" class="bg-image" />
-      <view class="bg-overlay"></view>
-    </view>
-
-    <!-- 顶部控制栏 -->
-    <view class="top-bar" :style="{ paddingTop: statusBarHeight + 'px' }">
-      <view class="close-btn" @tap="handleClose">
-        <text>×</text>
+  <view class="player-container">
+    <!-- 梦幻背景 -->
+    <view class="dreamy-background">
+      <view class="gradient-layer"></view>
+      <view class="stars-layer">
+        <view v-for="i in 12" :key="i" class="star" :style="getStarStyle(i)"></view>
       </view>
-      <text class="song-title">{{ song?.title || '儿歌播放' }}</text>
-      <view class="placeholder"></view>
+      <view class="floating-notes">
+        <text v-for="i in 5" :key="i" class="note" :style="getNoteStyle(i)">♪</text>
+      </view>
     </view>
 
-    <!-- 主内容 -->
+    <!-- 顶部导航 -->
+    <view class="nav-header" :style="{ paddingTop: statusBarHeight + 'px' }">
+      <view class="back-button" @tap="handleClose">
+        <text class="back-icon">‹</text>
+      </view>
+      <view class="nav-title-wrap">
+        <text class="nav-title">{{ song?.title || '正在播放' }}</text>
+      </view>
+      <view class="nav-placeholder"></view>
+    </view>
+
+    <!-- 主内容区 -->
     <view class="main-content">
-      <!-- 调试信息（发布时删除） -->
-      <view v-if="!song && !loading" class="debug-info">
-        <text>数据未加载</text>
-      </view>
-
-      <!-- 封面 -->
-      <view class="cover-section">
-        <view class="cover-wrapper" :class="{ playing: isPlaying }">
-          <image
-            v-if="song?.cover_url"
-            :src="song.cover_url"
-            mode="aspectFill"
-            class="cover-image"
-            @load="onCoverLoad"
-            @error="onCoverError"
+      <!-- 视频/唱片区域 -->
+      <view class="media-section">
+        <!-- 视频模式 -->
+        <view v-if="hasVideo && useVideoMode" class="video-wrapper">
+          <video
+            id="suno-video"
+            class="suno-video"
+            :src="song?.video_url"
+            :poster="song?.cover_url"
+            :controls="false"
+            :show-center-play-btn="false"
+            :show-play-btn="false"
+            :show-fullscreen-btn="false"
+            :show-progress="false"
+            :enable-progress-gesture="false"
+            :autoplay="false"
+            :loop="true"
+            :muted="true"
+            object-fit="cover"
+            @loadedmetadata="onVideoReady"
+            @error="onVideoError"
           />
-          <view v-else class="cover-placeholder">
+          <!-- 视频遮罩，点击播放/暂停 -->
+          <view class="video-overlay" @tap="togglePlay">
+            <view v-if="!isPlaying" class="video-play-hint">
+              <text>▶</text>
+            </view>
+          </view>
+          <!-- 切换到唱片模式按钮 -->
+          <view class="mode-switch" @tap="useVideoMode = false">
             <text>🎵</text>
           </view>
-          <!-- 封面加载中指示器 -->
-          <view v-if="song?.cover_url && !coverLoaded" class="cover-loading">
-            <view class="loading-spinner-small"></view>
+        </view>
+
+        <!-- 唱片模式 -->
+        <view v-else class="vinyl-section">
+          <view class="vinyl-wrapper">
+            <!-- 唱臂 -->
+            <view class="tone-arm" :class="{ playing: isPlaying }">
+              <view class="arm-base"></view>
+              <view class="arm-needle"></view>
+            </view>
+            <!-- 唱片 -->
+            <view class="vinyl-disc" :class="{ spinning: isPlaying }">
+              <view class="vinyl-grooves"></view>
+              <view class="vinyl-label">
+                <image
+                  v-if="song?.cover_url"
+                  :src="song.cover_url"
+                  mode="aspectFill"
+                  class="cover-image"
+                  @load="coverLoaded = true"
+                />
+                <view v-else class="cover-placeholder">
+                  <text>🎵</text>
+                </view>
+              </view>
+              <view class="vinyl-center"></view>
+            </view>
+          </view>
+          <!-- 切换到视频模式按钮 -->
+          <view v-if="hasVideo" class="mode-switch vinyl-mode-switch" @tap="useVideoMode = true">
+            <text>🎬</text>
           </view>
         </view>
-        <!-- 歌曲标题显示在封面下方 -->
-        <text v-if="song?.title" class="cover-title">{{ song.title }}</text>
+
+        <!-- 歌曲信息 -->
+        <view class="song-info">
+          <text class="song-title-main">{{ song?.title || '儿歌' }}</text>
+          <text class="song-meta">为 {{ song?.personalization?.child_name || '宝贝' }} 专属创作</text>
+        </view>
       </view>
 
-      <!-- 歌词区域 -->
-      <scroll-view class="lyrics-section" scroll-y>
-        <view class="lyrics-content">
-          <text class="lyrics-text">{{ formattedLyrics }}</text>
+      <!-- 歌词区域 - 使用 scroll-into-view 精确滚动 -->
+      <scroll-view
+        class="lyrics-scroll"
+        scroll-y
+        :scroll-into-view="currentLyricId"
+        scroll-with-animation
+        :enhanced="true"
+        :show-scrollbar="false"
+      >
+        <!-- 顶部占位，让第一句歌词能居中 -->
+        <view class="lyrics-padding-top"></view>
+        <view
+          v-for="(line, index) in lyricsLines"
+          :key="index"
+          :id="'lyric-' + index"
+          class="lyrics-line"
+          :class="{
+            active: index === currentLyricIndex,
+            passed: index < currentLyricIndex
+          }"
+        >
+          <text>{{ line }}</text>
+        </view>
+        <!-- 底部占位 -->
+        <view class="lyrics-padding-bottom"></view>
+        <view v-if="lyricsLines.length === 0" class="no-lyrics-state">
+          <view class="no-lyrics-icon">📝</view>
+          <text class="no-lyrics-text">歌词加载中...</text>
+          <text class="no-lyrics-hint">跟着旋律一起哼唱吧</text>
         </view>
       </scroll-view>
     </view>
 
     <!-- 底部控制区 -->
-    <view class="bottom-bar">
+    <view class="control-panel">
       <!-- 进度条 -->
       <view class="progress-section">
-        <text class="time current">{{ formatTime(currentTime) }}</text>
-        <view class="progress-bar" @touchstart="seekTo" @tap="seekTo">
-          <view class="progress-fill" :style="{ width: progressPercent + '%' }"></view>
-          <view class="progress-dot" :style="{ left: progressPercent + '%' }"></view>
+        <text class="time-label">{{ formatTime(currentTime) }}</text>
+        <view class="progress-track" @tap="onProgressTap">
+          <view class="progress-fill" :style="{ width: progressPercent + '%' }">
+            <view class="progress-glow"></view>
+          </view>
+          <view class="progress-thumb" :style="{ left: progressPercent + '%' }"></view>
         </view>
-        <text class="time total">{{ formatTime(duration) }}</text>
+        <text class="time-label">{{ formatTime(duration) }}</text>
       </view>
 
       <!-- 控制按钮 -->
-      <view class="controls">
-        <view class="control-btn" @tap="handleReplay">
-          <text>🔄</text>
+      <view class="control-buttons">
+        <view class="ctrl-btn" @tap="handleReplay">
+          <view class="btn-icon">🔄</view>
         </view>
-        <view class="play-btn" :class="{ buffering: audioBuffering }" @tap="togglePlay">
-          <view v-if="audioBuffering" class="buffering-spinner"></view>
-          <text v-else>{{ isPlaying ? '⏸' : '▶' }}</text>
+
+        <view class="play-btn-wrapper" @tap="togglePlay">
+          <view class="play-btn" :class="{ playing: isPlaying }">
+            <view v-if="audioBuffering" class="loading-spinner"></view>
+            <text v-else class="play-icon">{{ isPlaying ? '❚❚' : '▶' }}</text>
+          </view>
+          <!-- 涟漪效果 -->
+          <view v-if="isPlaying" class="ripple ripple-1"></view>
+          <view v-if="isPlaying" class="ripple ripple-2"></view>
         </view>
-        <button class="control-btn share-btn" open-type="share">
-          <text>📤</text>
+
+        <!-- 切换版本按钮（Suno 返回 2 首时显示） -->
+        <view v-if="hasMultipleTracks" class="ctrl-btn switch-btn" @tap="switchTrack">
+          <view class="btn-icon">🔀</view>
+          <text class="track-indicator">{{ currentTrackIndex + 1 }}/{{ allTracks.length }}</text>
+        </view>
+        <button v-else class="ctrl-btn share-btn" open-type="share">
+          <view class="btn-icon">📤</view>
         </button>
       </view>
 
-      <!-- 音乐风格标签 -->
-      <view v-if="song?.music_style" class="style-tag">
+      <!-- 版本切换提示 -->
+      <view v-if="hasMultipleTracks" class="track-hint">
+        <text>当前播放版本 {{ currentTrackIndex + 1 }}，点击 🔀 切换</text>
+      </view>
+
+      <!-- 风格标签 -->
+      <view v-if="song?.music_style" class="style-badge">
         <text>{{ getStyleName(song.music_style) }}</text>
       </view>
     </view>
 
-    <!-- 加载状态 -->
+    <!-- 加载遮罩 -->
     <view v-if="loading" class="loading-overlay">
-      <view class="loading-content">
-        <view class="loading-icon animate-spin">🎵</view>
-        <text>加载中...</text>
+      <view class="loader">
+        <view class="loader-disc"></view>
+        <text class="loader-text">加载中...</text>
       </view>
     </view>
   </view>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { onLoad, onShareAppMessage, onShareTimeline } from '@dcloudio/uni-app'
 import type { NurseryRhyme, MusicStyle } from '@/api/content'
 import { getContentDetail } from '@/api/content'
@@ -109,14 +205,71 @@ const isPlaying = ref(false)
 const currentTime = ref(0)
 const duration = ref(0)
 const statusBarHeight = ref(20)
-
-// 加载状态
 const coverLoaded = ref(false)
 const audioBuffering = ref(false)
-const audioReady = ref(false)
+
+// 多歌曲版本支持（Suno 每次返回 2 首）
+const currentTrackIndex = ref(0)
+const allTracks = computed(() => song.value?.all_tracks || [])
+const hasMultipleTracks = computed(() => allTracks.value.length > 1)
+
+// 视频播放支持（Suno 返回的音乐视频）
+const hasVideo = computed(() => !!song.value?.video_url)
+const videoContext = ref<UniApp.VideoContext | null>(null)
+const videoReady = ref(false)
+const useVideoMode = ref(true)  // 是否使用视频模式
+
+// 歌词相关
+interface LyricLine {
+  time: number  // 时间戳（秒）
+  text: string  // 歌词文本
+}
+const lyricsData = ref<LyricLine[]>([])  // 带时间戳的歌词
+const lyricsLines = ref<string[]>([])     // 纯文本歌词（用于显示）
+const currentLyricIndex = ref(0)
+
+// 当前歌词的 DOM ID，用于 scroll-into-view
+const currentLyricId = computed(() => `lyric-${currentLyricIndex.value}`)
 
 // 音频实例
 let audioContext: UniApp.InnerAudioContext | null = null
+
+// 预加载封面图片
+function preloadCover() {
+  if (song.value?.cover_url) {
+    // 小程序会自动缓存图片，这里只是提前触发加载
+    console.log('[nursery-rhyme] 预加载封面:', song.value.cover_url)
+  }
+}
+
+// 星星样式生成
+function getStarStyle(i: number) {
+  const positions = [
+    { top: '8%', left: '15%' }, { top: '12%', left: '75%' },
+    { top: '25%', left: '88%' }, { top: '35%', left: '5%' },
+    { top: '45%', left: '92%' }, { top: '55%', left: '8%' },
+    { top: '65%', left: '85%' }, { top: '75%', left: '12%' },
+    { top: '82%', left: '78%' }, { top: '18%', left: '45%' },
+    { top: '68%', left: '55%' }, { top: '88%', left: '35%' }
+  ]
+  const pos = positions[(i - 1) % positions.length]
+  const delay = (i * 0.3) % 3
+  const opacity = 0.3 + (i % 5) * 0.15
+  return `top: ${pos.top}; left: ${pos.left}; animation-delay: ${delay}s; opacity: ${opacity};`
+}
+
+// 音符样式生成
+function getNoteStyle(i: number) {
+  const positions = [
+    { left: '10%', top: '30%' }, { left: '85%', top: '25%' },
+    { left: '20%', top: '60%' }, { left: '75%', top: '55%' },
+    { left: '50%', top: '40%' }
+  ]
+  const pos = positions[(i - 1) % positions.length]
+  const delay = i * 1.5
+  const color = i % 2 === 0 ? '#FF6B9D' : '#9B6BFF'
+  return `left: ${pos.left}; top: ${pos.top}; animation-delay: ${delay}s; color: ${color};`
+}
 
 // 计算属性
 const progressPercent = computed(() => {
@@ -124,61 +277,221 @@ const progressPercent = computed(() => {
   return (currentTime.value / duration.value) * 100
 })
 
-// 格式化歌词：处理各种换行符格式
-const formattedLyrics = computed(() => {
-  // 调试：检查 song 数据
-  if (!song.value) {
-    console.log('[nursery-rhyme] formattedLyrics: song.value 为空')
-    return '歌词加载中...'
-  }
+// 解析歌词，支持后端时间戳格式、LRC 格式和纯文本
+function parseLyrics(lyrics: any, totalDuration: number): { lines: string[], data: LyricLine[] } {
+  if (!lyrics) return { lines: [], data: [] }
 
-  // 处理 lyrics 字段 - 可能是字符串或对象
-  let lyricsText = ''
-  const lyricsField = song.value.lyrics
+  // 1. 优先使用后端返回的精确时间戳 (Suno timestamped lyrics)
+  if (typeof lyrics === 'object' && lyrics.timestamped && Array.isArray(lyrics.timestamped)) {
+    console.log('[歌词] 使用后端精确时间戳，词数:', lyrics.timestamped.length)
 
-  if (typeof lyricsField === 'string') {
-    // 直接是字符串
-    lyricsText = lyricsField
-  } else if (lyricsField && typeof lyricsField === 'object') {
-    // 是对象，尝试获取 full_text 或拼接 sections
-    lyricsText = (lyricsField as any).full_text || ''
-    if (!lyricsText && (lyricsField as any).sections) {
-      // 从 sections 拼接
-      lyricsText = (lyricsField as any).sections
-        .map((s: any) => s.content)
-        .join('\n\n')
+    // 将词级时间戳聚合为行级时间戳
+    const lines: string[] = []
+    const data: LyricLine[] = []
+    let currentLine = ''
+    let lineStartTime = -1
+
+    for (const item of lyrics.timestamped) {
+      const word = item.word || ''
+      const startTime = item.start_s || 0
+
+      // 检测是否是新行（基于时间间隔或标点）
+      const isNewLine = currentLine && (
+        word === '\n' ||
+        /^[。！？\n]$/.test(word) ||
+        (lineStartTime >= 0 && startTime - lineStartTime > 4) // 超过4秒认为是新行
+      )
+
+      if (isNewLine && currentLine.trim()) {
+        lines.push(currentLine.trim())
+        data.push({ time: lineStartTime, text: currentLine.trim() })
+        currentLine = ''
+        lineStartTime = -1
+      }
+
+      if (word && word !== '\n') {
+        if (lineStartTime < 0) {
+          lineStartTime = startTime
+        }
+        currentLine += word
+      }
+
+      // 句末标点后换行
+      if (/[。！？，、]$/.test(currentLine) && currentLine.length > 8) {
+        lines.push(currentLine.trim())
+        data.push({ time: lineStartTime, text: currentLine.trim() })
+        currentLine = ''
+        lineStartTime = -1
+      }
+    }
+
+    // 处理最后一行
+    if (currentLine.trim()) {
+      lines.push(currentLine.trim())
+      data.push({ time: lineStartTime >= 0 ? lineStartTime : 0, text: currentLine.trim() })
+    }
+
+    if (lines.length > 0) {
+      return { lines, data }
     }
   }
 
-  // 尝试其他字段名
-  if (!lyricsText) {
-    lyricsText = (song.value as any).lyric || (song.value as any).content || ''
+  // 2. 获取纯文本歌词
+  let text = ''
+  if (typeof lyrics === 'string') {
+    text = lyrics
+  } else if (typeof lyrics === 'object') {
+    text = lyrics.full_text || ''
+    if (!text && lyrics.sections) {
+      text = lyrics.sections.map((s: any) => s.content).join('\n\n')
+    }
   }
 
-  if (!lyricsText) {
-    console.log('[nursery-rhyme] formattedLyrics: 没有找到歌词字段, song keys:', Object.keys(song.value))
-    return '暂无歌词'
+  if (!text) return { lines: [], data: [] }
+
+  // 预处理文本
+  text = text
+    .replace(/\\n/g, '\n')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/\r\n/g, '\n')
+    .replace(/\r/g, '\n')
+
+  const rawLines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0)
+
+  // 3. 检测 LRC 时间戳格式 [mm:ss.xx]
+  const lrcPattern = /^\[(\d{1,2}):(\d{2})(?:\.(\d{1,3}))?\]/
+  const hasLrcTimestamps = rawLines.some(line => lrcPattern.test(line))
+
+  if (hasLrcTimestamps) {
+    const parsed: LyricLine[] = []
+    for (const line of rawLines) {
+      const match = line.match(lrcPattern)
+      if (match) {
+        const minutes = parseInt(match[1], 10)
+        const seconds = parseInt(match[2], 10)
+        const ms = match[3] ? parseInt(match[3].padEnd(3, '0'), 10) : 0
+        const time = minutes * 60 + seconds + ms / 1000
+        const content = line.replace(lrcPattern, '').trim()
+        if (content && time >= 0) {
+          parsed.push({ time, text: content })
+        }
+      }
+    }
+    parsed.sort((a, b) => a.time - b.time)
+    return { lines: parsed.map(p => p.text), data: parsed }
   }
 
-  // 统一处理各种换行符格式：\n, \\n, <br>, 实际换行
-  // 移除歌词标签如 [Verse], [Chorus]
-  return lyricsText
-    .replace(/\[(?:Verse|Chorus|Bridge|Intro|Outro)\]\n?/gi, '')  // 移除歌词标签
-    .replace(/\\n/g, '\n')  // 处理转义的 \n
-    .replace(/<br\s*\/?>/gi, '\n')  // 处理 HTML <br> 标签
-    .replace(/\r\n/g, '\n')  // 处理 Windows 换行
-    .replace(/\r/g, '\n')    // 处理旧 Mac 换行
-    .replace(/\n{3,}/g, '\n\n')  // 多个空行合并为两个
-    .trim()
-})
+  // 4. 纯文本模式：基于字数权重分配时间
+  const cleanLines = rawLines
+    .map(line => line.replace(/\[(?:Verse|Chorus|Bridge|Intro|Outro)(?:\s*\d*)?\]/gi, '').trim())
+    .filter(line => line.length > 0)
+
+  if (cleanLines.length === 0 || totalDuration === 0) {
+    return { lines: cleanLines, data: [] }
+  }
+
+  // 预留前奏和尾奏时间
+  const introTime = Math.min(6, totalDuration * 0.1)
+  const outroTime = Math.min(10, totalDuration * 0.15)
+  const lyricsDuration = totalDuration - introTime - outroTime
+
+  const totalChars = cleanLines.reduce((sum, line) => sum + Math.max(line.length, 3), 0)
+  const data: LyricLine[] = []
+  let currentTime = introTime
+
+  for (const line of cleanLines) {
+    data.push({ time: currentTime, text: line })
+    const charWeight = Math.max(line.length, 3) / totalChars
+    currentTime += lyricsDuration * charWeight
+  }
+
+  return { lines: cleanLines, data }
+}
+
+// 根据播放时间更新当前歌词
+// 歌词提前量（秒）：补偿 onTimeUpdate 回调延迟 + 滚动动画时间
+const LYRICS_OFFSET = 0.5
+
+function updateCurrentLyric() {
+  if (lyricsLines.value.length === 0) return
+
+  // 添加提前量，让歌词显示比实际播放时间略早
+  const now = currentTime.value + LYRICS_OFFSET
+  const data = lyricsData.value
+
+  // 如果有时间戳数据，使用精确匹配
+  if (data.length > 0) {
+    let newIndex = 0
+    // 找到当前时间对应的歌词行（最后一个时间戳 <= 当前时间+提前量 的行）
+    for (let i = data.length - 1; i >= 0; i--) {
+      if (data[i].time <= now) {
+        newIndex = i
+        break
+      }
+    }
+
+    // 更新当前歌词索引（scroll-into-view 会自动滚动）
+    if (newIndex !== currentLyricIndex.value) {
+      currentLyricIndex.value = newIndex
+      console.log('[歌词] 切换到第', newIndex + 1, '句:', data[newIndex]?.text?.substring(0, 10))
+    }
+    return
+  }
+
+  // 备用：如果没有时间戳，使用简单的线性映射
+  if (duration.value === 0) return
+  const progress = now / duration.value
+  const newIndex = Math.min(
+    Math.floor(progress * lyricsLines.value.length),
+    lyricsLines.value.length - 1
+  )
+
+  if (newIndex !== currentLyricIndex.value && newIndex >= 0) {
+    currentLyricIndex.value = newIndex
+  }
+}
+
+// 监听歌词和时长变化，重新解析歌词
+watch(
+  () => [song.value?.lyrics, duration.value] as const,
+  ([newLyrics, newDuration]) => {
+    if (newLyrics && newDuration > 0) {
+      const result = parseLyrics(newLyrics, newDuration)
+      lyricsLines.value = result.lines
+      lyricsData.value = result.data
+      currentLyricIndex.value = 0
+      console.log('[歌词解析] 行数:', result.lines.length, '时间戳数:', result.data.length)
+    } else if (newLyrics) {
+      // 时长还未获取，先解析文本
+      const result = parseLyrics(newLyrics, 0)
+      lyricsLines.value = result.lines
+      lyricsData.value = []
+      currentLyricIndex.value = 0
+    }
+  },
+  { immediate: true }
+)
+
+// 当时长更新后重新计算时间戳
+watch(
+  () => duration.value,
+  (newDuration) => {
+    if (newDuration > 0 && lyricsLines.value.length > 0 && lyricsData.value.length === 0) {
+      // 有歌词但没有时间戳，重新解析
+      const result = parseLyrics(song.value?.lyrics, newDuration)
+      lyricsData.value = result.data
+      console.log('[歌词时间戳] 重新计算，时间戳数:', result.data.length)
+    }
+  }
+)
 
 // 音乐风格名称映射
 const styleNames: Record<MusicStyle, string> = {
-  cheerful: '欢快活泼',
-  gentle: '温柔舒缓',
-  playful: '俏皮可爱',
-  lullaby: '摇篮曲风',
-  educational: '启蒙教育'
+  cheerful: '🎉 欢快活泼',
+  gentle: '🌸 温柔舒缓',
+  playful: '🎈 俏皮可爱',
+  lullaby: '🌙 摇篮曲风',
+  educational: '📚 启蒙教育'
 }
 
 function getStyleName(style: MusicStyle): string {
@@ -196,61 +509,113 @@ function togglePlay() {
 
   if (isPlaying.value) {
     audioContext.pause()
-    isPlaying.value = false
+    // 同步暂停视频
+    if (videoContext.value && hasVideo.value && useVideoMode.value) {
+      videoContext.value.pause()
+    }
   } else {
     audioContext.play()
-    isPlaying.value = true
+    // 同步播放视频（静音，音频来自 audioContext）
+    if (videoContext.value && hasVideo.value && useVideoMode.value) {
+      videoContext.value.play()
+    }
+  }
+}
+
+// 视频加载完成
+function onVideoReady() {
+  console.log('[视频] 加载完成')
+  videoReady.value = true
+}
+
+// 视频加载失败，回退到唱片模式
+function onVideoError(e: any) {
+  console.error('[视频] 加载失败:', e)
+  useVideoMode.value = false
+  uni.showToast({ title: '视频加载失败，已切换到唱片模式', icon: 'none' })
+}
+
+// 初始化视频上下文
+function initVideoContext() {
+  if (hasVideo.value) {
+    videoContext.value = uni.createVideoContext('suno-video')
+    console.log('[视频] 上下文初始化')
   }
 }
 
 function handleReplay() {
   if (!audioContext) return
   audioContext.seek(0)
+  currentLyricIndex.value = 0
+  // watch 会自动调用 centerCurrentLyric()
   audioContext.play()
-  isPlaying.value = true
+
+  // 同步重播视频
+  if (videoContext.value && hasVideo.value && useVideoMode.value) {
+    videoContext.value.seek(0)
+    videoContext.value.play()
+  }
 }
 
-// 进度条宽度（用于计算跳转位置）
-const progressBarWidth = ref(0)
+// 切换歌曲版本（Suno 返回 2 首）
+function switchTrack() {
+  if (!hasMultipleTracks.value) return
 
-function onProgressBarReady() {
-  // 页面加载后获取进度条宽度
-  const query = uni.createSelectorQuery()
-  query.select('.progress-bar').boundingClientRect((rect: any) => {
-    if (rect) {
-      progressBarWidth.value = rect.width
+  const nextIndex = (currentTrackIndex.value + 1) % allTracks.value.length
+  currentTrackIndex.value = nextIndex
+
+  const track = allTracks.value[nextIndex]
+  if (track) {
+    // 更新当前播放的音频
+    if (audioContext) {
+      audioContext.stop()
     }
-  })
-  // 执行查询
-  const execQuery = query as any
-  execQuery['exec']()
+
+    // 更新歌曲信息（保留原有数据，只更新音频相关）
+    if (song.value) {
+      song.value = {
+        ...song.value,
+        audio_url: track.audio_url,
+        cover_url: track.cover_url || song.value.cover_url,
+        duration: track.duration || song.value.duration,
+        // 如果 track 有独立歌词，使用它
+        lyrics: track.timestamped_lyrics ? {
+          full_text: track.lyric || '',
+          timestamped: track.timestamped_lyrics
+        } : song.value.lyrics
+      }
+    }
+
+    duration.value = track.duration || 0
+    currentTime.value = 0
+    currentLyricIndex.value = 0
+    // watch 会自动调用 centerCurrentLyric()
+
+    // 重新初始化音频
+    initAudio()
+
+    uni.showToast({
+      title: `切换到版本 ${nextIndex + 1}`,
+      icon: 'none',
+      duration: 1500
+    })
+  }
 }
 
-function seekTo(e: any) {
+function onProgressTap(e: any) {
   if (!audioContext || duration.value === 0) return
 
-  // 微信小程序中使用 touches 或 changedTouches 获取点击位置
-  const touch = e.touches?.[0] || e.changedTouches?.[0]
-  const detail = e.detail || {}
+  const touch = e.touches?.[0] || e.changedTouches?.[0] || e.detail
+  if (!touch) return
 
-  // 尝试多种方式获取点击位置
-  let offsetX = 0
-  if (touch) {
-    // 触摸事件：计算相对于进度条的偏移
-    // 使用 currentTarget 的数据集或默认值
-    const barLeft = e.currentTarget?.offsetLeft || 0
-    offsetX = (touch.pageX || touch.clientX || 0) - barLeft
-  } else if (detail.x !== undefined) {
-    offsetX = detail.x
-  }
-
-  // 使用缓存的宽度或默认值
-  const barWidth = progressBarWidth.value || 500
-  const percent = Math.max(0, Math.min(1, offsetX / barWidth))
-  const seekTime = percent * duration.value
-
-  console.log('[nursery-rhyme] 跳转到:', seekTime.toFixed(1), '秒 (', (percent * 100).toFixed(0), '%)')
-  audioContext.seek(seekTime)
+  const query = uni.createSelectorQuery()
+  query.select('.progress-track').boundingClientRect((rect: any) => {
+    if (!rect) return
+    const x = (touch.clientX || touch.pageX) - rect.left
+    const percent = Math.max(0, Math.min(1, x / rect.width))
+    const seekTime = percent * duration.value
+    audioContext?.seek(seekTime)
+  }).exec()
 }
 
 function handleClose() {
@@ -261,145 +626,73 @@ function handleClose() {
   uni.navigateBack()
 }
 
-// 预加载封面图
-function preloadCover() {
-  if (!song.value?.cover_url) return
-
-  console.log('[nursery-rhyme] 预加载封面图:', song.value.cover_url)
-  uni.getImageInfo({
-    src: song.value.cover_url,
-    success: () => {
-      console.log('[nursery-rhyme] 封面图预加载成功')
-      coverLoaded.value = true
-    },
-    fail: (err) => {
-      console.error('[nursery-rhyme] 封面图预加载失败:', err)
-      // 即使失败也标记为完成，避免一直显示加载
-      coverLoaded.value = true
-    }
-  })
-}
-
-// 封面加载完成回调
-function onCoverLoad() {
-  console.log('[nursery-rhyme] 封面图加载完成')
-  coverLoaded.value = true
-}
-
-function onCoverError() {
-  console.error('[nursery-rhyme] 封面图加载失败')
-  coverLoaded.value = true
-}
-
 function initAudio() {
-  if (!song.value?.audio_url) {
-    console.warn('[nursery-rhyme] 没有音频 URL')
-    return
-  }
+  if (!song.value?.audio_url) return
 
-  console.log('[nursery-rhyme] 初始化音频, URL:', song.value.audio_url)
-
-  // 设置全局音频选项 - 确保静音开关不影响播放
   uni.setInnerAudioOption({
     obeyMuteSwitch: false,
-    mixWithOther: false  // 改为 false，避免与其他音频冲突
+    mixWithOther: false
   })
 
-  // 销毁旧的音频实例
   if (audioContext) {
     audioContext.stop()
     audioContext.destroy()
-    audioContext = null
   }
 
   audioContext = uni.createInnerAudioContext()
   audioContext.volume = 1.0
 
-  // 处理 URL - 确保使用 HTTPS
   let audioUrl = song.value.audio_url
   if (audioUrl.startsWith('http://')) {
     audioUrl = audioUrl.replace('http://', 'https://')
   }
 
-  // 不要对已编码的 URL 重复编码
-  if (!audioUrl.includes('%')) {
-    audioUrl = encodeURI(audioUrl)
-  }
-
-  console.log('[nursery-rhyme] 处理后的音频 URL:', audioUrl)
-
-  // 先设置事件监听器，再设置 src
   audioContext.onCanplay(() => {
-    console.log('[nursery-rhyme] 音频可以播放, duration:', audioContext?.duration)
-    audioReady.value = true
     audioBuffering.value = false
-    // 获取真实时长
     if (audioContext?.duration && audioContext.duration > 0) {
       duration.value = audioContext.duration
     }
   })
 
   audioContext.onPlay(() => {
-    console.log('[nursery-rhyme] 开始播放')
     isPlaying.value = true
   })
 
   audioContext.onPause(() => {
-    console.log('[nursery-rhyme] 暂停')
     isPlaying.value = false
   })
 
   audioContext.onStop(() => {
-    console.log('[nursery-rhyme] 停止')
     isPlaying.value = false
   })
 
   audioContext.onEnded(() => {
-    console.log('[nursery-rhyme] 播放结束')
     isPlaying.value = false
     currentTime.value = duration.value
   })
 
   audioContext.onTimeUpdate(() => {
     currentTime.value = audioContext?.currentTime || 0
-    // 持续更新 duration，因为有些音频需要播放后才能获取真实时长
-    if (audioContext?.duration && audioContext.duration > 0 && audioContext.duration !== Infinity) {
+    if (audioContext?.duration && audioContext.duration > 0) {
       duration.value = audioContext.duration
     }
+    updateCurrentLyric()
   })
 
   audioContext.onError((err: any) => {
-    console.error('[nursery-rhyme] 音频错误:', err)
-    const errMsg = err?.errMsg || err?.message || '未知错误'
-    uni.showToast({ title: `音频加载失败: ${errMsg}`, icon: 'none', duration: 3000 })
+    console.error('音频错误:', err)
+    uni.showToast({ title: '音频加载失败', icon: 'none' })
   })
 
   audioContext.onWaiting(() => {
-    console.log('[nursery-rhyme] 音频缓冲中...')
     audioBuffering.value = true
   })
 
-  audioContext.onSeeking(() => {
-    audioBuffering.value = true
-  })
-
-  audioContext.onSeeked(() => {
-    audioBuffering.value = false
-  })
-
-  // 设置音频源
   audioContext.src = audioUrl
 
-  // 使用 onCanplay 后自动播放，而不是固定延时
-  const playAttempt = () => {
-    if (audioContext) {
-      console.log('[nursery-rhyme] 尝试播放...')
-      audioContext.play()
-    }
-  }
-
-  // 等待 canplay 或超时后尝试播放
-  setTimeout(playAttempt, 500)
+  setTimeout(() => {
+    audioContext?.play()
+  }, 500)
 }
 
 async function loadContent() {
@@ -413,11 +706,14 @@ async function loadContent() {
     if (tempSong) {
       song.value = tempSong
       console.log('[nursery-rhyme] 设置 song.value')
+      console.log('[nursery-rhyme] video_url:', tempSong.video_url)
       uni.removeStorageSync('temp_nursery_rhyme')
       duration.value = tempSong.duration || 0
       // 并行预加载封面和初始化音频
       preloadCover()
       initAudio()
+      // 延迟初始化视频上下文（等待 DOM 渲染）
+      setTimeout(() => initVideoContext(), 300)
       loading.value = false
       return
     }
@@ -431,6 +727,8 @@ async function loadContent() {
       // 并行预加载封面和初始化音频
       preloadCover()
       initAudio()
+      // 延迟初始化视频上下文（等待 DOM 渲染）
+      setTimeout(() => initVideoContext(), 300)
     }
   } catch (e) {
     console.error('加载儿歌失败:', e)
@@ -472,10 +770,6 @@ onMounted(() => {
     console.log('[nursery-rhyme] onMounted: 重新尝试加载')
     loadContent()
   }
-  // 延迟获取进度条宽度，等待 DOM 渲染完成
-  setTimeout(() => {
-    onProgressBarReady()
-  }, 100)
 })
 
 onUnmounted(() => {
@@ -490,23 +784,26 @@ onUnmounted(() => {
 <style lang="scss" scoped>
 @import '@/styles/variables.scss';
 
+// === 颜色定义 ===
+$dream-purple: #9B6BFF;
+$dream-pink: #FF6B9D;
+$dream-blue: #6B8BFF;
+$dream-gold: #FFD700;
+
 // === 主容器 ===
-.play-container {
+.player-container {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  width: $page-width;
-  height: 100%;
-  background: linear-gradient(180deg, #1a2a3a 0%, #0d1a26 100%);
   display: flex;
   flex-direction: column;
-  box-sizing: border-box;
+  overflow: hidden;
 }
 
-// === 背景 ===
-.background {
+// === 梦幻背景 ===
+.dreamy-background {
   position: absolute;
   top: 0;
   left: 0;
@@ -516,150 +813,345 @@ onUnmounted(() => {
   overflow: hidden;
 }
 
-.bg-image {
-  width: 100%;
-  height: 100%;
-  filter: blur(50rpx) brightness(0.4) saturate(1.2);
-  transform: scale(1.1);
-}
-
-.bg-overlay {
+.gradient-layer {
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
   background: linear-gradient(
-    180deg,
-    rgba(13, 26, 38, 0.6) 0%,
-    rgba(13, 26, 38, 0.85) 50%,
-    rgba(13, 26, 38, 0.95) 100%
+    160deg,
+    #1a0a2e 0%,
+    #2d1b4e 25%,
+    #1e3a5f 50%,
+    #0f2027 75%,
+    #0a0a14 100%
   );
 }
 
-// === 顶部栏 ===
-.top-bar {
+.stars-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
+
+.star {
+  position: absolute;
+  width: 8rpx;
+  height: 8rpx;
+  background: #fff;
+  border-radius: 50%;
+  animation: twinkle 2s ease-in-out infinite;
+  box-shadow: 0 0 10rpx 2rpx rgba(255, 255, 255, 0.5);
+}
+
+@keyframes twinkle {
+  0%, 100% { opacity: 0.3; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.3); }
+}
+
+.floating-notes {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+}
+
+.note {
+  position: absolute;
+  font-size: 48rpx;
+  opacity: 0.4;
+  animation: float-up 8s ease-in-out infinite;
+}
+
+@keyframes float-up {
+  0%, 100% {
+    transform: translateY(0) rotate(0deg);
+    opacity: 0.2;
+  }
+  50% {
+    transform: translateY(-60rpx) rotate(15deg);
+    opacity: 0.5;
+  }
+}
+
+// === 顶部导航 ===
+.nav-header {
   position: relative;
   z-index: 10;
   display: flex;
   align-items: center;
-  justify-content: space-between;
   padding: $spacing-sm $spacing-md;
   flex-shrink: 0;
 }
 
-.close-btn {
+.back-button {
   width: 72rpx;
   height: 72rpx;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.1);
   border-radius: 50%;
-  transition: background $duration-fast;
-
-  text {
-    font-size: 40rpx;
-    color: rgba(255, 255, 255, 0.9);
-    font-weight: 300;
-  }
+  backdrop-filter: blur(10rpx);
 
   &:active {
-    background: rgba(255, 255, 255, 0.25);
+    background: rgba(255, 255, 255, 0.2);
   }
 }
 
-.song-title {
+.back-icon {
+  font-size: 48rpx;
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 300;
+  margin-top: -4rpx;
+}
+
+.nav-title-wrap {
   flex: 1;
   text-align: center;
+  padding: 0 $spacing-sm;
+}
+
+.nav-title {
   font-size: $font-md;
   color: rgba(255, 255, 255, 0.95);
   font-weight: $font-medium;
-  padding: 0 $spacing-sm;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.placeholder {
+.nav-placeholder {
   width: 72rpx;
 }
 
-// === 主内容 ===
+// === 主内容区 ===
 .main-content {
   position: relative;
-  z-index: 10;
+  z-index: 5;
   flex: 1;
   display: flex;
   flex-direction: column;
-  padding: $spacing-md $spacing-lg;
+  padding: 0 $spacing-lg;
   overflow: hidden;
   min-height: 0;
 }
 
-// === 调试信息 ===
-.debug-info {
-  background: rgba(255, 100, 100, 0.2);
-  padding: $spacing-md;
-  border-radius: $radius-md;
-  margin-bottom: $spacing-md;
-  text-align: center;
-  border: 1rpx solid rgba(255, 100, 100, 0.3);
-
-  text {
-    color: rgba(255, 200, 200, 0.9);
-    font-size: $font-sm;
-  }
-}
-
-// === 封面区域 ===
-.cover-section {
+// === 媒体区域（视频/唱片） ===
+.media-section {
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin-bottom: $spacing-lg;
+  padding: $spacing-md 0;
   flex-shrink: 0;
 }
 
-.cover-wrapper {
+// === 视频播放器 ===
+.video-wrapper {
   position: relative;
-  width: 360rpx;
-  height: 360rpx;
-  border-radius: 50%;
+  width: 400rpx;
+  height: 400rpx;
+  border-radius: $radius-lg;
   overflow: hidden;
   box-shadow:
-    0 16rpx 48rpx rgba(0, 0, 0, 0.4),
-    0 0 0 8rpx rgba(255, 255, 255, 0.1),
-    inset 0 0 60rpx rgba(0, 0, 0, 0.3);
-  transition: transform 0.5s $ease-soft;
+    0 8rpx 32rpx rgba(0, 0, 0, 0.4),
+    0 0 0 4rpx rgba(255, 255, 255, 0.1);
+}
 
-  &::before {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 80rpx;
-    height: 80rpx;
-    background: radial-gradient(circle, #1a2a3a 30%, transparent 70%);
-    border-radius: 50%;
-    transform: translate(-50%, -50%);
-    z-index: 2;
-    box-shadow: 0 0 0 4rpx rgba(255, 255, 255, 0.2);
-  }
+.suno-video {
+  width: 100%;
+  height: 100%;
+  border-radius: $radius-lg;
+}
 
-  &.playing {
-    animation: vinyl-rotate 8s linear infinite;
+.video-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+}
+
+.video-play-hint {
+  width: 80rpx;
+  height: 80rpx;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(8rpx);
+
+  text {
+    font-size: 36rpx;
+    color: #fff;
+    margin-left: 6rpx;
   }
 }
 
-@keyframes vinyl-rotate {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+.mode-switch {
+  position: absolute;
+  top: 12rpx;
+  right: 12rpx;
+  width: 56rpx;
+  height: 56rpx;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(8rpx);
+  z-index: 5;
+
+  text {
+    font-size: 28rpx;
+  }
+
+  &:active {
+    background: rgba(0, 0, 0, 0.7);
+  }
+}
+
+.vinyl-mode-switch {
+  position: absolute;
+  top: -10rpx;
+  right: -10rpx;
+}
+
+// === 唱片区域 ===
+.vinyl-section {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.vinyl-wrapper {
+  position: relative;
+  width: 360rpx;
+  height: 360rpx;
+}
+
+// 唱臂
+.tone-arm {
+  position: absolute;
+  top: -20rpx;
+  right: 20rpx;
+  width: 120rpx;
+  height: 120rpx;
+  z-index: 3;
+  transform-origin: 80% 20%;
+  transform: rotate(-30deg);
+  transition: transform 0.5s ease;
+
+  &.playing {
+    transform: rotate(-10deg);
+  }
+}
+
+.arm-base {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 24rpx;
+  height: 24rpx;
+  background: #444;
+  border-radius: 50%;
+  box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.5);
+}
+
+.arm-needle {
+  position: absolute;
+  top: 12rpx;
+  right: 8rpx;
+  width: 100rpx;
+  height: 8rpx;
+  background: linear-gradient(90deg, #666, #333);
+  border-radius: 4rpx;
+  transform-origin: right center;
+  transform: rotate(45deg);
+
+  &::after {
+    content: '';
+    position: absolute;
+    left: -8rpx;
+    top: 50%;
+    width: 16rpx;
+    height: 4rpx;
+    background: #888;
+    transform: translateY(-50%);
+    border-radius: 2rpx;
+  }
+}
+
+// 唱片
+.vinyl-disc {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: linear-gradient(
+    135deg,
+    #1a1a1a 0%,
+    #333 20%,
+    #1a1a1a 40%,
+    #333 60%,
+    #1a1a1a 80%,
+    #333 100%
+  );
+  box-shadow:
+    0 8rpx 32rpx rgba(0, 0, 0, 0.6),
+    0 0 0 6rpx rgba(255, 255, 255, 0.05),
+    inset 0 0 40rpx rgba(0, 0, 0, 0.8);
+  position: relative;
+
+  &.spinning {
+    animation: spin 4s linear infinite;
+  }
+}
+
+.vinyl-grooves {
+  position: absolute;
+  top: 15%;
+  left: 15%;
+  right: 15%;
+  bottom: 15%;
+  border-radius: 50%;
+  background: repeating-radial-gradient(
+    circle at center,
+    transparent 0px,
+    transparent 2px,
+    rgba(255,255,255,0.03) 2px,
+    rgba(255,255,255,0.03) 3px
+  );
+}
+
+.vinyl-label {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 50%;
+  height: 50%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  overflow: hidden;
+  background: linear-gradient(135deg, $dream-purple, $dream-pink);
+  box-shadow: inset 0 0 20rpx rgba(0,0,0,0.3);
 }
 
 .cover-image {
   width: 100%;
   height: 100%;
+  object-fit: cover;
 }
 
 .cover-placeholder {
@@ -668,102 +1160,168 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: $song-gradient;
+  background: linear-gradient(135deg, $dream-purple, $dream-pink);
 
   text {
-    font-size: 140rpx;
-    filter: drop-shadow(0 4rpx 8rpx rgba(0,0,0,0.3));
+    font-size: 80rpx;
   }
 }
 
-// 封面加载指示器
-.cover-loading {
+.vinyl-center {
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  top: 50%;
+  left: 50%;
+  width: 24rpx;
+  height: 24rpx;
+  background: #1a1a1a;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 0 4rpx rgba(255, 255, 255, 0.1);
+  z-index: 2;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+// 歌曲信息
+.song-info {
+  margin-top: $spacing-lg;
+  text-align: center;
+}
+
+.song-title-main {
+  display: block;
+  font-size: $font-xl;
+  color: #fff;
+  font-weight: $font-semibold;
+  margin-bottom: $spacing-xs;
+  text-shadow: 0 2rpx 8rpx rgba(0,0,0,0.5);
+}
+
+.song-meta {
+  display: block;
+  font-size: $font-sm;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+// === 歌词区域 - scroll-into-view 精确滚动 ===
+.lyrics-scroll {
+  flex: 1;
+  width: 100%;
+  min-height: 300rpx;
+  padding: 0 $spacing-md;
+  box-sizing: border-box;
+}
+
+// 歌词内部的上下占位（让第一句和最后一句能滚动到中间）
+.lyrics-padding-top,
+.lyrics-padding-bottom {
+  height: 150rpx;
+}
+
+.lyrics-line {
   display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 16rpx 0;
+  width: 100%;
+  text-align: center;
+  transition: all 0.3s ease;
+
+  text {
+    font-size: 32rpx;
+    color: rgba(255, 255, 255, 0.4);
+    line-height: 1.6;
+    transition: all 0.3s ease;
+    display: inline-block;
+  }
+
+  &.passed text {
+    color: rgba($dream-purple, 0.6);
+  }
+
+  &.active {
+    transform: scale(1.08);
+
+    text {
+      font-size: 36rpx;
+      font-weight: $font-semibold;
+      color: #fff;
+      text-shadow:
+        0 0 20rpx $dream-purple,
+        0 0 40rpx $dream-pink;
+    }
+  }
+}
+
+.no-lyrics-state {
+  display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.3);
-  z-index: 3;
+  padding: $spacing-xl 0;
 }
 
-.loading-spinner-small {
-  width: 60rpx;
-  height: 60rpx;
-  border: 4rpx solid rgba(255, 255, 255, 0.3);
-  border-top-color: #fff;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-.cover-title {
-  margin-top: $spacing-md;
-  font-size: $font-lg;
-  color: rgba(255, 255, 255, 0.95);
-  font-weight: $font-semibold;
-  text-align: center;
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-// === 歌词区域 ===
-.lyrics-section {
-  flex: 1;
-  max-height: 350rpx;
+.no-lyrics-icon {
+  font-size: 80rpx;
   margin-bottom: $spacing-sm;
 }
 
-.lyrics-content {
-  padding: $spacing-md $spacing-sm;
-  background: linear-gradient(145deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.04) 100%);
-  border-radius: $radius-xl;
-  border: 1rpx solid rgba(255, 255, 255, 0.08);
+.no-lyrics-text {
+  font-size: $font-md;
+  color: rgba(255, 255, 255, 0.7);
+  margin-bottom: $spacing-xs;
 }
 
-.lyrics-text {
-  font-size: $font-base;
-  color: rgba(255, 255, 255, 0.85);
-  line-height: 2.2;
-  white-space: pre-wrap;
-  text-align: center;
+.no-lyrics-hint {
+  font-size: $font-sm;
+  color: rgba(255, 255, 255, 0.4);
 }
 
-// === 底部控制栏 ===
-.bottom-bar {
+// === 底部控制区 ===
+.control-panel {
   position: relative;
   z-index: 10;
   padding: $spacing-md $spacing-lg;
   padding-bottom: calc(#{$spacing-lg} + env(safe-area-inset-bottom));
   flex-shrink: 0;
-  background: linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.3) 100%);
+  background: linear-gradient(to top, rgba(10, 10, 20, 0.9), transparent);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  box-sizing: border-box;
 }
 
-// === 进度条 ===
+// 进度条
 .progress-section {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: $spacing-sm;
   margin-bottom: $spacing-lg;
+  width: 100%;
 }
 
-.time {
+.time-label {
   font-size: $font-xs;
   color: rgba(255, 255, 255, 0.5);
-  min-width: 70rpx;
+  min-width: 72rpx;
   font-variant-numeric: tabular-nums;
 
-  &.current { text-align: right; }
-  &.total { text-align: left; }
+  &:first-child {
+    text-align: right;
+  }
+  &:last-child {
+    text-align: left;
+  }
 }
 
-.progress-bar {
+.progress-track {
   flex: 1;
-  height: 6rpx;
+  height: 8rpx;
   background: rgba(255, 255, 255, 0.15);
   border-radius: $radius-full;
   position: relative;
@@ -771,24 +1329,40 @@ onUnmounted(() => {
 
 .progress-fill {
   height: 100%;
-  background: $song-gradient;
+  background: linear-gradient(90deg, $dream-purple, $dream-pink);
   border-radius: $radius-full;
+  position: relative;
   transition: width 0.15s linear;
 }
 
-.progress-dot {
+.progress-glow {
   position: absolute;
-  top: 50%;
-  width: 24rpx;
-  height: 24rpx;
-  background: $text-white;
-  border-radius: 50%;
-  transform: translate(-50%, -50%);
-  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.4);
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 40rpx;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.6));
+  animation: glow-pulse 1.5s ease-in-out infinite;
 }
 
-// === 控制按钮 ===
-.controls {
+@keyframes glow-pulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+.progress-thumb {
+  position: absolute;
+  top: 50%;
+  width: 20rpx;
+  height: 20rpx;
+  background: #fff;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.4), 0 0 12rpx $dream-purple;
+}
+
+// 控制按钮
+.control-buttons {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -796,18 +1370,20 @@ onUnmounted(() => {
   margin-bottom: $spacing-md;
 }
 
-.control-btn {
+.ctrl-btn {
   width: 88rpx;
   height: 88rpx;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.1);
   border-radius: 50%;
-  transition: all $duration-fast $ease-out;
+  border: none;
+  padding: 0;
+  transition: all 0.2s ease;
 
-  text {
-    font-size: 40rpx;
+  &::after {
+    display: none;
   }
 
   &:active {
@@ -816,50 +1392,55 @@ onUnmounted(() => {
   }
 }
 
-.share-btn {
-  border: none;
-  padding: 0;
-  margin: 0;
-  line-height: 1;
-
-  &::after {
-    display: none;
-  }
-}
-
-.play-btn {
-  width: 128rpx;
-  height: 128rpx;
+.btn-icon {
+  font-size: 40rpx;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: $song-gradient;
+  width: 100%;
+  height: 100%;
+}
+
+.play-btn-wrapper {
+  position: relative;
+}
+
+.play-btn {
+  width: 120rpx;
+  height: 120rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, $dream-purple, $dream-pink);
   border-radius: 50%;
   box-shadow:
-    0 8rpx 32rpx rgba($song-primary, 0.5),
-    0 0 0 6rpx rgba($song-primary, 0.15);
-  transition: all $duration-base $ease-bounce;
-
-  text {
-    font-size: 52rpx;
-    color: $text-white;
-    margin-left: 6rpx;
-  }
+    0 8rpx 32rpx rgba($dream-purple, 0.5),
+    0 0 0 4rpx rgba(255, 255, 255, 0.1);
+  transition: all 0.2s ease;
 
   &:active {
-    transform: scale(0.92);
-    box-shadow:
-      0 4rpx 16rpx rgba($song-primary, 0.4),
-      0 0 0 4rpx rgba($song-primary, 0.1);
+    transform: scale(0.95);
   }
 
-  &.buffering {
-    opacity: 0.8;
+  &.playing {
+    animation: play-pulse 2s ease-in-out infinite;
   }
 }
 
-// 缓冲中旋转动画
-.buffering-spinner {
+@keyframes play-pulse {
+  0%, 100% { box-shadow: 0 8rpx 32rpx rgba($dream-purple, 0.5), 0 0 0 4rpx rgba(255, 255, 255, 0.1); }
+  50% { box-shadow: 0 12rpx 48rpx rgba($dream-pink, 0.6), 0 0 0 6rpx rgba(255, 255, 255, 0.15); }
+}
+
+.play-icon {
+  font-size: 48rpx;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.loading-spinner {
   width: 48rpx;
   height: 48rpx;
   border: 4rpx solid rgba(255, 255, 255, 0.3);
@@ -868,59 +1449,122 @@ onUnmounted(() => {
   animation: spin 0.8s linear infinite;
 }
 
-// === 风格标签 ===
-.style-tag {
+// 涟漪效果
+.ripple {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 120rpx;
+  height: 120rpx;
+  border: 2rpx solid rgba($dream-purple, 0.5);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  animation: ripple-expand 2s ease-out infinite;
+  pointer-events: none;
+
+  &.ripple-2 {
+    animation-delay: 1s;
+  }
+}
+
+@keyframes ripple-expand {
+  0% {
+    width: 120rpx;
+    height: 120rpx;
+    opacity: 0.6;
+  }
+  100% {
+    width: 200rpx;
+    height: 200rpx;
+    opacity: 0;
+  }
+}
+
+// 切换版本按钮
+.switch-btn {
+  position: relative;
+
+  .track-indicator {
+    position: absolute;
+    bottom: -4rpx;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 18rpx;
+    color: rgba(255, 255, 255, 0.7);
+    white-space: nowrap;
+  }
+}
+
+// 版本切换提示
+.track-hint {
+  text-align: center;
+  margin-bottom: $spacing-sm;
+
+  text {
+    font-size: $font-xs;
+    color: rgba(255, 255, 255, 0.5);
+  }
+}
+
+// 风格标签
+.style-badge {
   text-align: center;
 
   text {
     display: inline-block;
     padding: $spacing-xs $spacing-md;
-    background: rgba($song-primary, 0.15);
+    background: rgba($dream-purple, 0.2);
+    border: 1rpx solid rgba($dream-purple, 0.3);
     border-radius: $radius-full;
     font-size: $font-xs;
-    color: $song-secondary;
-    border: 1rpx solid rgba($song-primary, 0.2);
+    color: rgba(255, 255, 255, 0.8);
   }
 }
 
-// === 加载状态 ===
+// === 加载遮罩 ===
 .loading-overlay {
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(13, 26, 38, 0.95);
+  background: linear-gradient(160deg, #1a0a2e, #0a0a14);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 100;
 }
 
-.loading-content {
+.loader {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: $spacing-md;
 }
 
-.loading-icon {
-  font-size: 80rpx;
-  filter: drop-shadow(0 4rpx 12rpx rgba($song-primary, 0.4));
-}
-
-.loading-content text:last-child {
-  font-size: $font-base;
-  color: rgba(255, 255, 255, 0.8);
-}
-
-// === 动画 ===
-.animate-spin {
+.loader-disc {
+  width: 120rpx;
+  height: 120rpx;
+  border-radius: 50%;
+  background: linear-gradient(135deg, $dream-purple, $dream-pink);
   animation: spin 1.5s linear infinite;
+  box-shadow: 0 0 40rpx rgba($dream-purple, 0.5);
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 30rpx;
+    height: 30rpx;
+    background: #1a0a2e;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+  }
 }
 
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+.loader-text {
+  font-size: $font-md;
+  color: rgba(255, 255, 255, 0.8);
 }
 </style>

@@ -88,10 +88,14 @@ npm run build:mp-weixin
 - Base URL: `https://kids.jackverse.cn/api/v1`
 - 主要接口:
   - `POST /content/picture-book` - 生成绘本（超时3分钟）
-  - `POST /content/nursery-rhyme` - 生成儿歌（超时3分钟）
+  - `POST /content/nursery-rhyme` - 生成儿歌（同步模式，已废弃）
+  - `POST /content/nursery-rhyme/async` - 生成儿歌（**异步模式，推荐**）
+  - `GET /content/nursery-rhyme/status/{task_id}` - 查询儿歌生成状态
   - `POST /content/video` - 生成视频（超时5分钟）
   - `GET /content/list` - 获取内容列表
   - `GET /content/{id}` - 获取内容详情
+  - `POST /callback/suno/video` - Suno 视频生成回调（内部使用）
+  - `GET /callback/suno/video/status/{task_id}` - 查询 Suno 视频状态
 
 ### 后端问题排查指南
 
@@ -133,41 +137,56 @@ systemctl status kids-backend
 - 记录请求参数和响应内容，便于后端定位问题
 - 检查请求超时设置是否合理（绘本/儿歌 3 分钟，视频 5 分钟）
 
-## Suno 儿歌生成回调机制
+## Suno 儿歌生成异步机制
 
-### 回调流程
-1. 前端发起 `POST /content/nursery-rhyme` 请求
-2. 后端返回 `{ task_id: "xxx" }` 进入异步模式
-3. 前端轮询 `GET /callback/suno/status/{task_id}` 获取进度
+### 异步流程（新版，推荐）
+1. 前端发起 `POST /content/nursery-rhyme/async` 请求
+2. 后端**立即返回** `{ task_id: "xxx", message: "任务已提交" }`
+3. 前端轮询 `GET /content/nursery-rhyme/status/{task_id}` 获取进度
+4. 完成后返回完整的 `result` 对象
 
-### 回调阶段（后端实际返回值）
-- `waiting` - 准备中
-- `text` - 歌词生成完成 (TEXT_SUCCESS)
-- `first` - 第一首歌曲完成 (FIRST_SUCCESS)
-- `complete` - 全部完成 (SUCCESS)
-- `error` - 生成失败
+### 为什么使用异步模式
+- **避免 Cloudflare 524 超时**：Cloudflare 限制 100 秒，Suno 生成需要 2-3 分钟
+- **更好的用户体验**：立即返回任务 ID，前端可以显示实时进度
+- **更高的可靠性**：即使前端断开连接，后端也会继续处理
 
-### 状态响应格式
+### 生成阶段
+- `pending` / `waiting` - 任务已提交，等待处理
+- `processing` - 正在处理中
+- `text` - 歌词生成完成
+- `first` - 第一首歌曲完成
+- `completed` / `complete` - 全部完成
+- `failed` / `error` - 生成失败
+
+### 新版状态响应格式
 ```typescript
+// POST /content/nursery-rhyme/async 响应
 {
   task_id: string
+  message: string
+}
+
+// GET /content/nursery-rhyme/status/{task_id} 响应
+{
+  task_id: string
+  status: 'pending' | 'processing' | 'completed' | 'failed'
   progress: number      // 0-100
-  stage: 'waiting' | 'text' | 'first' | 'complete' | 'error'
+  stage: string         // 'text' | 'first' | 'complete' | 'error'
   message?: string
-  tracks?: Array<{
-    id: string
-    title: string
-    audio_url: string
-    cover_url?: string
-    duration: number
-    lyrics?: string     // Suno 生成的歌词
-  }>
-  lyrics?: string       // 也可能在顶层返回
+  content_id?: string   // 完成后返回
+  result?: NurseryRhyme // 完成后返回完整结果
   error?: string
 }
 ```
 
+### 旧版回调机制（已废弃）
+旧版使用 `POST /content/nursery-rhyme` + `GET /callback/suno/status/{task_id}`，
+由于 Cloudflare 524 超时问题已弃用。代码中保留兼容，但新功能请使用异步 API。
+
 ### 注意事项
-- 歌词应从 `tracks[0].lyrics` 或 `status.lyrics` 提取，不是提示词
+- 新版 API 在 `result` 字段返回完整的 NurseryRhyme 对象，包含歌词和音频
+- 歌词可能包含 `timestamped` 字段，用于歌词同步高亮
 - Suno 每次生成 2 首歌曲，前端默认使用第一首
-- 歌曲时长约 68 秒，由 Suno 服务决定
+- 歌曲时长约 68-100 秒，由 Suno 服务决定
+- **video_url**：Suno 生成的音乐视频 URL，回调端点修复后应包含视频。若为空字符串 `""`，检查回调是否正常
+- **状态轮询备用方案**：如果状态 API 返回 `completed` 但无 `result`，前端会调用 `GET /content/{id}` 获取详情

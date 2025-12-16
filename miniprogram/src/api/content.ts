@@ -83,10 +83,30 @@ export interface LyricsSection {
   content: string
 }
 
-// 歌词接口（可能是字符串或对象）
+// 时间戳歌词项（Suno 精确时间戳）
+export interface TimestampedLyricItem {
+  word: string
+  start_s: number
+  end_s: number
+}
+
+// 歌词接口（新版本包含时间戳）
 export interface LyricsObject {
   full_text: string
-  sections: LyricsSection[]
+  sections?: LyricsSection[]
+  timestamped?: TimestampedLyricItem[]  // Suno 精确时间戳
+}
+
+// 歌曲轨道接口
+export interface SongTrack {
+  id: string
+  audio_url: string
+  cover_url?: string
+  video_url?: string
+  lyric?: string
+  timestamped_lyrics?: TimestampedLyricItem[]
+  duration: number
+  title: string
 }
 
 // 儿歌接口
@@ -97,12 +117,15 @@ export interface NurseryRhyme {
   // lyrics 可能是字符串或对象，取决于后端版本
   lyrics: string | LyricsObject
   audio_url: string
-  cover_url?: string
+  video_url?: string           // Suno 音乐视频
+  cover_url?: string           // Imagen 主封面
+  suno_cover_url?: string      // Suno 封面（备用）
   duration: number
   music_style: MusicStyle
   personalization: {
     child_name: string
   }
+  all_tracks?: SongTrack[]     // 所有歌曲版本（Suno 返回 2 首）
   created_at: string
 }
 
@@ -180,10 +203,48 @@ export interface SunoTaskStatus {
 }
 
 /**
- * 轮询 Suno 任务状态
+ * 轮询 Suno 任务状态（旧版，兼容保留）
  */
 export async function getSunoTaskStatus(taskId: string): Promise<SunoTaskStatus> {
   return request.get<SunoTaskStatus>(`/callback/suno/status/${taskId}`)
+}
+
+// 异步生成儿歌响应
+export interface AsyncNurseryRhymeResponse {
+  task_id: string
+  message: string
+}
+
+// 儿歌任务状态响应（新版异步 API）
+export interface NurseryRhymeTaskStatus {
+  task_id: string
+  status: 'pending' | 'processing' | 'completed' | 'failed'
+  progress: number  // 0-100
+  stage: string     // 'text' | 'first' | 'complete' | 'error' 等
+  message?: string
+  content_id?: string  // 完成后返回
+  result?: NurseryRhyme  // 完成后返回完整结果
+  error?: string
+}
+
+/**
+ * 异步生成儿歌（新版 API，立即返回 task_id）
+ * 避免 Cloudflare 524 超时
+ */
+export async function generateNurseryRhymeAsync(params: GenerateNurseryRhymeParams): Promise<AsyncNurseryRhymeResponse> {
+  console.log('[generateNurseryRhymeAsync] 发起异步请求')
+  return request.post<AsyncNurseryRhymeResponse>('/content/nursery-rhyme/async', params, {
+    showLoading: false,
+    showError: true,
+    timeout: 30000  // 只是提交任务，30秒足够
+  })
+}
+
+/**
+ * 获取儿歌生成任务状态（新版 API）
+ */
+export async function getNurseryRhymeTaskStatus(taskId: string): Promise<NurseryRhymeTaskStatus> {
+  return request.get<NurseryRhymeTaskStatus>(`/content/nursery-rhyme/status/${taskId}`)
 }
 
 /**

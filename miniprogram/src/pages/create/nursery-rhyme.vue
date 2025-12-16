@@ -153,8 +153,8 @@ import { onLoad } from '@dcloudio/uni-app'
 import { useChildStore } from '@/stores/child'
 import { useContentStore } from '@/stores/content'
 import GeneratingProgress from '@/components/GeneratingProgress/GeneratingProgress.vue'
-import { generateNurseryRhyme, getSunoTaskStatus } from '@/api/content'
-import type { ThemeItem, MusicStyle, NurseryRhyme, SunoTaskStage } from '@/api/content'
+import { generateNurseryRhymeAsync, getNurseryRhymeTaskStatus, getContentDetail } from '@/api/content'
+import type { ThemeItem, MusicStyle, NurseryRhyme, SunoTaskStage, NurseryRhymeTaskStatus } from '@/api/content'
 
 const childStore = useChildStore()
 const contentStore = useContentStore()
@@ -171,11 +171,10 @@ const steps = [
 ]
 const currentStep = ref(0)
 
-// 主题
+// 主题（后端只支持 habit 和 cognition）
 const themeCategories = [
   { id: 'habit', name: '习惯养成', icon: '🌟' },
-  { id: 'cognition', name: '认知世界', icon: '🌍' },
-  { id: 'emotion', name: '情感社交', icon: '💝' }
+  { id: 'cognition', name: '认知世界', icon: '🌍' }
 ]
 const selectedCategory = ref('habit')
 const selectedTheme = ref<ThemeItem | null>(null)
@@ -195,17 +194,29 @@ const isGenerating = ref(false)
 const generatingProgress = ref(0)
 const generatingStage = ref<SunoTaskStage>('waiting')
 const generatingMessage = ref('')
+const pollErrorCount = ref(0)  // 轮询错误计数
 
 // 存储生成结果
 const generatedSong = ref<NurseryRhyme | null>(null)
 
-// 阶段对应的进度和消息（后端回调阶段: text, first, complete）
-const stageInfo: Record<SunoTaskStage, { minProgress: number; message: string }> = {
-  waiting: { minProgress: 5, message: '准备中...' },
-  text: { minProgress: 30, message: '歌词创作完成，正在编曲...' },
-  first: { minProgress: 70, message: '第一首歌曲就绪，继续生成...' },
-  complete: { minProgress: 100, message: '生成完成！' },
-  error: { minProgress: 0, message: '生成失败' }
+// 模拟进度定时器
+let simulateProgressTimer: number | null = null
+
+// 阶段对应的进度范围和消息（严格对应 Suno 回调阶段）
+// Suno 回调: text(文本完成) → first(首曲完成) → complete(全部完成)
+const stageInfo: Record<string, { minProgress: number; maxProgress: number; message: string }> = {
+  // Suno 标准阶段
+  waiting: { minProgress: 1, maxProgress: 30, message: '正在生成歌词文本...' },
+  text: { minProgress: 35, maxProgress: 65, message: '文本完成，正在生成音乐...' },
+  first: { minProgress: 70, maxProgress: 90, message: '首曲完成，继续生成...' },
+  complete: { minProgress: 100, maxProgress: 100, message: '全部完成！' },
+  error: { minProgress: 0, maxProgress: 0, message: '生成失败' },
+  // 兼容其他可能的阶段名称（映射到标准阶段）
+  pending: { minProgress: 1, maxProgress: 30, message: '正在生成歌词文本...' },
+  processing: { minProgress: 35, maxProgress: 65, message: '正在生成音乐...' },
+  generating: { minProgress: 35, maxProgress: 65, message: '正在生成音乐...' },
+  queued: { minProgress: 1, maxProgress: 15, message: '排队中...' },
+  submitted: { minProgress: 1, maxProgress: 20, message: '已提交，等待处理...' }
 }
 
 // 计算属性
@@ -225,7 +236,7 @@ const canNext = computed(() => {
   return true
 })
 
-// 默认主题（API 未返回时使用）
+// 默认主题（API 未返回时使用，后端只支持 habit 和 cognition）
 const defaultThemes: Record<string, ThemeItem[]> = {
   habit: [
     { id: 'brushing_teeth', name: '刷牙', subcategory: '生活习惯', age_range: [24, 48], keywords: [] },
@@ -242,14 +253,6 @@ const defaultThemes: Record<string, ThemeItem[]> = {
     { id: 'seasons', name: '四季变化', subcategory: '自然认知', age_range: [30, 60], keywords: [] },
     { id: 'body_parts', name: '认识身体', subcategory: '基础认知', age_range: [18, 36], keywords: [] },
     { id: 'vehicles', name: '交通工具', subcategory: '生活认知', age_range: [18, 48], keywords: [] }
-  ],
-  emotion: [
-    { id: 'sharing', name: '学会分享', subcategory: '社交能力', age_range: [24, 60], keywords: [] },
-    { id: 'making_friends', name: '交朋友', subcategory: '社交能力', age_range: [30, 60], keywords: [] },
-    { id: 'managing_anger', name: '控制情绪', subcategory: '情绪管理', age_range: [30, 60], keywords: [] },
-    { id: 'courage', name: '勇敢', subcategory: '性格培养', age_range: [30, 72], keywords: [] },
-    { id: 'love_family', name: '爱家人', subcategory: '情感培养', age_range: [18, 60], keywords: [] },
-    { id: 'helping_others', name: '帮助他人', subcategory: '社交能力', age_range: [30, 60], keywords: [] }
   ]
 }
 
@@ -287,64 +290,233 @@ async function handleNext() {
   }
 }
 
-// 轮询任务状态
+// 启动模拟进度（在真实进度返回前显示进度变化）
+function startSimulateProgress() {
+  stopSimulateProgress()
+  console.log('[startSimulateProgress] 启动模拟进度')
+
+  simulateProgressTimer = setInterval(() => {
+    const stage = generatingStage.value
+    const info = stageInfo[stage]
+
+    // 如果当前阶段没有定义，使用默认值
+    if (!info) {
+      console.log('[模拟进度] 未知阶段:', stage, '使用默认进度范围')
+      // 未知阶段也允许进度增加
+      const currentProgress = generatingProgress.value
+      if (currentProgress < 95) {
+        const increment = Math.random() * 1.5 + 0.5
+        generatingProgress.value = Math.min(currentProgress + increment, 95)
+      }
+      return
+    }
+
+    // 在当前阶段的进度范围内缓慢增加
+    const currentProgress = generatingProgress.value
+    if (currentProgress < info.maxProgress) {
+      // 每次增加 1-2%，但不超过当前阶段的最大值
+      const increment = Math.random() * 1.5 + 0.5
+      generatingProgress.value = Math.min(currentProgress + increment, info.maxProgress)
+    }
+  }, 1000) as unknown as number
+}
+
+// 停止模拟进度
+function stopSimulateProgress() {
+  if (simulateProgressTimer) {
+    clearInterval(simulateProgressTimer)
+    simulateProgressTimer = null
+  }
+}
+
+// 标准化阶段名称（将后端返回的各种阶段名映射到前端标准阶段）
+function normalizeStage(backendStage: string): string {
+  const stageMapping: Record<string, string> = {
+    // 等待/排队阶段
+    'pending': 'waiting',
+    'queued': 'waiting',
+    'submitted': 'waiting',
+    'init': 'waiting',
+    // 歌词生成阶段
+    'text': 'text',
+    'lyrics': 'text',
+    'TEXT_SUCCESS': 'text',
+    // 歌曲生成阶段
+    'first': 'first',
+    'generating': 'first',
+    'processing': 'first',
+    'FIRST_SUCCESS': 'first',
+    // 完成阶段
+    'complete': 'complete',
+    'completed': 'complete',
+    'success': 'complete',
+    'SUCCESS': 'complete',
+    'done': 'complete',
+    // 错误阶段
+    'error': 'error',
+    'failed': 'error',
+    'ERROR': 'error'
+  }
+  return stageMapping[backendStage] || backendStage
+}
+
+// 轮询任务状态（使用新版异步 API）
 async function pollTaskStatus(taskId: string): Promise<NurseryRhyme | null> {
-  const maxAttempts = 60  // 最多轮询 60 次（3分钟）
+  const maxAttempts = 120  // 最多轮询 120 次（6分钟，Suno 可能较慢）
   const pollInterval = 3000  // 3秒轮询一次
+  const maxConsecutiveErrors = 5  // 最大连续错误次数
+
+  pollErrorCount.value = 0
+
+  // 启动模拟进度
+  startSimulateProgress()
+
+  console.log('[pollTaskStatus] 开始轮询，taskId:', taskId, '最大尝试:', maxAttempts)
 
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     try {
-      const status = await getSunoTaskStatus(taskId)
-      console.log('[pollTaskStatus] 状态:', JSON.stringify(status))
-      console.log('[pollTaskStatus] stage:', status.stage, 'progress:', status.progress)
+      const status: NurseryRhymeTaskStatus = await getNurseryRhymeTaskStatus(taskId)
+      console.log(`[pollTaskStatus] 第 ${attempt + 1}/${maxAttempts} 次轮询，原始响应:`, JSON.stringify(status))
 
-      // 更新阶段和进度
-      if (status.stage) {
-        generatingStage.value = status.stage
-      }
-      generatingMessage.value = status.message || stageInfo[status.stage]?.message || ''
+      // 成功获取状态，重置错误计数
+      pollErrorCount.value = 0
 
-      // 使用真实进度，但确保不低于阶段最小进度
-      const minProgress = stageInfo[status.stage]?.minProgress || 0
-      const actualProgress = status.progress || 0
-      generatingProgress.value = Math.max(actualProgress, minProgress)
-      console.log('[pollTaskStatus] 更新进度:', generatingProgress.value, '阶段:', generatingStage.value)
+      // 标准化并更新阶段
+      const rawStage = status.stage || 'waiting'
+      const normalizedStage = normalizeStage(rawStage)
+      console.log('[pollTaskStatus] 原始阶段:', rawStage, '-> 标准化:', normalizedStage)
 
-      if (status.stage === 'complete' && status.tracks && status.tracks.length > 0) {
-        // 生成完成，返回第一首歌曲
-        const track = status.tracks[0]
-        // 歌词可能在 track 中或 status 顶层
-        const lyricsContent = track.lyrics || status.lyrics || ''
-        console.log('[pollTaskStatus] 提取歌词:', lyricsContent?.substring(0, 100))
-        return {
-          id: track.id,
-          title: track.title,
-          audio_url: track.audio_url,
-          cover_url: track.cover_url,
-          duration: track.duration,
-          theme_topic: selectedTheme.value?.name || '',
-          music_style: selectedStyle.value,
-          lyrics: lyricsContent,
-          personalization: { child_name: childStore.currentChild?.name || '' },
-          created_at: new Date().toISOString()
-        } as NurseryRhyme
+      if (normalizedStage) {
+        const prevStage = generatingStage.value
+        generatingStage.value = normalizedStage as SunoTaskStage
+
+        // 阶段变化时，立即跳到该阶段的最小进度
+        if (prevStage !== normalizedStage) {
+          const minProgress = stageInfo[normalizedStage]?.minProgress || 0
+          if (generatingProgress.value < minProgress) {
+            generatingProgress.value = minProgress
+            console.log('[pollTaskStatus] 阶段变化，跳转到最小进度:', minProgress)
+          }
+        }
       }
 
-      if (status.stage === 'error') {
-        throw new Error(status.error || '生成失败')
+      // 更新消息
+      generatingMessage.value = status.message || stageInfo[normalizedStage]?.message || '处理中...'
+
+      // 使用后端进度（如果有且更大），否则继续模拟
+      if (status.progress && status.progress > generatingProgress.value) {
+        generatingProgress.value = status.progress
+        console.log('[pollTaskStatus] 使用后端进度:', status.progress)
+      }
+
+      console.log('[pollTaskStatus] 当前进度:', generatingProgress.value, '阶段:', generatingStage.value, '状态:', status.status)
+
+      // 检查是否完成 - 多种条件检测
+      const isCompleted = status.status === 'completed' ||
+                          normalizedStage === 'complete' ||
+                          status.progress === 100 ||
+                          status.progress >= 95  // 进度 >=95% 也视为接近完成
+
+      if (isCompleted) {
+        console.log('[pollTaskStatus] 检测到完成状态，status:', status.status, 'stage:', normalizedStage, 'progress:', status.progress)
+
+        // 优先使用 result 字段
+        if (status.result) {
+          stopSimulateProgress()
+          generatingProgress.value = 100
+          console.log('[pollTaskStatus] 完成！返回 result:', JSON.stringify(status.result))
+          return status.result
+        }
+
+        // 如果有 content_id，从详情 API 获取完整数据
+        if (status.content_id) {
+          stopSimulateProgress()
+          generatingProgress.value = 100
+          console.log('[pollTaskStatus] 完成（无 result），尝试获取详情，content_id:', status.content_id)
+
+          try {
+            // 从详情 API 获取完整的儿歌数据
+            const detail = await getContentDetail(status.content_id)
+            console.log('[pollTaskStatus] 详情 API 返回:', JSON.stringify(detail))
+
+            // 转换为 NurseryRhyme 格式
+            return {
+              id: detail.id,
+              title: detail.title,
+              audio_url: (detail as any).audio_url || '',
+              video_url: (detail as any).video_url || '',
+              cover_url: (detail as any).cover_url || '',
+              suno_cover_url: (detail as any).suno_cover_url || '',
+              duration: (detail as any).audio_duration || detail.total_duration || 0,
+              theme_topic: detail.theme_topic || selectedTheme.value?.name || '',
+              music_style: selectedStyle.value,
+              lyrics: (detail as any).lyrics || '',
+              all_tracks: (detail as any).all_tracks || [],
+              personalization: detail.personalization || { child_name: childStore.currentChild?.name || '' },
+              created_at: detail.created_at
+            } as NurseryRhyme
+          } catch (detailError) {
+            console.error('[pollTaskStatus] 获取详情失败:', detailError)
+            // 即使详情获取失败，也返回基本数据
+            return {
+              id: status.content_id,
+              title: selectedTheme.value?.name || '儿歌',
+              audio_url: '',
+              duration: 0,
+              theme_topic: selectedTheme.value?.name || '',
+              music_style: selectedStyle.value,
+              lyrics: '',
+              personalization: { child_name: childStore.currentChild?.name || '' },
+              created_at: new Date().toISOString()
+            } as NurseryRhyme
+          }
+        }
+
+        // 进度 >=95 但没有 content_id，继续轮询等待完全完成
+        if (status.progress >= 95 && status.progress < 100 && !status.content_id) {
+          console.log('[pollTaskStatus] 进度接近完成但无 content_id，继续等待...')
+        } else {
+          console.log('[pollTaskStatus] 完成状态但无数据，继续等待...')
+        }
+      }
+
+      // 检查失败状态
+      if (status.status === 'failed' || normalizedStage === 'error') {
+        stopSimulateProgress()
+        throw new Error(status.error || status.message || '生成失败')
       }
 
       // 等待后继续轮询
       await new Promise(resolve => setTimeout(resolve, pollInterval))
     } catch (e: any) {
-      console.error('[pollTaskStatus] 轮询错误:', e)
-      // 网络错误时继续尝试
+      // 如果是我们抛出的错误（生成失败），直接抛出
+      if (e.message && (e.message.includes('生成失败') || e.message.includes('网络连接失败'))) {
+        throw e
+      }
+
+      pollErrorCount.value++
+      console.error(`[pollTaskStatus] 轮询错误 (${pollErrorCount.value}/${maxConsecutiveErrors}):`, e.message || e)
+
+      // 更新消息显示网络状态
+      if (pollErrorCount.value >= 2) {
+        generatingMessage.value = `网络不稳定，正在重试... (${pollErrorCount.value})`
+      }
+
+      // 连续错误次数过多，停止轮询
+      if (pollErrorCount.value >= maxConsecutiveErrors) {
+        stopSimulateProgress()
+        throw new Error('网络连接失败，请检查网络后重试')
+      }
+
+      // 等待后继续尝试
       if (attempt < maxAttempts - 1) {
         await new Promise(resolve => setTimeout(resolve, pollInterval))
       }
     }
   }
 
+  stopSimulateProgress()
+  console.error('[pollTaskStatus] 轮询超时，已尝试', maxAttempts, '次')
   throw new Error('生成超时，请重试')
 }
 
@@ -352,16 +524,17 @@ async function startGenerate() {
   if (!selectedTheme.value || !childStore.currentChild) return
 
   isGenerating.value = true
-  generatingProgress.value = 0
+  generatingProgress.value = 1  // 起始进度 1%
   generatingStage.value = 'waiting'
-  generatingMessage.value = '正在启动 AI 创作...'
+  generatingMessage.value = '正在提交生成任务...'
+  pollErrorCount.value = 0
 
   try {
     const ageMonths = childStore.currentChildAgeMonths || 36
 
-    // 发起生成请求
-    console.log('[startGenerate] 发起生成请求')
-    const result = await generateNurseryRhyme({
+    // 发起异步生成请求（新版 API，立即返回 task_id）
+    console.log('[startGenerate] 发起异步生成请求')
+    const asyncResult = await generateNurseryRhymeAsync({
       child_name: childStore.currentChild.name,
       age_months: ageMonths,
       theme_topic: selectedTheme.value.name,
@@ -369,23 +542,20 @@ async function startGenerate() {
       music_style: selectedStyle.value
     })
 
-    console.log('[startGenerate] 生成请求返回:', result)
+    console.log('[startGenerate] 异步请求返回:', asyncResult)
 
-    // 检查是否返回了 task_id（异步模式）
-    const taskId = (result as any).task_id
-    if (taskId) {
-      console.log('[startGenerate] 异步模式，task_id:', taskId)
-      generatingMessage.value = 'AI 正在创作歌词...'
+    const taskId = asyncResult.task_id
+    if (!taskId) {
+      throw new Error('未获取到任务 ID，请重试')
+    }
 
-      // 轮询任务状态
-      const finalResult = await pollTaskStatus(taskId)
-      if (finalResult) {
-        generatedSong.value = finalResult
-      }
-    } else {
-      // 同步模式，直接返回结果
-      console.log('[startGenerate] 同步模式，直接返回结果')
-      generatedSong.value = result
+    console.log('[startGenerate] 获取到 task_id:', taskId)
+    generatingMessage.value = 'AI 正在创作歌词...'
+
+    // 轮询任务状态
+    const finalResult = await pollTaskStatus(taskId)
+    if (finalResult) {
+      generatedSong.value = finalResult
     }
 
     generatingProgress.value = 100
@@ -403,6 +573,7 @@ async function startGenerate() {
       }
     }, 500)
   } catch (e: any) {
+    stopSimulateProgress()
     isGenerating.value = false
     generatingStage.value = 'error'
     console.error('[startGenerate] 生成儿歌失败:', e)

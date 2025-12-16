@@ -97,21 +97,20 @@
         </view>
       </view>
 
-      <!-- 歌词区域 - 使用 scroll-into-view 精确滚动 -->
+      <!-- 歌词区域 - 使用 scroll-top 精确居中滚动 -->
       <scroll-view
         class="lyrics-scroll"
         scroll-y
-        :scroll-into-view="currentLyricId"
+        :scroll-top="lyricsScrollTop"
         scroll-with-animation
         :enhanced="true"
         :show-scrollbar="false"
       >
-        <!-- 顶部占位，让第一句歌词能居中 -->
-        <view class="lyrics-padding-top"></view>
+        <!-- 顶部占位，高度=容器高度一半，确保第一句能居中 -->
+        <view class="lyrics-padding-top" :style="{ height: lyricsPaddingHeight + 'px' }"></view>
         <view
           v-for="(line, index) in lyricsLines"
           :key="index"
-          :id="'lyric-' + index"
           class="lyrics-line"
           :class="{
             active: index === currentLyricIndex,
@@ -120,8 +119,8 @@
         >
           <text>{{ line }}</text>
         </view>
-        <!-- 底部占位 -->
-        <view class="lyrics-padding-bottom"></view>
+        <!-- 底部占位，高度=容器高度一半，确保最后一句能居中 -->
+        <view class="lyrics-padding-bottom" :style="{ height: lyricsPaddingHeight + 'px' }"></view>
         <view v-if="lyricsLines.length === 0" class="no-lyrics-state">
           <view class="no-lyrics-icon">📝</view>
           <text class="no-lyrics-text">歌词加载中...</text>
@@ -228,8 +227,50 @@ const lyricsData = ref<LyricLine[]>([])  // 带时间戳的歌词
 const lyricsLines = ref<string[]>([])     // 纯文本歌词（用于显示）
 const currentLyricIndex = ref(0)
 
-// 当前歌词的 DOM ID，用于 scroll-into-view
-const currentLyricId = computed(() => `lyric-${currentLyricIndex.value}`)
+// 歌词滚动相关常量（单位：rpx）
+const LYRIC_LINE_HEIGHT_RPX = 72  // 每行歌词固定高度
+const LYRICS_CONTAINER_HEIGHT_RPX = 400  // 歌词容器大约高度（用于计算占位）
+
+// 歌词滚动位置（使用 scroll-top 精确居中）
+const lyricsScrollTop = ref(0)
+const lyricsContainerHeight = ref(0)  // 实际容器高度（px）
+const rpxToPxRatio = ref(0.5)  // rpx 转 px 的比例
+
+// 歌词占位高度 = 容器高度的一半（让第一句/最后一句歌词能滚动到中间）
+const lyricsPaddingHeight = computed(() => {
+  // 如果容器高度还没获取到，使用默认值
+  if (lyricsContainerHeight.value === 0) {
+    return 150  // 默认 150px
+  }
+  // 占位高度 = 容器高度的一半 - 半行高度（让歌词中心对齐容器中心）
+  const lineHeight = LYRIC_LINE_HEIGHT_RPX * rpxToPxRatio.value
+  return Math.max(100, lyricsContainerHeight.value / 2 - lineHeight / 2)
+})
+
+// 计算歌词滚动位置，使当前歌词居中
+function updateLyricsScrollPosition(index: number) {
+  if (lyricsContainerHeight.value === 0) return
+
+  const lineHeight = LYRIC_LINE_HEIGHT_RPX * rpxToPxRatio.value
+  // 占位高度 = 容器高度的一半，这样第一句歌词可以滚动到中间
+  const paddingTop = lyricsContainerHeight.value / 2
+
+  // 计算目标滚动位置，使当前歌词行的中心与容器中心对齐
+  // scrollTop = 占位高度 + 索引*行高 + 行高/2 - 容器高度/2
+  //           = 索引*行高 + 行高/2 (因为 占位高度 = 容器高度/2)
+  const targetScrollTop = index * lineHeight
+
+  // 确保值变化以触发滚动（微信小程序的 scroll-top 有时需要值变化才触发）
+  if (Math.abs(lyricsScrollTop.value - targetScrollTop) < 1) {
+    // 值相同时，先设为略不同的值再设回来
+    lyricsScrollTop.value = targetScrollTop + 0.5
+    setTimeout(() => {
+      lyricsScrollTop.value = targetScrollTop
+    }, 10)
+  } else {
+    lyricsScrollTop.value = targetScrollTop
+  }
+}
 
 // 音频实例
 let audioContext: UniApp.InnerAudioContext | null = null
@@ -483,9 +524,10 @@ function updateCurrentLyric() {
       }
     }
 
-    // 更新当前歌词索引（scroll-into-view 会自动滚动）
+    // 更新当前歌词索引并滚动
     if (newIndex !== currentLyricIndex.value) {
       currentLyricIndex.value = newIndex
+      updateLyricsScrollPosition(newIndex)
       console.log('[歌词] 切换到第', newIndex + 1, '句:', data[newIndex]?.text?.substring(0, 10))
     }
     return
@@ -501,6 +543,7 @@ function updateCurrentLyric() {
 
   if (newIndex !== currentLyricIndex.value && newIndex >= 0) {
     currentLyricIndex.value = newIndex
+    updateLyricsScrollPosition(newIndex)
   }
 }
 
@@ -812,6 +855,10 @@ onLoad((options) => {
   const sysInfo = uni.getSystemInfoSync()
   statusBarHeight.value = sysInfo.statusBarHeight || 20
 
+  // 计算 rpx 转 px 比例（设计稿 750rpx = 屏幕宽度）
+  rpxToPxRatio.value = sysInfo.windowWidth / 750
+  console.log('[歌词滚动] rpx转px比例:', rpxToPxRatio.value)
+
   // 立即尝试加载内容
   loadContent()
 })
@@ -823,6 +870,19 @@ onMounted(() => {
     console.log('[nursery-rhyme] onMounted: 重新尝试加载')
     loadContent()
   }
+
+  // 获取歌词容器的实际高度
+  setTimeout(() => {
+    const query = uni.createSelectorQuery()
+    query.select('.lyrics-scroll').boundingClientRect((rect: any) => {
+      if (rect && rect.height > 0) {
+        lyricsContainerHeight.value = rect.height
+        console.log('[歌词滚动] 容器高度:', rect.height, 'px')
+        // 初始化滚动位置
+        updateLyricsScrollPosition(currentLyricIndex.value)
+      }
+    }).exec()
+  }, 300)  // 等待 DOM 渲染完成
 })
 
 onUnmounted(() => {
@@ -1268,9 +1328,11 @@ $dream-gold: #FFD700;
   box-sizing: border-box;
 }
 
-// 歌词内部的上下占位（让第一句和最后一句能滚动到中间）
+// 歌词内部的上下占位（高度由 JS 动态设置）
 .lyrics-padding-top,
 .lyrics-padding-bottom {
+  flex-shrink: 0;
+  // 默认高度，会被 JS 动态覆盖
   height: 150rpx;
 }
 
@@ -1278,17 +1340,25 @@ $dream-gold: #FFD700;
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 16rpx 0;
+  // 固定行高，确保滚动计算准确
+  height: 72rpx;
+  min-height: 72rpx;
   width: 100%;
   text-align: center;
-  transition: all 0.3s ease;
+  flex-shrink: 0;
+  box-sizing: border-box;
 
   text {
-    font-size: 32rpx;
+    font-size: 30rpx;
     color: rgba(255, 255, 255, 0.4);
-    line-height: 1.6;
-    transition: all 0.3s ease;
+    line-height: 1.4;
+    transition: color 0.3s ease, text-shadow 0.3s ease;
     display: inline-block;
+    max-width: 90%;
+    // 超长文本用省略号
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   &.passed text {
@@ -1296,10 +1366,9 @@ $dream-gold: #FFD700;
   }
 
   &.active {
-    transform: scale(1.08);
-
+    // 不用 transform: scale，避免改变实际高度
     text {
-      font-size: 36rpx;
+      font-size: 34rpx;
       font-weight: $font-semibold;
       color: #fff;
       text-shadow:

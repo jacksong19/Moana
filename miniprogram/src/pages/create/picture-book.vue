@@ -354,6 +354,9 @@ async function startGenerate() {
     const pollInterval = 3000  // 每 3 秒轮询一次
     let attempts = 0
 
+    let consecutiveErrors = 0  // 连续错误计数
+    const maxConsecutiveErrors = 5  // 最多允许连续 5 次错误
+
     const pollStatus = async (): Promise<PictureBook | null> => {
       while (attempts < maxAttempts) {
         attempts++
@@ -361,6 +364,7 @@ async function startGenerate() {
 
         try {
           const status = await getPictureBookTaskStatus(taskId)
+          consecutiveErrors = 0  // 重置连续错误计数
           console.log('[绘本] 状态:', status.status, '进度:', status.progress, '阶段:', status.stage)
 
           // 更新进度条
@@ -389,10 +393,17 @@ async function startGenerate() {
           // 等待后继续轮询
           await new Promise(resolve => setTimeout(resolve, pollInterval))
         } catch (e: any) {
-          console.error('[绘本] 轮询出错:', e)
-          // 网络错误时继续重试
+          consecutiveErrors++
+          console.error(`[绘本] 轮询出错 (${consecutiveErrors}/${maxConsecutiveErrors}):`, e?.errMsg || e?.message || e)
+
+          // 连续错误过多则失败
+          if (consecutiveErrors >= maxConsecutiveErrors) {
+            throw new Error('网络连接不稳定，请检查网络后重试')
+          }
+
+          // 网络错误时等待更长时间后重试
           if (attempts < maxAttempts) {
-            await new Promise(resolve => setTimeout(resolve, pollInterval))
+            await new Promise(resolve => setTimeout(resolve, pollInterval * 2))
           }
         }
       }

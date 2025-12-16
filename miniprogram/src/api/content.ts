@@ -193,7 +193,10 @@ export async function generatePictureBookAsync(params: GeneratePictureBookParams
  * 获取绘本生成任务状态
  */
 export async function getPictureBookTaskStatus(taskId: string): Promise<PictureBookTaskStatus> {
-  return request.get<PictureBookTaskStatus>(`/content/picture-book/status/${taskId}`)
+  return request.get<PictureBookTaskStatus>(`/content/picture-book/status/${taskId}`, {
+    timeout: 30000,  // 30秒超时
+    showError: false  // 不显示错误提示，由调用方处理
+  })
 }
 
 /**

@@ -725,10 +725,13 @@ function handleClose() {
 function initAudio() {
   if (!song.value?.audio_url) return
 
-  uni.setInnerAudioOption({
-    obeyMuteSwitch: false,
-    mixWithOther: false
-  })
+  // 设置音频选项（开发工具不支持，静默忽略）
+  try {
+    uni.setInnerAudioOption({
+      obeyMuteSwitch: false,
+      mixWithOther: false
+    })
+  } catch (e) { /* 开发工具不支持 */ }
 
   if (audioContext) {
     audioContext.stop()

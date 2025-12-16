@@ -323,10 +323,13 @@ function playCurrentPageAudio() {
     setTimeout(() => {
       if (!isPlaying.value) return
 
-      uni.setInnerAudioOption({
-        obeyMuteSwitch: false,
-        mixWithOther: true
-      })
+      // 设置音频选项（开发工具不支持，静默忽略）
+      try {
+        uni.setInnerAudioOption({
+          obeyMuteSwitch: false,
+          mixWithOther: true
+        })
+      } catch (e) { /* 开发工具不支持 */ }
 
       audioContext = uni.createInnerAudioContext()
       audioContext.volume = 1.0

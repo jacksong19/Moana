@@ -318,6 +318,82 @@ const progressPercent = computed(() => {
   return (currentTime.value / duration.value) * 100
 })
 
+/**
+ * 修复歌词重合问题：当有多个歌曲版本时，使用第一首歌的独立歌词
+ * Suno 返回 2 首歌时，后端可能把两首歌词都放在主 lyrics 字段，导致歌词重合
+ */
+function fixLyricsFromFirstTrack(songData: NurseryRhyme): NurseryRhyme {
+  // 如果没有多版本，检查主歌词是否需要去重
+  if (!songData.all_tracks || songData.all_tracks.length === 0) {
+    return deduplicateLyrics(songData)
+  }
+
+  const firstTrack = songData.all_tracks[0]
+
+  // 如果第一个版本有独立的时间戳歌词，使用它替换主歌词
+  if (firstTrack.timestamped_lyrics && firstTrack.timestamped_lyrics.length > 0) {
+    return {
+      ...songData,
+      lyrics: {
+        full_text: firstTrack.lyric || '',
+        timestamped: firstTrack.timestamped_lyrics
+      }
+    }
+  }
+
+  // 如果只有纯文本歌词
+  if (firstTrack.lyric) {
+    return {
+      ...songData,
+      lyrics: firstTrack.lyric
+    }
+  }
+
+  // 没有独立歌词，尝试去重主歌词
+  return deduplicateLyrics(songData)
+}
+
+/**
+ * 去重歌词：检测并移除重复的歌词段落
+ * 如果时间戳歌词中有明显的重复模式（两首歌合并），只保留前半部分
+ */
+function deduplicateLyrics(songData: NurseryRhyme): NurseryRhyme {
+  if (!songData.lyrics || typeof songData.lyrics !== 'object') {
+    return songData
+  }
+
+  const lyrics = songData.lyrics as any
+  if (!lyrics.timestamped || !Array.isArray(lyrics.timestamped)) {
+    return songData
+  }
+
+  const timestamped = lyrics.timestamped
+
+  // 如果词数很少，不需要去重
+  if (timestamped.length < 50) {
+    return songData
+  }
+
+  // 检测是否有时间戳重置（第二首歌开始的标志）
+  // 正常歌词时间戳是递增的，如果突然回到接近 0，说明是第二首歌
+  for (let i = 1; i < timestamped.length; i++) {
+    const prevTime = timestamped[i - 1].start_s || 0
+    const currTime = timestamped[i].start_s || 0
+    // 如果当前时间比前一个小很多（回退超过30秒），认为是新歌开始
+    if (currTime < prevTime - 30) {
+      return {
+        ...songData,
+        lyrics: {
+          ...lyrics,
+          timestamped: timestamped.slice(0, i)
+        }
+      }
+    }
+  }
+
+  return songData
+}
+
 // 将英文歌曲结构标记替换为中文
 const structureMap: Record<string, string> = {
   'verse': '【主歌】',
@@ -357,7 +433,8 @@ function replaceStructureTags(line: string): string {
     result = structureMap[key] || structureMap[key.replace(/-/g, ' ')] || ''
   }
 
-  return result.trim()
+  // 清理所有换行符，确保单行显示
+  return result.replace(/[\n\r]/g, ' ').trim()
 }
 
 // 解析歌词，支持后端时间戳格式、LRC 格式和纯文本
@@ -399,7 +476,8 @@ function parseLyrics(lyrics: any, totalDuration: number): { lines: string[], dat
         if (lineStartTime < 0) {
           lineStartTime = startTime
         }
-        currentLine += word
+        // 清理词中可能包含的换行符，避免歌词重叠显示
+        currentLine += word.replace(/[\n\r]/g, '')
       }
 
       // 句末标点后换行
@@ -803,11 +881,13 @@ async function loadContent() {
     console.log('[nursery-rhyme] 临时存储数据:', tempSong)
     console.log('[nursery-rhyme] 临时存储数据 keys:', tempSong ? Object.keys(tempSong) : 'null')
     if (tempSong) {
-      song.value = tempSong
+      // 修复：使用第一首歌的独立歌词，避免两首歌词重合
+      const processedSong = fixLyricsFromFirstTrack(tempSong)
+      song.value = processedSong
       console.log('[nursery-rhyme] 设置 song.value')
-      console.log('[nursery-rhyme] video_url:', tempSong.video_url)
+      console.log('[nursery-rhyme] video_url:', processedSong.video_url)
       uni.removeStorageSync('temp_nursery_rhyme')
-      duration.value = tempSong.duration || 0
+      duration.value = processedSong.duration || 0
       // 并行预加载封面和初始化音频
       preloadCover()
       initAudio()
@@ -820,8 +900,9 @@ async function loadContent() {
     // 从 API 加载
     if (songId.value) {
       const result = await getContentDetail(songId.value)
-      // 转换为 NurseryRhyme 类型
-      song.value = result as unknown as NurseryRhyme
+      // 转换为 NurseryRhyme 类型，并修复歌词
+      const processedSong = fixLyricsFromFirstTrack(result as unknown as NurseryRhyme)
+      song.value = processedSong
       duration.value = song.value.duration || 0
       // 并行预加载封面和初始化音频
       preloadCover()
@@ -1370,6 +1451,11 @@ $dream-gold: #FFD700;
 
   &.active {
     // 不用 transform: scale，避免改变实际高度
+    // 高亮行允许更多宽度，避免截断
+    height: auto;
+    min-height: 72rpx;
+    padding: 8rpx 0;
+
     text {
       font-size: 34rpx;
       font-weight: $font-semibold;
@@ -1377,6 +1463,12 @@ $dream-gold: #FFD700;
       text-shadow:
         0 0 20rpx $dream-purple,
         0 0 40rpx $dream-pink;
+      // 高亮歌词允许换行显示完整内容
+      max-width: 100%;
+      white-space: normal;
+      overflow: visible;
+      text-overflow: clip;
+      line-height: 1.5;
     }
   }
 }

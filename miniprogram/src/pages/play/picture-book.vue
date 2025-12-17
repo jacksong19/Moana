@@ -581,6 +581,12 @@ function initAfterLoad() {
 async function startPlaySession() {
   if (!childStore.currentChild || !content.value) return
 
+  // 防御性检查：content.id 可能为 undefined（后端返回数据不完整）
+  if (!content.value.id) {
+    console.warn('[startPlaySession] 缺少 content.id，跳过播放会话创建')
+    return
+  }
+
   try {
     const res = await startPlay(childStore.currentChild.id, content.value.id, 'picture_book')
     playHistoryId.value = res.play_history_id

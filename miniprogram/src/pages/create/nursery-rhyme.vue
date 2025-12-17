@@ -1,5 +1,12 @@
 <template>
   <view class="page-container">
+    <!-- 星空背景 -->
+    <view class="cosmos-bg">
+      <view class="stars-layer"></view>
+      <view class="nebula nebula-1"></view>
+      <view class="nebula nebula-2"></view>
+    </view>
+
     <!-- 导航栏 -->
     <view class="nav-bar" :style="{ paddingTop: statusBarHeight + 'px' }">
       <view class="nav-content">
@@ -786,11 +793,50 @@ onLoad((options) => {
 
 .page-container {
   min-height: 100vh;
-  background: $bg-base;
+  background: $bg-cream;
   display: flex;
   flex-direction: column;
   width: 750rpx;
   overflow: hidden;
+  position: relative;
+}
+
+// 装饰背景
+.cosmos-bg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.stars-layer {
+  display: none;
+}
+
+.nebula {
+  position: absolute;
+  border-radius: 50%;
+  opacity: 0.4;
+}
+
+.nebula-1 {
+  width: 350rpx;
+  height: 350rpx;
+  background: $song-light;
+  top: -100rpx;
+  right: -80rpx;
+}
+
+.nebula-2 {
+  width: 250rpx;
+  height: 250rpx;
+  background: $book-light;
+  bottom: 250rpx;
+  left: -80rpx;
 }
 
 // 导航栏
@@ -799,8 +845,10 @@ onLoad((options) => {
   top: 0;
   left: 0;
   z-index: $z-sticky;
-  background: $bg-base;
+  background: rgba(255, 251, 247, 0.95);
+  backdrop-filter: blur(20rpx);
   width: 750rpx;
+  border-bottom: 1rpx solid $border-light;
 }
 
 .nav-content {
@@ -819,6 +867,7 @@ onLoad((options) => {
   justify-content: center;
   background: $bg-card;
   border-radius: $radius-md;
+  border: 1rpx solid $border-light;
   box-shadow: $shadow-sm;
 
   text {
@@ -848,6 +897,8 @@ onLoad((options) => {
   width: 750rpx;
   padding: 0 $spacing-md;
   box-sizing: border-box;
+  position: relative;
+  z-index: 1;
 }
 
 // 步骤指示器
@@ -865,7 +916,7 @@ onLoad((options) => {
   left: 60rpx;
   right: 60rpx;
   height: 4rpx;
-  background: $uni-border-color;
+  background: $border-light;
 }
 
 .step-item {
@@ -882,20 +933,21 @@ onLoad((options) => {
   height: 40rpx;
   border-radius: 50%;
   background: $bg-card;
-  border: 4rpx solid $uni-border-color;
+  border: 4rpx solid $border-medium;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: all $duration-base;
+  box-shadow: $shadow-sm;
 
   text {
     font-size: $font-xs;
-    color: $text-light;
+    color: $text-tertiary;
   }
 
   .active & {
-    border-color: $secondary;
-    background: $secondary;
+    border-color: $song-primary;
+    background: $song-primary;
 
     text { color: $text-white; }
   }
@@ -910,9 +962,9 @@ onLoad((options) => {
 
 .step-name {
   font-size: $font-xs;
-  color: $text-light;
+  color: $text-tertiary;
 
-  .active & { color: $secondary; font-weight: $font-medium; }
+  .active & { color: $song-primary; font-weight: $font-medium; }
   .done & { color: $success; }
 }
 
@@ -951,12 +1003,14 @@ onLoad((options) => {
   padding: $spacing-sm;
   background: $bg-card;
   border-radius: $radius-md;
-  border: 2rpx solid transparent;
+  border: 2rpx solid $border-light;
+  box-shadow: $shadow-sm;
   transition: all $duration-fast;
 
   &.active {
-    border-color: $secondary;
-    background: rgba($secondary, 0.05);
+    border-color: $song-primary;
+    background: rgba($song-primary, 0.08);
+    box-shadow: $shadow-colored-song;
   }
 }
 
@@ -967,9 +1021,9 @@ onLoad((options) => {
 
 .tab-name {
   font-size: $font-sm;
-  color: $text-primary;
+  color: $text-secondary;
 
-  .active & { color: $secondary; font-weight: $font-medium; }
+  .active & { color: $song-primary; font-weight: $font-medium; }
 }
 
 // 主题网格
@@ -989,13 +1043,14 @@ onLoad((options) => {
   padding: $spacing-md $spacing-sm;
   background: $bg-card;
   border-radius: $radius-md;
-  border: 2rpx solid transparent;
+  border: 2rpx solid $border-light;
   box-shadow: $shadow-sm;
   transition: all $duration-fast;
 
   &.selected {
-    border-color: $secondary;
-    background: rgba($secondary, 0.05);
+    border-color: $song-primary;
+    background: rgba($song-primary, 0.08);
+    box-shadow: $shadow-colored-song;
   }
 
   &:active {
@@ -1020,7 +1075,7 @@ onLoad((options) => {
   right: 8rpx;
   width: 32rpx;
   height: 32rpx;
-  background: $secondary;
+  background: $song-primary;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -1033,7 +1088,7 @@ onLoad((options) => {
 }
 
 // ==========================================
-// 风格选择页 - 增强版 UI（儿歌专属）
+// 风格选择页 - 增强版 UI（儿歌专属・温暖花园主题）
 // ==========================================
 
 .style-header {
@@ -1050,7 +1105,8 @@ onLoad((options) => {
   background: $bg-card;
   border-radius: $radius-lg;
   padding: $spacing-md;
-  box-shadow: $shadow-soft;
+  border: 1rpx solid $border-light;
+  box-shadow: $shadow-card;
 }
 
 .section-header {
@@ -1064,16 +1120,16 @@ onLoad((options) => {
   width: 56rpx;
   height: 56rpx;
   border-radius: 50%;
-  background: linear-gradient(135deg, #E8FFF0 0%, #E0FFF9 100%);
+  background: rgba($song-primary, 0.12);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
 
-  &.music { background: linear-gradient(135deg, #E8FFF8 0%, #E8F4FF 100%); }
-  &.art { background: linear-gradient(135deg, #FFE8E8 0%, #FFF0E8 100%); }
-  &.bunny { background: linear-gradient(135deg, #FFE0F0 0%, #FFF0E8 100%); }
-  &.palette { background: linear-gradient(135deg, #E8F4FF 0%, #E8FFF0 100%); }
+  &.music { background: rgba($song-primary, 0.12); }
+  &.art { background: rgba($book-primary, 0.12); }
+  &.bunny { background: rgba(#FF9F9F, 0.15); }
+  &.palette { background: rgba($info, 0.12); }
 }
 
 .section-icon {
@@ -1087,7 +1143,7 @@ onLoad((options) => {
 }
 
 // ==========================================
-// 音乐情绪 - 大卡片带音量条
+// 音乐情绪 - 大卡片带音量条 (温暖花园主题)
 // ==========================================
 .music-mood-grid {
   display: grid;
@@ -1099,14 +1155,15 @@ onLoad((options) => {
   position: relative;
   display: flex;
   flex-direction: column;
-  background: $bg-base;
+  background: $bg-card;
   border-radius: $radius-md;
-  border: 2rpx solid transparent;
+  border: 1rpx solid $border-light;
   overflow: hidden;
   transition: all $duration-base $ease-bounce;
+  box-shadow: $shadow-sm;
 
   &.selected {
-    border-color: $secondary;
+    border-color: $song-primary;
     box-shadow: $shadow-colored-song;
 
     .mood-bars .bar {
@@ -1127,11 +1184,11 @@ onLoad((options) => {
   gap: $spacing-sm;
   position: relative;
 
-  &.cheerful { background: linear-gradient(135deg, #FFF5E8 0%, #FFE8F0 100%); }
-  &.gentle { background: linear-gradient(135deg, #F0E8FF 0%, #E8F0FF 100%); }
-  &.playful { background: linear-gradient(135deg, #E8FFF0 0%, #FFFAE8 100%); }
-  &.lullaby { background: linear-gradient(135deg, #E8F0FF 0%, #F0E8FF 100%); }
-  &.educational { background: linear-gradient(135deg, #FFF0E8 0%, #E8FFF8 100%); }
+  &.cheerful { background: linear-gradient(135deg, rgba(255, 179, 71, 0.12) 0%, rgba(255, 123, 84, 0.12) 100%); }
+  &.gentle { background: linear-gradient(135deg, rgba(127, 178, 133, 0.12) 0%, rgba(91, 164, 217, 0.12) 100%); }
+  &.playful { background: linear-gradient(135deg, rgba(127, 178, 133, 0.12) 0%, rgba(245, 166, 35, 0.12) 100%); }
+  &.lullaby { background: linear-gradient(135deg, rgba(91, 164, 217, 0.12) 0%, rgba(139, 92, 246, 0.12) 100%); }
+  &.educational { background: linear-gradient(135deg, rgba(245, 166, 35, 0.12) 0%, rgba(127, 178, 133, 0.12) 100%); }
 }
 
 .mood-icon {
@@ -1147,7 +1204,7 @@ onLoad((options) => {
 
 .bar {
   width: 6rpx;
-  background: $secondary;
+  background: $song-primary;
   border-radius: 3rpx;
   opacity: 0.4;
 
@@ -1179,7 +1236,7 @@ onLoad((options) => {
 .mood-desc {
   display: block;
   font-size: $font-xs;
-  color: $text-secondary;
+  color: $text-tertiary;
 }
 
 .mood-check {
@@ -1189,7 +1246,7 @@ onLoad((options) => {
   width: 32rpx;
   height: 32rpx;
   border-radius: 50%;
-  background: $secondary;
+  background: $song-primary;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1201,7 +1258,7 @@ onLoad((options) => {
 }
 
 // ==========================================
-// 封面艺术风格 - 横向滚动卡片
+// 封面艺术风格 - 横向滚动卡片 (温暖花园主题)
 // ==========================================
 .cover-art-carousel {
   display: flex;
@@ -1222,11 +1279,12 @@ onLoad((options) => {
   height: 120rpx;
   border-radius: $radius-md;
   overflow: hidden;
-  border: 3rpx solid transparent;
+  border: 2rpx solid $border-light;
   transition: all $duration-base $ease-bounce;
+  box-shadow: $shadow-sm;
 
   &.selected {
-    border-color: $secondary;
+    border-color: $song-primary;
     transform: scale(1.05);
     box-shadow: $shadow-colored-song;
   }
@@ -1242,12 +1300,13 @@ onLoad((options) => {
   left: 0;
   right: 0;
   bottom: 0;
+  opacity: 0.2;
 
-  &.pixar_3d { background: linear-gradient(145deg, #E8FFF0 0%, #E8F4FF 50%, #FFE8F0 100%); }
-  &.watercolor { background: linear-gradient(145deg, #E8F4FF 0%, #FFF0E8 50%, #E8FFE8 100%); }
-  &.flat_vector { background: linear-gradient(145deg, #FFF5E8 0%, #E8FFF8 50%, #E8EFFF 100%); }
-  &.crayon { background: linear-gradient(145deg, #FFFAE8 0%, #FFE8E8 50%, #E8FFF8 100%); }
-  &.anime { background: linear-gradient(145deg, #FFE8F8 0%, #F0E8FF 50%, #E8F8FF 100%); }
+  &.pixar_3d { background: linear-gradient(145deg, #7FB285 0%, #5BA4D9 50%, #FF7B54 100%); }
+  &.watercolor { background: linear-gradient(145deg, #5BA4D9 0%, #F5A623 50%, #7FB285 100%); }
+  &.flat_vector { background: linear-gradient(145deg, #F5A623 0%, #7FB285 50%, #5BA4D9 100%); }
+  &.crayon { background: linear-gradient(145deg, #F5A623 0%, #FF7B54 50%, #7FB285 100%); }
+  &.anime { background: linear-gradient(145deg, #FF9F9F 0%, #5BA4D9 50%, #7FB285 100%); }
 }
 
 .cover-art-content {
@@ -1259,6 +1318,7 @@ onLoad((options) => {
   align-items: center;
   justify-content: center;
   padding: $spacing-xs;
+  background: rgba($bg-card, 0.9);
 }
 
 .cover-art-icon {
@@ -1279,7 +1339,7 @@ onLoad((options) => {
   width: 28rpx;
   height: 28rpx;
   border-radius: 50%;
-  background: $secondary;
+  background: $song-primary;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1292,7 +1352,7 @@ onLoad((options) => {
 }
 
 // ==========================================
-// 角色选择 - 圆形头像卡片
+// 角色选择 - 圆形头像卡片 (温暖花园主题)
 // ==========================================
 .character-carousel {
   display: flex;
@@ -1311,8 +1371,9 @@ onLoad((options) => {
   transition: all $duration-base $ease-bounce;
 
   &.selected .character-avatar {
-    background: rgba($secondary, 0.15);
-    border-color: $secondary;
+    background: rgba($song-primary, 0.12);
+    border-color: $song-primary;
+    box-shadow: $shadow-colored-song;
   }
 
   &.selected .char-ring {
@@ -1330,13 +1391,14 @@ onLoad((options) => {
   width: 88rpx;
   height: 88rpx;
   border-radius: 50%;
-  background: $bg-base;
-  border: 3rpx solid transparent;
+  background: $bg-card;
+  border: 2rpx solid $border-light;
   display: flex;
   align-items: center;
   justify-content: center;
   margin-bottom: $spacing-xs;
   transition: all $duration-base;
+  box-shadow: $shadow-sm;
 }
 
 .char-emoji {
@@ -1355,7 +1417,7 @@ onLoad((options) => {
   left: -6rpx;
   right: -6rpx;
   bottom: -6rpx;
-  border: 3rpx solid $secondary;
+  border: 3rpx solid $song-primary;
   border-radius: 50%;
   opacity: 0;
   transform: scale(0.8);
@@ -1364,7 +1426,7 @@ onLoad((options) => {
 }
 
 // ==========================================
-// 色彩风格 - 条纹预览卡片
+// 色彩风格 - 条纹预览卡片 (温暖花园主题)
 // ==========================================
 .palette-list {
   display: flex;
@@ -1377,14 +1439,16 @@ onLoad((options) => {
   align-items: center;
   gap: $spacing-md;
   padding: $spacing-sm $spacing-md;
-  background: $bg-base;
+  background: $bg-card;
   border-radius: $radius-md;
-  border: 2rpx solid transparent;
+  border: 1rpx solid $border-light;
   transition: all $duration-fast;
+  box-shadow: $shadow-sm;
 
   &.selected {
-    border-color: $secondary;
-    background: rgba($secondary, 0.05);
+    border-color: $song-primary;
+    background: rgba($song-primary, 0.08);
+    box-shadow: $shadow-colored-song;
   }
 
   &:active {
@@ -1456,14 +1520,14 @@ onLoad((options) => {
 
 .palette-desc {
   font-size: $font-xs;
-  color: $text-secondary;
+  color: $text-tertiary;
 }
 
 .palette-check {
   width: 32rpx;
   height: 32rpx;
   border-radius: 50%;
-  background: $secondary;
+  background: $song-primary;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1475,19 +1539,21 @@ onLoad((options) => {
   }
 }
 
-// 确认卡片
+// 确认卡片 (温暖花园主题)
 .confirm-card {
   background: $bg-card;
   border-radius: $radius-md;
   padding: $spacing-md;
   margin-bottom: $spacing-md;
+  border: 1rpx solid $border-light;
+  box-shadow: $shadow-card;
 }
 
 .confirm-item {
   display: flex;
   justify-content: space-between;
   padding: $spacing-sm 0;
-  border-bottom: 1rpx solid $uni-border-color;
+  border-bottom: 1rpx solid $border-light;
 
   &:last-child {
     border-bottom: none;
@@ -1496,7 +1562,7 @@ onLoad((options) => {
 
 .confirm-label {
   font-size: $font-base;
-  color: $text-secondary;
+  color: $text-tertiary;
 }
 
 .confirm-value {
@@ -1510,8 +1576,9 @@ onLoad((options) => {
   align-items: center;
   gap: $spacing-sm;
   padding: $spacing-sm $spacing-md;
-  background: rgba($secondary, 0.1);
+  background: rgba($song-primary, 0.08);
   border-radius: $radius-md;
+  border: 1rpx solid rgba($song-primary, 0.2);
 }
 
 .tip-icon {
@@ -1520,10 +1587,10 @@ onLoad((options) => {
 
 .tip-text {
   font-size: $font-sm;
-  color: $secondary;
+  color: $song-primary;
 }
 
-// 底部按钮
+// 底部按钮 (温暖花园主题)
 .bottom-bar {
   position: fixed;
   bottom: 0;
@@ -1532,10 +1599,11 @@ onLoad((options) => {
   gap: $spacing-sm;
   padding: $spacing-md;
   padding-bottom: calc(#{$spacing-md} + env(safe-area-inset-bottom));
-  background: $bg-card;
-  box-shadow: 0 -4rpx 16rpx rgba(0, 0, 0, 0.05);
+  background: rgba($bg-card, 0.98);
+  border-top: 1rpx solid $border-light;
   width: 750rpx;
   box-sizing: border-box;
+  z-index: $z-sticky;
 }
 
 .btn-secondary {
@@ -1544,9 +1612,9 @@ onLoad((options) => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: $bg-base;
+  background: $bg-card;
   border-radius: $radius-lg;
-  border: 2rpx solid $uni-border-color;
+  border: 1rpx solid $border-medium;
 
   text {
     font-size: $font-md;
@@ -1554,7 +1622,7 @@ onLoad((options) => {
   }
 
   &:active {
-    background: $bg-warm;
+    background: $bg-soft;
   }
 }
 
@@ -1564,9 +1632,9 @@ onLoad((options) => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: $gradient-secondary;
+  background: $song-gradient;
   border-radius: $radius-lg;
-  box-shadow: $shadow-button;
+  box-shadow: $shadow-colored-song;
 
   text {
     font-size: $font-md;
@@ -1579,8 +1647,12 @@ onLoad((options) => {
   }
 
   &.disabled {
-    background: $text-light;
+    background: $border-light;
     box-shadow: none;
+
+    text {
+      color: $text-tertiary;
+    }
   }
 }
 </style>

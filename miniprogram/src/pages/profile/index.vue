@@ -1,17 +1,25 @@
 <template>
   <view class="page-container">
-    <NavBar />
+    <!-- 装饰背景 -->
+    <view class="decor-bg">
+      <view class="decor-shape shape-1"></view>
+      <view class="decor-shape shape-2"></view>
+    </view>
+
+    <!-- 自定义导航栏 -->
+    <view class="nav-bar">
+      <view class="nav-title">
+        <text class="title-icon">👤</text>
+        <text class="title-text">我的</text>
+      </view>
+    </view>
 
     <scroll-view class="main-scroll" scroll-y>
       <!-- 用户信息卡片 -->
-      <view class="user-card animate-slideUp">
-        <view class="card-bg">
-          <view class="bg-blob b1"></view>
-          <view class="bg-blob b2"></view>
-        </view>
-
+      <view class="user-card">
         <view class="user-info">
           <view class="avatar-wrapper">
+            <view class="avatar-ring"></view>
             <image
               v-if="userStore.user?.avatar_url"
               class="avatar"
@@ -19,7 +27,7 @@
               mode="aspectFill"
             />
             <view v-else class="avatar-placeholder">
-              <text>👤</text>
+              <text>{{ (userStore.user?.nickname || '用')[0] }}</text>
             </view>
           </view>
           <view class="user-detail">
@@ -30,17 +38,22 @@
       </view>
 
       <!-- 当前孩子 -->
-      <view class="section animate-slideUp delay-1">
+      <view class="section">
         <view class="section-header">
-          <text class="section-title">👶 我的宝贝</text>
+          <view class="section-title-wrap">
+            <text class="section-icon">👶</text>
+            <text class="section-title">我的宝贝</text>
+          </view>
           <text class="section-action" @tap="goToAddChild">+ 添加</text>
         </view>
 
         <view v-if="childStore.children.length === 0" class="empty-child">
-          <text class="empty-icon">👶</text>
+          <view class="empty-illustration">
+            <text>👶</text>
+          </view>
           <text class="empty-text">还没有添加宝贝</text>
           <view class="empty-btn" @tap="goToAddChild">
-            <text>添加宝贝</text>
+            <text>✨ 添加宝贝</text>
           </view>
         </view>
 
@@ -67,32 +80,43 @@
       </view>
 
       <!-- 功能菜单 -->
-      <view class="section animate-slideUp delay-2">
+      <view class="section">
         <view class="section-header">
-          <text class="section-title">⚙️ 功能</text>
+          <view class="section-title-wrap">
+            <text class="section-icon">⚙️</text>
+            <text class="section-title">功能</text>
+          </view>
         </view>
 
         <view class="menu-card">
           <view class="menu-item" @tap="goToSettings">
-            <view class="menu-icon">⏱️</view>
+            <view class="menu-icon-wrap icon-time">
+              <text class="menu-icon">⏱️</text>
+            </view>
             <text class="menu-label">时间设置</text>
             <text class="menu-arrow">›</text>
           </view>
 
           <view class="menu-item" @tap="goToHistory">
-            <view class="menu-icon">📊</view>
+            <view class="menu-icon-wrap icon-report">
+              <text class="menu-icon">📊</text>
+            </view>
             <text class="menu-label">学习报告</text>
             <text class="menu-arrow">›</text>
           </view>
 
           <view class="menu-item" @tap="goToFavorites">
-            <view class="menu-icon">❤️</view>
+            <view class="menu-icon-wrap icon-heart">
+              <text class="menu-icon">❤️</text>
+            </view>
             <text class="menu-label">我的收藏</text>
             <text class="menu-arrow">›</text>
           </view>
 
           <view class="menu-item" @tap="goToFeedback">
-            <view class="menu-icon">💬</view>
+            <view class="menu-icon-wrap icon-chat">
+              <text class="menu-icon">💬</text>
+            </view>
             <text class="menu-label">意见反馈</text>
             <text class="menu-arrow">›</text>
           </view>
@@ -100,16 +124,20 @@
       </view>
 
       <!-- 更多 -->
-      <view class="section animate-slideUp delay-3">
+      <view class="section">
         <view class="menu-card">
           <view class="menu-item" @tap="showAbout">
-            <view class="menu-icon">ℹ️</view>
+            <view class="menu-icon-wrap icon-info">
+              <text class="menu-icon">ℹ️</text>
+            </view>
             <text class="menu-label">关于 Moana</text>
             <text class="menu-arrow">›</text>
           </view>
 
           <view class="menu-item logout" @tap="handleLogout">
-            <view class="menu-icon">🚪</view>
+            <view class="menu-icon-wrap icon-logout">
+              <text class="menu-icon">🚪</text>
+            </view>
             <text class="menu-label">退出登录</text>
           </view>
         </view>
@@ -126,7 +154,6 @@ import { onMounted } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { useUserStore } from '@/stores/user'
 import { useChildStore, type Child } from '@/stores/child'
-import NavBar from '@/components/NavBar/NavBar.vue'
 
 const userStore = useUserStore()
 const childStore = useChildStore()
@@ -207,91 +234,139 @@ onShow(() => {
 
 .page-container {
   min-height: 100vh;
-  background: $gradient-warm;
+  background: $bg-cream;
   width: 750rpx;
-  box-sizing: border-box;
-  overflow-x: hidden;
-}
-
-.main-scroll {
-  width: 750rpx;
-  height: calc(100vh - 88rpx); // 减去导航栏高度
-  padding: 0 $spacing-md;
-  box-sizing: border-box;
-}
-
-// 用户卡片
-.user-card {
   position: relative;
-  background: $bg-card;
-  border-radius: $radius-lg;
-  padding: $spacing-lg;
-  margin-bottom: $spacing-lg;
-  box-shadow: $shadow-lg;
   overflow: hidden;
-  width: 100%;
-  box-sizing: border-box;
 }
 
-.card-bg {
-  position: absolute;
-  inset: 0;
+// === 装饰背景 ===
+.decor-bg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   pointer-events: none;
+  z-index: 0;
   overflow: hidden;
 }
 
-.bg-blob {
+.decor-shape {
   position: absolute;
   border-radius: 50%;
-  opacity: 0.5;
+  opacity: 0.4;
 
-  &.b1 {
-    width: 200rpx;
-    height: 200rpx;
-    background: $accent-soft;
+  &.shape-1 {
+    width: 280rpx;
+    height: 280rpx;
+    background: $book-light;
     top: -80rpx;
     right: -60rpx;
   }
 
-  &.b2 {
-    width: 150rpx;
-    height: 150rpx;
-    background: rgba($secondary, 0.15);
-    bottom: -50rpx;
-    left: -30rpx;
+  &.shape-2 {
+    width: 200rpx;
+    height: 200rpx;
+    background: $song-light;
+    bottom: 200rpx;
+    left: -50rpx;
   }
+}
+
+// === 导航栏 ===
+.nav-bar {
+  position: relative;
+  z-index: 10;
+  padding: calc(env(safe-area-inset-top) + 48rpx) 32rpx 20rpx;
+}
+
+.nav-title {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.title-icon {
+  font-size: 36rpx;
+}
+
+.title-text {
+  font-size: $font-xl;
+  font-weight: $font-bold;
+  color: $text-primary;
+}
+
+// === 主滚动区 ===
+.main-scroll {
+  position: relative;
+  z-index: 1;
+  height: calc(100vh - 88rpx);
+  padding: 0 32rpx;
+  width: 750rpx;
+  box-sizing: border-box;
+}
+
+// === 用户卡片 ===
+.user-card {
+  position: relative;
+  background: $bg-card;
+  border-radius: $radius-lg;
+  padding: 32rpx;
+  margin-bottom: 32rpx;
+  box-shadow: $shadow-card;
+  overflow: hidden;
 }
 
 .user-info {
   position: relative;
   display: flex;
   align-items: center;
-  gap: $spacing-md;
+  gap: 24rpx;
 }
 
 .avatar-wrapper {
+  position: relative;
   flex-shrink: 0;
 }
 
+.avatar-ring {
+  position: absolute;
+  top: -6rpx;
+  left: -6rpx;
+  right: -6rpx;
+  bottom: -6rpx;
+  border-radius: 50%;
+  background: $gradient-primary;
+  opacity: 0.8;
+}
+
 .avatar {
+  position: relative;
+  z-index: 1;
   width: 120rpx;
   height: 120rpx;
   border-radius: 50%;
-  border: 6rpx solid $bg-card;
-  box-shadow: $shadow-md;
+  border: 4rpx solid $bg-card;
 }
 
 .avatar-placeholder {
+  position: relative;
+  z-index: 1;
   width: 120rpx;
   height: 120rpx;
   border-radius: 50%;
-  background: $gradient-warm;
+  background: $gradient-dreamy;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 56rpx;
-  border: 6rpx solid $bg-card;
-  box-shadow: $shadow-md;
+  border: 4rpx solid $bg-card;
+
+  text {
+    font-size: 48rpx;
+    color: $text-primary;
+    font-weight: $font-bold;
+  }
 }
 
 .user-detail {
@@ -300,32 +375,39 @@ onShow(() => {
 
 .user-name {
   display: block;
-  font-size: $font-xl;
+  font-size: $font-lg;
   font-weight: $font-bold;
   color: $text-primary;
+  margin-bottom: 4rpx;
 }
 
 .user-id {
   display: block;
   font-size: $font-sm;
-  color: $text-secondary;
-  margin-top: 4rpx;
+  color: $text-tertiary;
 }
 
-// 区块
+// === 区块 ===
 .section {
-  margin-bottom: $spacing-lg;
-  width: 100%;
-  box-sizing: border-box;
+  margin-bottom: 32rpx;
 }
 
 .section-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: $spacing-sm;
-  padding: 0 $spacing-xs;
-  box-sizing: border-box;
+  margin-bottom: 16rpx;
+  padding: 0 8rpx;
+}
+
+.section-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+}
+
+.section-icon {
+  font-size: 28rpx;
 }
 
 .section-title {
@@ -335,70 +417,84 @@ onShow(() => {
 }
 
 .section-action {
-  font-size: $font-sm;
+  font-size: 26rpx;
   color: $primary;
+  font-weight: $font-medium;
 }
 
-// 孩子列表
+// === 孩子列表 ===
 .empty-child {
   background: $bg-card;
-  border-radius: $radius-md;
-  padding: $spacing-xl;
+  border-radius: $radius-lg;
+  padding: 48rpx;
   text-align: center;
+  box-shadow: $shadow-card;
 }
 
-.empty-icon {
-  display: block;
-  font-size: 80rpx;
-  margin-bottom: $spacing-sm;
+.empty-illustration {
+  width: 100rpx;
+  height: 100rpx;
+  margin: 0 auto 16rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: $gradient-dreamy;
+  border-radius: 50%;
+  box-shadow: $shadow-sm;
+
+  text {
+    font-size: 48rpx;
+  }
 }
 
 .empty-text {
   display: block;
   font-size: $font-base;
-  color: $text-secondary;
-  margin-bottom: $spacing-md;
+  color: $text-tertiary;
+  margin-bottom: 24rpx;
 }
 
 .empty-btn {
   display: inline-flex;
-  padding: $spacing-sm $spacing-lg;
+  align-items: center;
+  justify-content: center;
+  min-width: 200rpx;
+  height: 80rpx;
   background: $gradient-primary;
-  border-radius: $radius-lg;
+  border-radius: $radius-xl;
   box-shadow: $shadow-button;
 
   text {
     font-size: $font-base;
+    font-weight: $font-semibold;
     color: $text-white;
-    font-weight: $font-medium;
   }
 
   &:active {
-    transform: scale(0.95);
+    transform: scale(0.96);
   }
 }
 
 .child-list {
   display: flex;
   flex-direction: column;
-  gap: $spacing-sm;
+  gap: 16rpx;
 }
 
 .child-card {
+  position: relative;
   display: flex;
   align-items: center;
-  padding: $spacing-md;
+  padding: 20rpx 24rpx;
   background: $bg-card;
+  border: 2rpx solid $border-light;
   border-radius: $radius-md;
-  border: 2rpx solid transparent;
   box-shadow: $shadow-sm;
-  transition: all $duration-fast;
-  width: 100%;
-  box-sizing: border-box;
+  transition: all $duration-base $ease-out;
 
   &.active {
     border-color: $primary;
-    background: rgba($primary, 0.05);
+    background: rgba($primary, 0.04);
   }
 
   &:active {
@@ -407,24 +503,28 @@ onShow(() => {
 }
 
 .child-avatar {
-  width: 80rpx;
-  height: 80rpx;
+  position: relative;
+  width: 72rpx;
+  height: 72rpx;
   border-radius: $radius-md;
-  background: $gradient-warm;
+  background: $gradient-dreamy;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 40rpx;
+
+  text {
+    font-size: 36rpx;
+  }
 }
 
 .child-info {
   flex: 1;
-  margin-left: $spacing-sm;
+  margin-left: 16rpx;
 }
 
 .child-name {
   display: block;
-  font-size: $font-base;
+  font-size: $font-md;
   font-weight: $font-semibold;
   color: $text-primary;
 }
@@ -432,46 +532,48 @@ onShow(() => {
 .child-age {
   display: block;
   font-size: $font-sm;
-  color: $text-secondary;
+  color: $text-tertiary;
+  margin-top: 2rpx;
 }
 
 .child-check {
-  width: 48rpx;
-  height: 48rpx;
+  width: 44rpx;
+  height: 44rpx;
   border-radius: 50%;
-  background: $primary;
+  background: $gradient-primary;
   display: flex;
   align-items: center;
   justify-content: center;
+  box-shadow: $shadow-button;
 
   text {
     font-size: 24rpx;
     color: $text-white;
+    font-weight: $font-bold;
   }
 }
 
-// 菜单
+// === 菜单 ===
 .menu-card {
   background: $bg-card;
-  border-radius: $radius-md;
+  border-radius: $radius-lg;
   overflow: hidden;
-  box-shadow: $shadow-sm;
-  width: 100%;
-  box-sizing: border-box;
+  box-shadow: $shadow-card;
 }
 
 .menu-item {
   display: flex;
   align-items: center;
-  padding: $spacing-md;
-  border-bottom: 1rpx solid $uni-border-color;
+  padding: 24rpx;
+  border-bottom: 1rpx solid $border-light;
+  transition: background $duration-fast $ease-out;
 
   &:last-child {
     border-bottom: none;
   }
 
   &:active {
-    background: $bg-warm;
+    background: $bg-soft;
   }
 
   &.logout {
@@ -481,31 +583,40 @@ onShow(() => {
   }
 }
 
+.menu-icon-wrap {
+  width: 56rpx;
+  height: 56rpx;
+  border-radius: $radius-md;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 16rpx;
+
+  &.icon-time { background: $video-light; }
+  &.icon-report { background: rgba(91, 164, 217, 0.15); }
+  &.icon-heart { background: $book-light; }
+  &.icon-chat { background: $song-light; }
+  &.icon-info { background: $bg-soft; }
+  &.icon-logout { background: rgba($error, 0.1); }
+}
+
 .menu-icon {
-  font-size: 36rpx;
-  margin-right: $spacing-sm;
+  font-size: 28rpx;
 }
 
 .menu-label {
   flex: 1;
-  font-size: $font-base;
+  font-size: $font-md;
   color: $text-primary;
 }
 
 .menu-arrow {
-  font-size: $font-lg;
-  color: $text-light;
+  font-size: 32rpx;
+  color: $text-placeholder;
 }
 
-.menu-badge {
-  padding: 4rpx 12rpx;
-  background: $text-light;
-  border-radius: $radius-full;
-  font-size: $font-xs;
-  color: $text-white;
-}
-
+// === 底部安全区 ===
 .safe-bottom {
-  height: calc(#{$spacing-xl} + 100rpx);
+  height: calc(env(safe-area-inset-bottom) + 120rpx);
 }
 </style>

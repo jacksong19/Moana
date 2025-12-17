@@ -17,9 +17,8 @@
     {
       "path": "pages/create/picture-book",
       "style": {
-        "navigationBarTitleText": "创作绘本",
-        "navigationBarBackgroundColor": "#FFF9F0",
-        "navigationBarTextStyle": "black"
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "创作绘本"
       }
     },
     {
@@ -60,9 +59,8 @@
     {
       "path": "pages/settings/index",
       "style": {
-        "navigationBarTitleText": "设置",
-        "navigationBarBackgroundColor": "#FFF9F0",
-        "navigationBarTextStyle": "black"
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "设置"
       }
     },
     {
@@ -75,9 +73,8 @@
     {
       "path": "pages/profile/add-child",
       "style": {
-        "navigationBarTitleText": "添加宝贝",
-        "navigationBarBackgroundColor": "#FFF9F0",
-        "navigationBarTextStyle": "black"
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "添加宝贝"
       }
     },
     {
@@ -119,14 +116,14 @@
   "globalStyle": {
     "navigationBarTextStyle": "black",
     "navigationBarTitleText": "Moana",
-    "navigationBarBackgroundColor": "#FFF9F0",
-    "backgroundColor": "#FFF9F0",
-    "backgroundColorTop": "#FFF9F0",
-    "backgroundColorBottom": "#FFF9F0"
+    "navigationBarBackgroundColor": "#FFFBF7",
+    "backgroundColor": "#FFFBF7",
+    "backgroundColorTop": "#FFFBF7",
+    "backgroundColorBottom": "#FFF8F2"
   },
   "tabBar": {
-    "color": "#B2BEC3",
-    "selectedColor": "#FF6B6B",
+    "color": "#9C8578",
+    "selectedColor": "#FF7B54",
     "backgroundColor": "#FFFFFF",
     "borderStyle": "white",
     "list": [

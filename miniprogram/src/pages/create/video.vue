@@ -1,5 +1,12 @@
 <template>
   <view class="page-container">
+    <!-- 装饰背景 -->
+    <view class="decor-bg">
+      <view class="decor-shape shape-1"></view>
+      <view class="decor-shape shape-2"></view>
+      <view class="decor-shape shape-3"></view>
+    </view>
+
     <!-- 导航栏 -->
     <view class="nav-bar" :style="{ paddingTop: statusBarHeight + 'px' }">
       <view class="nav-content">
@@ -460,10 +467,62 @@ onMounted(() => {
 
 .page-container {
   min-height: 100vh;
-  background: $gradient-warm;
+  background: $bg-cream;
   width: 750rpx;
   box-sizing: border-box;
   overflow-x: hidden;
+  position: relative;
+}
+
+// 装饰背景 - 温暖花园主题
+.decor-bg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 750rpx;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.decor-shape {
+  position: absolute;
+  border-radius: 50%;
+  opacity: 0.12;
+}
+
+.shape-1 {
+  width: 300rpx;
+  height: 300rpx;
+  background: radial-gradient(circle, $video-primary 0%, transparent 70%);
+  top: -80rpx;
+  right: -60rpx;
+  animation: floatDecor 15s ease-in-out infinite;
+}
+
+.shape-2 {
+  width: 200rpx;
+  height: 200rpx;
+  background: radial-gradient(circle, $song-primary 0%, transparent 70%);
+  bottom: 30%;
+  left: -40rpx;
+  animation: floatDecor 18s ease-in-out infinite reverse;
+}
+
+.shape-3 {
+  width: 150rpx;
+  height: 150rpx;
+  background: radial-gradient(circle, $book-primary 0%, transparent 70%);
+  top: 40%;
+  right: -30rpx;
+  animation: floatDecor 20s ease-in-out infinite 2s;
+}
+
+@keyframes floatDecor {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(20rpx, -15rpx) scale(1.05); }
 }
 
 .nav-bar {
@@ -471,10 +530,10 @@ onMounted(() => {
   top: 0;
   left: 0;
   z-index: $z-sticky;
-  background: rgba(255, 249, 240, 0.95);
-  backdrop-filter: blur(10px);
+  background: rgba($bg-card, 0.95);
   width: 750rpx;
   box-sizing: border-box;
+  border-bottom: 1rpx solid $border-light;
 }
 
 .nav-content {
@@ -492,6 +551,7 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   background: $bg-card;
+  border: 1rpx solid $border-light;
   border-radius: $radius-md;
   box-shadow: $shadow-sm;
 
@@ -514,12 +574,16 @@ onMounted(() => {
 
 .nav-placeholder {
   flex-shrink: 0;
+  position: relative;
+  z-index: 1;
 }
 
 .main-scroll {
   width: 750rpx;
   padding: $spacing-lg $spacing-md;
   box-sizing: border-box;
+  position: relative;
+  z-index: 1;
 }
 
 // 步骤指示器
@@ -528,6 +592,11 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   margin-bottom: $spacing-xl;
+  background: $bg-card;
+  border: 1rpx solid $border-light;
+  border-radius: $radius-lg;
+  padding: $spacing-md;
+  box-shadow: $shadow-card;
 }
 
 .step {
@@ -547,35 +616,42 @@ onMounted(() => {
   width: 48rpx;
   height: 48rpx;
   border-radius: 50%;
-  background: $text-light;
+  background: $border-light;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: $font-sm;
   font-weight: $font-bold;
-  color: $text-white;
-  transition: background $duration-base;
+  color: $text-tertiary;
+  transition: all $duration-base;
 
   .active & {
-    background: $primary;
+    background: $video-primary;
+    color: $text-white;
+    box-shadow: $shadow-colored-video;
   }
 }
 
 .step-text {
   font-size: $font-xs;
-  color: $text-secondary;
+  color: $text-tertiary;
+
+  .active & {
+    color: $text-primary;
+  }
 }
 
 .step-line {
   width: 100rpx;
   height: 4rpx;
-  background: $text-light;
+  background: $border-light;
   margin: 0 $spacing-sm;
   margin-bottom: 32rpx;
   transition: background $duration-base;
+  border-radius: 2rpx;
 
   &.active {
-    background: $primary;
+    background: $video-primary;
   }
 }
 
@@ -595,7 +671,7 @@ onMounted(() => {
 .section-desc {
   display: block;
   font-size: $font-sm;
-  color: $text-secondary;
+  color: $text-tertiary;
   margin-bottom: $spacing-md;
 }
 
@@ -609,7 +685,7 @@ onMounted(() => {
 
   text {
     font-size: $font-base;
-    color: $text-secondary;
+    color: $text-tertiary;
   }
 }
 
@@ -624,7 +700,9 @@ onMounted(() => {
   align-items: center;
   padding: $spacing-xl;
   background: $bg-card;
+  border: 1rpx solid $border-light;
   border-radius: $radius-lg;
+  box-shadow: $shadow-card;
 }
 
 .empty-icon {
@@ -641,14 +719,15 @@ onMounted(() => {
 
 .empty-desc {
   font-size: $font-sm;
-  color: $text-secondary;
+  color: $text-tertiary;
   margin-bottom: $spacing-md;
 }
 
 .empty-action {
   padding: $spacing-sm $spacing-lg;
-  background: $gradient-primary;
+  background: $video-gradient;
   border-radius: $radius-lg;
+  box-shadow: $shadow-colored-video;
 
   text {
     font-size: $font-base;
@@ -673,13 +752,15 @@ onMounted(() => {
   gap: $spacing-md;
   padding: $spacing-md;
   background: $bg-card;
+  border: 1rpx solid $border-light;
   border-radius: $radius-lg;
-  border: 4rpx solid transparent;
   transition: all $duration-base;
+  box-shadow: $shadow-card;
 
   &.selected {
-    border-color: $primary;
-    background: rgba($primary, 0.05);
+    border-color: $video-primary;
+    background: rgba($video-primary, 0.08);
+    box-shadow: $shadow-colored-video;
   }
 
   &:active {
@@ -707,7 +788,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: $bg-base;
+  background: $bg-soft;
 
   text {
     font-size: 64rpx;
@@ -721,14 +802,16 @@ onMounted(() => {
   width: 40rpx;
   height: 40rpx;
   border-radius: 50%;
-  background: $success;
+  background: $video-primary;
   display: flex;
   align-items: center;
   justify-content: center;
+  box-shadow: $shadow-colored-video;
 
   text {
     font-size: 24rpx;
     color: $text-white;
+    font-weight: $font-bold;
   }
 }
 
@@ -748,7 +831,7 @@ onMounted(() => {
 
 .book-meta {
   font-size: $font-sm;
-  color: $text-secondary;
+  color: $text-tertiary;
 }
 
 // 预览区块
@@ -766,15 +849,17 @@ onMounted(() => {
 
 .preview-card {
   background: $bg-card;
+  border: 1rpx solid $border-light;
   border-radius: $radius-lg;
   padding: $spacing-md;
+  box-shadow: $shadow-card;
 }
 
 .preview-item {
   display: flex;
   justify-content: space-between;
   padding: $spacing-sm 0;
-  border-bottom: 1rpx solid rgba(0, 0, 0, 0.08);
+  border-bottom: 1rpx solid $border-light;
 
   &:last-child {
     border-bottom: none;
@@ -783,7 +868,7 @@ onMounted(() => {
 
 .preview-label {
   font-size: $font-base;
-  color: $text-secondary;
+  color: $text-tertiary;
 }
 
 .preview-value {
@@ -795,7 +880,7 @@ onMounted(() => {
 .preview-tip {
   display: block;
   font-size: $font-xs;
-  color: $text-light;
+  color: $text-tertiary;
   text-align: center;
   margin-top: $spacing-sm;
 }
@@ -832,14 +917,16 @@ onMounted(() => {
   gap: $spacing-md;
   padding: $spacing-md;
   background: $bg-card;
+  border: 1rpx solid $border-light;
   border-radius: $radius-lg;
-  border: 3rpx solid transparent;
   transition: all $duration-base;
   position: relative;
+  box-shadow: $shadow-sm;
 
   &.active {
     border-color: $video-primary;
     background: rgba($video-primary, 0.08);
+    box-shadow: $shadow-colored-video;
   }
 
   &:active {
@@ -851,7 +938,7 @@ onMounted(() => {
   width: 120rpx;
   height: 80rpx;
   border-radius: $radius-sm;
-  background: linear-gradient(135deg, rgba($video-primary, 0.15), rgba($video-primary, 0.05));
+  background: linear-gradient(135deg, rgba($video-primary, 0.12), rgba($video-primary, 0.04));
   position: relative;
   overflow: hidden;
   flex-shrink: 0;
@@ -953,7 +1040,7 @@ onMounted(() => {
 
 .motion-desc {
   font-size: $font-xs;
-  color: $text-secondary;
+  color: $text-tertiary;
   line-height: 1.4;
 }
 
@@ -966,6 +1053,7 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  box-shadow: $shadow-colored-video;
 
   text {
     font-size: 24rpx;
@@ -988,14 +1076,16 @@ onMounted(() => {
   gap: $spacing-xs;
   padding: $spacing-md $spacing-sm;
   background: $bg-card;
+  border: 1rpx solid $border-light;
   border-radius: $radius-md;
-  border: 3rpx solid transparent;
   transition: all $duration-base;
   position: relative;
+  box-shadow: $shadow-sm;
 
   &.active {
     border-color: $video-primary;
     background: rgba($video-primary, 0.08);
+    box-shadow: $shadow-colored-video;
   }
 
   &:active {
@@ -1033,9 +1123,10 @@ onMounted(() => {
 .duration-tabs {
   display: flex;
   gap: $spacing-xs;
-  background: rgba(0, 0, 0, 0.03);
+  background: $bg-soft;
   padding: $spacing-xs;
   border-radius: $radius-md;
+  border: 1rpx solid $border-light;
 }
 
 .duration-tab {
@@ -1049,7 +1140,7 @@ onMounted(() => {
   transition: all $duration-base;
 
   &.active {
-    background: $bg-card;
+    background: rgba($video-primary, 0.12);
     box-shadow: $shadow-sm;
 
     .dur-value {
@@ -1071,7 +1162,7 @@ onMounted(() => {
 
 .dur-desc {
   font-size: 20rpx;
-  color: $text-light;
+  color: $text-tertiary;
 }
 
 // 镜头类型选择
@@ -1088,13 +1179,15 @@ onMounted(() => {
   gap: $spacing-xs;
   padding: $spacing-md $spacing-sm;
   background: $bg-card;
+  border: 1rpx solid $border-light;
   border-radius: $radius-md;
-  border: 3rpx solid transparent;
   transition: all $duration-base;
+  box-shadow: $shadow-sm;
 
   &.active {
     border-color: $video-primary;
     background: rgba($video-primary, 0.08);
+    box-shadow: $shadow-colored-video;
 
     .shot-icon {
       transform: scale(1.1);
@@ -1129,8 +1222,9 @@ onMounted(() => {
   bottom: 0;
   padding: $spacing-md;
   padding-bottom: calc(#{$spacing-md} + env(safe-area-inset-bottom));
-  background: rgba(255, 249, 240, 0.95);
-  backdrop-filter: blur(10px);
+  background: rgba($bg-card, 0.98);
+  border-top: 1rpx solid $border-light;
+  z-index: $z-sticky;
 }
 
 .generate-btn {
@@ -1139,9 +1233,9 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: $gradient-primary;
+  background: $video-gradient;
   border-radius: $radius-lg;
-  box-shadow: $shadow-button;
+  box-shadow: $shadow-colored-video;
 
   text {
     font-size: $font-md;
@@ -1150,8 +1244,12 @@ onMounted(() => {
   }
 
   &.disabled {
-    opacity: 0.5;
-    pointer-events: none;
+    background: $border-light;
+    box-shadow: none;
+
+    text {
+      color: $text-tertiary;
+    }
   }
 
   &:active:not(.disabled) {

@@ -65,14 +65,14 @@ export type ProtagonistAnimal = 'bunny' | 'bear' | 'cat' | 'dog' | 'panda' | 'fo
 // 色调类型
 export type ColorPalette = 'pastel' | 'vibrant' | 'warm' | 'cool' | 'monochrome'
 
-// TTS 音色 ID
-export type VoiceId = 'Cherry' | 'Serena' | 'Chelsie' | 'Brittany' | 'Ethan' | 'Luke' | 'Stella'
+// TTS 音色 ID（后端实测支持的 6 个音色）
+export type VoiceId = 'Cherry' | 'Jennifer' | 'Kiki' | 'Ethan' | 'Ryan' | 'Nofish'
 
 // TTS 音色配置
 export interface VoiceOption {
   id: VoiceId
   name: string        // 中文名
-  gender: 'female' | 'male' | 'child'
+  gender: 'female' | 'male'
   style: string       // 风格描述
   recommended?: boolean
 }
@@ -322,13 +322,12 @@ const DEFAULT_STYLE_OPTIONS: StyleOptions = {
     { id: 'static', name: '静态展示', description: '稳定清晰的展示效果' }
   ],
   tts_voices: [
-    { id: 'Cherry', name: '樱桃', gender: 'female', style: '温柔亲切', recommended: true },
-    { id: 'Serena', name: '思睿', gender: 'female', style: '知性优雅' },
-    { id: 'Chelsie', name: '晨曦', gender: 'female', style: '活泼可爱' },
-    { id: 'Brittany', name: '贝蒂', gender: 'female', style: '甜美清新' },
-    { id: 'Ethan', name: '伊森', gender: 'male', style: '成熟稳重' },
-    { id: 'Luke', name: '卢克', gender: 'male', style: '温暖亲和' },
-    { id: 'Stella', name: '星星', gender: 'child', style: '童真可爱' }
+    { id: 'Cherry', name: '芊悦', gender: 'female', style: '温柔亲切', recommended: true },
+    { id: 'Jennifer', name: '詹妮弗', gender: 'female', style: '清晰标准' },
+    { id: 'Kiki', name: '阿清', gender: 'female', style: '粤语' },
+    { id: 'Ethan', name: '晨煦', gender: 'male', style: '成熟稳重' },
+    { id: 'Ryan', name: '甜茶', gender: 'male', style: '温暖亲和' },
+    { id: 'Nofish', name: '不吃鱼', gender: 'male', style: '活泼有趣' }
   ],
   video_options: {
     models: [

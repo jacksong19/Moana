@@ -1,5 +1,11 @@
 <template>
   <view class="page-container">
+    <!-- 装饰背景 -->
+    <view class="decor-bg">
+      <view class="decor-shape shape-1"></view>
+      <view class="decor-shape shape-2"></view>
+    </view>
+
     <!-- 导航栏 -->
     <view class="nav-bar" :style="{ paddingTop: statusBarHeight + 'px' }">
       <view class="nav-content">
@@ -198,7 +204,7 @@
                     <text class="voice-name">{{ voice.name }}</text>
                     <text v-if="voice.recommended" class="voice-badge">推荐</text>
                     <text class="voice-gender-tag" :class="voice.gender">
-                      {{ voice.gender === 'female' ? '女声' : voice.gender === 'male' ? '男声' : '童声' }}
+                      {{ voice.gender === 'female' ? '女声' : '男声' }}
                     </text>
                   </view>
                   <text class="voice-style">{{ voice.style }}</text>
@@ -346,15 +352,14 @@ const colorPalettes = [
 ]
 const selectedPalette = ref<ColorPalette>('pastel')
 
-// TTS 音色选项
+// TTS 音色选项（后端实测支持的 6 个音色）
 const voiceOptions = [
-  { id: 'Cherry' as VoiceId, name: '樱桃', gender: 'female', style: '温柔亲切', emoji: '🍒', recommended: true },
-  { id: 'Serena' as VoiceId, name: '思睿', gender: 'female', style: '知性优雅', emoji: '📚' },
-  { id: 'Chelsie' as VoiceId, name: '晨曦', gender: 'female', style: '活泼可爱', emoji: '☀️' },
-  { id: 'Brittany' as VoiceId, name: '贝蒂', gender: 'female', style: '甜美清新', emoji: '🌸' },
-  { id: 'Ethan' as VoiceId, name: '伊森', gender: 'male', style: '成熟稳重', emoji: '👔' },
-  { id: 'Luke' as VoiceId, name: '卢克', gender: 'male', style: '温暖亲和', emoji: '🌟' },
-  { id: 'Stella' as VoiceId, name: '星星', gender: 'child', style: '童真可爱', emoji: '⭐' }
+  { id: 'Cherry' as VoiceId, name: '芊悦', gender: 'female', style: '温柔亲切', emoji: '🍒', recommended: true },
+  { id: 'Jennifer' as VoiceId, name: '詹妮弗', gender: 'female', style: '清晰标准', emoji: '🎀' },
+  { id: 'Kiki' as VoiceId, name: '阿清', gender: 'female', style: '粤语', emoji: '🌸' },
+  { id: 'Ethan' as VoiceId, name: '晨煦', gender: 'male', style: '成熟稳重', emoji: '👔' },
+  { id: 'Ryan' as VoiceId, name: '甜茶', gender: 'male', style: '温暖亲和', emoji: '🌟' },
+  { id: 'Nofish' as VoiceId, name: '不吃鱼', gender: 'male', style: '活泼有趣', emoji: '🐟' }
 ]
 const selectedVoiceId = ref<VoiceId>('Cherry')
 
@@ -461,36 +466,31 @@ async function startGenerate() {
   generatingProgress.value = 0
 
   try {
-    // 使用 currentChildAgeMonths 计算属性获取月龄
-    const ageMonths = childStore.currentChildAgeMonths || 36 // 默认 3 岁
+    const ageMonths = childStore.currentChildAgeMonths || 36
 
-    // 1. 发起异步生成请求
     console.log('[绘本] 发起异步生成请求，风格:', selectedArtStyle.value, selectedAnimal.value, selectedPalette.value, '音色:', selectedVoiceId.value)
     const asyncResult = await generatePictureBookAsync({
       child_name: childStore.currentChild.name,
       age_months: ageMonths,
       theme_topic: selectedTheme.value.id,
       theme_category: selectedCategory.value,
-      // 风格参数
       art_style: selectedArtStyle.value,
       protagonist: {
         animal: selectedAnimal.value
       },
       color_palette: selectedPalette.value,
-      // TTS 音色
       voice_id: selectedVoiceId.value
     })
 
     const taskId = asyncResult.task_id
     console.log('[绘本] 获取到 task_id:', taskId)
 
-    // 2. 轮询任务状态
-    const maxAttempts = 120  // 最多轮询 120 次（6 分钟）
-    const pollInterval = 3000  // 每 3 秒轮询一次
+    const maxAttempts = 120
+    const pollInterval = 3000
     let attempts = 0
 
-    let consecutiveErrors = 0  // 连续错误计数
-    const maxConsecutiveErrors = 5  // 最多允许连续 5 次错误
+    let consecutiveErrors = 0
+    const maxConsecutiveErrors = 5
 
     const pollStatus = async (): Promise<PictureBook | null> => {
       while (attempts < maxAttempts) {
@@ -499,16 +499,13 @@ async function startGenerate() {
 
         try {
           const status = await getPictureBookTaskStatus(taskId)
-          consecutiveErrors = 0  // 重置连续错误计数
+          consecutiveErrors = 0
           console.log('[绘本] 状态:', status.status, '进度:', status.progress, '阶段:', status.stage)
 
-          // 更新进度条
           generatingProgress.value = status.progress || Math.min(attempts * 2, 95)
 
-          // 检查完成状态
           if (status.status === 'completed') {
             generatingProgress.value = 100
-            // 优先使用 result，否则通过 content_id 获取详情
             if (status.result) {
               console.log('[绘本] 从 result 获取完整数据')
               return status.result
@@ -520,20 +517,16 @@ async function startGenerate() {
             return null
           }
 
-          // 检查失败状态 - 直接抛出，不要被下面的 catch 重试
           if (status.status === 'failed') {
             const errorMsg = status.error || '绘本生成失败'
             console.error('[绘本] 生成失败:', errorMsg)
-            // 创建带标记的错误，避免被当作网络错误重试
             const businessError = new Error(errorMsg)
             ;(businessError as any).isBusinessError = true
             throw businessError
           }
 
-          // 等待后继续轮询
           await new Promise(resolve => setTimeout(resolve, pollInterval))
         } catch (e: any) {
-          // 业务错误（如 failed 状态）直接抛出，不重试
           if (e.isBusinessError) {
             throw e
           }
@@ -541,12 +534,10 @@ async function startGenerate() {
           consecutiveErrors++
           console.error(`[绘本] 轮询出错 (${consecutiveErrors}/${maxConsecutiveErrors}):`, e?.errMsg || e?.message || e)
 
-          // 连续错误过多则失败
           if (consecutiveErrors >= maxConsecutiveErrors) {
             throw new Error('网络连接不稳定，请检查网络后重试')
           }
 
-          // 网络错误时等待更长时间后重试
           if (attempts < maxAttempts) {
             await new Promise(resolve => setTimeout(resolve, pollInterval * 2))
           }
@@ -560,11 +551,8 @@ async function startGenerate() {
 
     if (result) {
       console.log('[绘本] 生成成功:', result.id)
-
-      // 存储到临时存储，供播放页使用
       uni.setStorageSync('temp_picture_book', result)
 
-      // 跳转到播放页
       isGenerating.value = false
       if (result.id) {
         uni.redirectTo({
@@ -598,14 +586,11 @@ onMounted(() => {
   statusBarHeight.value = sysInfo.statusBarHeight || 20
   navHeight.value = statusBarHeight.value + 44
 
-  // 加载主题
   contentStore.fetchThemes()
 })
 
-// 处理传入的主题参数
 onLoad((options) => {
   if (options?.theme) {
-    // 查找对应主题
     for (const catId of Object.keys(defaultThemes)) {
       const found = defaultThemes[catId].find(t => t.id === options.theme)
       if (found) {
@@ -623,11 +608,46 @@ onLoad((options) => {
 
 .page-container {
   min-height: 100vh;
-  background: $bg-base;
+  background: $bg-cream;
   display: flex;
   flex-direction: column;
   width: 750rpx;
   overflow: hidden;
+  position: relative;
+}
+
+// 装饰背景
+.decor-bg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.decor-shape {
+  position: absolute;
+  border-radius: 50%;
+  opacity: 0.4;
+
+  &.shape-1 {
+    width: 350rpx;
+    height: 350rpx;
+    background: $book-light;
+    top: -100rpx;
+    right: -80rpx;
+  }
+
+  &.shape-2 {
+    width: 250rpx;
+    height: 250rpx;
+    background: $song-light;
+    bottom: 250rpx;
+    left: -80rpx;
+  }
 }
 
 // 导航栏
@@ -636,8 +656,10 @@ onLoad((options) => {
   top: 0;
   left: 0;
   z-index: $z-sticky;
-  background: $bg-base;
+  background: rgba(255, 251, 247, 0.95);
+  backdrop-filter: blur(20rpx);
   width: 750rpx;
+  border-bottom: 1rpx solid $border-light;
 }
 
 .nav-content {
@@ -656,6 +678,7 @@ onLoad((options) => {
   justify-content: center;
   background: $bg-card;
   border-radius: $radius-md;
+  border: 1rpx solid $border-light;
   box-shadow: $shadow-sm;
 
   text {
@@ -685,6 +708,8 @@ onLoad((options) => {
   width: 750rpx;
   padding: 0 $spacing-md;
   box-sizing: border-box;
+  position: relative;
+  z-index: 1;
 }
 
 // 步骤指示器
@@ -702,7 +727,7 @@ onLoad((options) => {
   left: 60rpx;
   right: 60rpx;
   height: 4rpx;
-  background: $uni-border-color;
+  background: $border-light;
 }
 
 .step-item {
@@ -719,20 +744,21 @@ onLoad((options) => {
   height: 40rpx;
   border-radius: 50%;
   background: $bg-card;
-  border: 4rpx solid $uni-border-color;
+  border: 4rpx solid $border-medium;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: all $duration-base;
+  box-shadow: $shadow-sm;
 
   text {
     font-size: $font-xs;
-    color: $text-light;
+    color: $text-tertiary;
   }
 
   .active & {
-    border-color: $primary;
-    background: $primary;
+    border-color: $book-primary;
+    background: $book-primary;
 
     text { color: $text-white; }
   }
@@ -747,9 +773,9 @@ onLoad((options) => {
 
 .step-name {
   font-size: $font-xs;
-  color: $text-light;
+  color: $text-tertiary;
 
-  .active & { color: $primary; font-weight: $font-medium; }
+  .active & { color: $book-primary; font-weight: $font-medium; }
   .done & { color: $success; }
 }
 
@@ -788,12 +814,14 @@ onLoad((options) => {
   padding: $spacing-sm;
   background: $bg-card;
   border-radius: $radius-md;
-  border: 2rpx solid transparent;
+  border: 2rpx solid $border-light;
+  box-shadow: $shadow-sm;
   transition: all $duration-fast;
 
   &.active {
-    border-color: $primary;
-    background: rgba($primary, 0.05);
+    border-color: $book-primary;
+    background: rgba($book-primary, 0.08);
+    box-shadow: $shadow-colored-book;
   }
 }
 
@@ -804,9 +832,9 @@ onLoad((options) => {
 
 .tab-name {
   font-size: $font-sm;
-  color: $text-primary;
+  color: $text-secondary;
 
-  .active & { color: $primary; font-weight: $font-medium; }
+  .active & { color: $book-primary; font-weight: $font-medium; }
 }
 
 // 主题网格
@@ -826,13 +854,14 @@ onLoad((options) => {
   padding: $spacing-md $spacing-sm;
   background: $bg-card;
   border-radius: $radius-md;
-  border: 2rpx solid transparent;
+  border: 2rpx solid $border-light;
   box-shadow: $shadow-sm;
   transition: all $duration-fast;
 
   &.selected {
-    border-color: $primary;
-    background: rgba($primary, 0.05);
+    border-color: $book-primary;
+    background: rgba($book-primary, 0.08);
+    box-shadow: $shadow-colored-book;
   }
 
   &:active {
@@ -857,7 +886,7 @@ onLoad((options) => {
   right: 8rpx;
   width: 32rpx;
   height: 32rpx;
-  background: $primary;
+  background: $book-primary;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -869,10 +898,7 @@ onLoad((options) => {
   }
 }
 
-// ==========================================
-// 风格选择页 - 增强版 UI
-// ==========================================
-
+// 风格选择页
 .style-header {
   margin-bottom: $spacing-lg;
 }
@@ -887,7 +913,7 @@ onLoad((options) => {
   background: $bg-card;
   border-radius: $radius-lg;
   padding: $spacing-md;
-  box-shadow: $shadow-soft;
+  box-shadow: $shadow-card;
 }
 
 .section-header {
@@ -907,15 +933,15 @@ onLoad((options) => {
   width: 56rpx;
   height: 56rpx;
   border-radius: 50%;
-  background: linear-gradient(135deg, #FFE8E8 0%, #FFF0E8 100%);
+  background: $book-light;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
 
-  &.bunny { background: linear-gradient(135deg, #FFE0F0 0%, #FFF0E8 100%); }
-  &.palette { background: linear-gradient(135deg, #E8F4FF 0%, #E8FFF0 100%); }
-  &.voice { background: linear-gradient(135deg, #F0E8FF 0%, #FFE8F8 100%); }
+  &.bunny { background: $book-light; }
+  &.palette { background: $song-light; }
+  &.voice { background: $video-light; }
 }
 
 .section-icon {
@@ -930,12 +956,10 @@ onLoad((options) => {
 
 .section-hint {
   font-size: $font-xs;
-  color: $text-secondary;
+  color: $text-tertiary;
 }
 
-// ==========================================
-// 艺术风格卡片 - 横向滚动大卡片
-// ==========================================
+// 艺术风格卡片
 .art-style-carousel {
   display: flex;
   gap: $spacing-sm;
@@ -955,11 +979,12 @@ onLoad((options) => {
   height: 180rpx;
   border-radius: $radius-md;
   overflow: hidden;
-  border: 3rpx solid transparent;
+  border: 2rpx solid $border-light;
+  background: $bg-card;
   transition: all $duration-base $ease-bounce;
 
   &.selected {
-    border-color: $primary;
+    border-color: $book-primary;
     transform: scale(1.02);
     box-shadow: $shadow-colored-book;
   }
@@ -975,12 +1000,13 @@ onLoad((options) => {
   left: 0;
   right: 0;
   bottom: 0;
+  opacity: 0.15;
 
-  &.pixar_3d { background: linear-gradient(145deg, #FFE8F0 0%, #E8F0FF 50%, #E8FFF0 100%); }
-  &.watercolor { background: linear-gradient(145deg, #E8F4FF 0%, #FFF0E8 50%, #E8FFE8 100%); }
-  &.flat_vector { background: linear-gradient(145deg, #FFF5E8 0%, #FFE8F0 50%, #E8EFFF 100%); }
-  &.crayon { background: linear-gradient(145deg, #FFFAE8 0%, #FFE8E8 50%, #E8FFF8 100%); }
-  &.anime { background: linear-gradient(145deg, #FFE8F8 0%, #F0E8FF 50%, #E8F8FF 100%); }
+  &.pixar_3d { background: linear-gradient(145deg, #FF7B54 0%, #7FB285 50%, #F5A623 100%); }
+  &.watercolor { background: linear-gradient(145deg, #74B9FF 0%, #FFB347 50%, #4ECDC4 100%); }
+  &.flat_vector { background: linear-gradient(145deg, #FFE66D 0%, #FF7B54 50%, #7FB285 100%); }
+  &.crayon { background: linear-gradient(145deg, #F5A623 0%, #FF7B54 50%, #7FB285 100%); }
+  &.anime { background: linear-gradient(145deg, #FFB6C1 0%, #7FB285 50%, #74B9FF 100%); }
 }
 
 .art-card-content {
@@ -1008,7 +1034,7 @@ onLoad((options) => {
 
 .art-desc {
   font-size: $font-xs;
-  color: $text-secondary;
+  color: $text-tertiary;
   text-align: center;
 }
 
@@ -1019,7 +1045,7 @@ onLoad((options) => {
   width: 36rpx;
   height: 36rpx;
   border-radius: 50%;
-  background: $primary;
+  background: $book-primary;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1040,13 +1066,11 @@ onLoad((options) => {
   border-radius: $radius-sm;
   font-size: 18rpx;
   font-weight: $font-semibold;
-  color: #8B6914;
+  color: $text-white;
   z-index: 2;
 }
 
-// ==========================================
-// 角色选择 - 圆形头像卡片
-// ==========================================
+// 角色选择
 .character-carousel {
   display: flex;
   gap: $spacing-sm;
@@ -1064,8 +1088,9 @@ onLoad((options) => {
   transition: all $duration-base $ease-bounce;
 
   &.selected .character-avatar {
-    background: rgba($primary, 0.15);
-    border-color: $primary;
+    background: rgba($book-primary, 0.15);
+    border-color: $book-primary;
+    box-shadow: $shadow-colored-book;
   }
 
   &.selected .char-ring {
@@ -1083,8 +1108,8 @@ onLoad((options) => {
   width: 100rpx;
   height: 100rpx;
   border-radius: 50%;
-  background: $bg-base;
-  border: 3rpx solid transparent;
+  background: $bg-soft;
+  border: 2rpx solid $border-light;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1108,7 +1133,7 @@ onLoad((options) => {
   left: -6rpx;
   right: -6rpx;
   bottom: -6rpx;
-  border: 3rpx solid $primary;
+  border: 3rpx solid $book-primary;
   border-radius: 50%;
   opacity: 0;
   transform: scale(0.8);
@@ -1116,9 +1141,7 @@ onLoad((options) => {
   pointer-events: none;
 }
 
-// ==========================================
-// 色彩风格 - 条纹预览卡片
-// ==========================================
+// 色彩风格
 .palette-list {
   display: flex;
   flex-direction: column;
@@ -1130,14 +1153,15 @@ onLoad((options) => {
   align-items: center;
   gap: $spacing-md;
   padding: $spacing-sm $spacing-md;
-  background: $bg-base;
+  background: $bg-soft;
   border-radius: $radius-md;
-  border: 2rpx solid transparent;
+  border: 2rpx solid $border-light;
   transition: all $duration-fast;
 
   &.selected {
-    border-color: $primary;
-    background: rgba($primary, 0.05);
+    border-color: $book-primary;
+    background: rgba($book-primary, 0.08);
+    box-shadow: $shadow-colored-book;
   }
 
   &:active {
@@ -1209,14 +1233,14 @@ onLoad((options) => {
 
 .palette-desc {
   font-size: $font-xs;
-  color: $text-secondary;
+  color: $text-tertiary;
 }
 
 .palette-check {
   width: 36rpx;
   height: 36rpx;
   border-radius: 50%;
-  background: $primary;
+  background: $book-primary;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1228,9 +1252,7 @@ onLoad((options) => {
   }
 }
 
-// ==========================================
-// 音色选择 - 带音波效果
-// ==========================================
+// 音色选择
 .voice-list {
   display: flex;
   flex-direction: column;
@@ -1242,14 +1264,15 @@ onLoad((options) => {
   align-items: center;
   gap: $spacing-md;
   padding: $spacing-md;
-  background: $bg-base;
+  background: $bg-soft;
   border-radius: $radius-md;
-  border: 2rpx solid transparent;
+  border: 2rpx solid $border-light;
   transition: all $duration-fast;
 
   &.selected {
-    border-color: $primary;
-    background: rgba($primary, 0.05);
+    border-color: $book-primary;
+    background: rgba($book-primary, 0.08);
+    box-shadow: $shadow-colored-book;
 
     .voice-waves .wave {
       animation: waveAnim 0.8s ease-in-out infinite;
@@ -1290,7 +1313,7 @@ onLoad((options) => {
 .wave {
   width: 4rpx;
   height: 16rpx;
-  background: $primary;
+  background: $book-primary;
   border-radius: 2rpx;
   opacity: 0.3;
 
@@ -1327,7 +1350,7 @@ onLoad((options) => {
   font-size: 18rpx;
   padding: 2rpx 8rpx;
   background: $accent;
-  color: #8B6914;
+  color: $text-white;
   border-radius: $radius-xs;
   font-weight: $font-semibold;
 }
@@ -1338,21 +1361,21 @@ onLoad((options) => {
   border-radius: $radius-xs;
   font-weight: $font-medium;
 
-  &.female { background: #FFE8F0; color: #D63384; }
-  &.male { background: #E8F0FF; color: #0D6EFD; }
-  &.child { background: #FFF5E8; color: #FD7E14; }
+  &.female { background: $book-light; color: $book-primary; }
+  &.male { background: rgba(91, 164, 217, 0.2); color: #5ba4d9; }
+  &.child { background: $video-light; color: $video-primary; }
 }
 
 .voice-style {
   font-size: $font-xs;
-  color: $text-secondary;
+  color: $text-tertiary;
 }
 
 .voice-check {
   width: 36rpx;
   height: 36rpx;
   border-radius: 50%;
-  background: $primary;
+  background: $book-primary;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1370,13 +1393,14 @@ onLoad((options) => {
   border-radius: $radius-md;
   padding: $spacing-md;
   margin-bottom: $spacing-md;
+  box-shadow: $shadow-card;
 }
 
 .confirm-item {
   display: flex;
   justify-content: space-between;
   padding: $spacing-sm 0;
-  border-bottom: 1rpx solid $uni-border-color;
+  border-bottom: 1rpx solid $border-light;
 
   &:last-child {
     border-bottom: none;
@@ -1385,7 +1409,7 @@ onLoad((options) => {
 
 .confirm-label {
   font-size: $font-base;
-  color: $text-secondary;
+  color: $text-tertiary;
 }
 
 .confirm-value {
@@ -1399,8 +1423,9 @@ onLoad((options) => {
   align-items: center;
   gap: $spacing-sm;
   padding: $spacing-sm $spacing-md;
-  background: $accent-soft;
+  background: $video-light;
   border-radius: $radius-md;
+  border: 1rpx solid rgba($video-primary, 0.3);
 }
 
 .tip-icon {
@@ -1409,7 +1434,7 @@ onLoad((options) => {
 
 .tip-text {
   font-size: $font-sm;
-  color: #8B7000;
+  color: $video-primary;
 }
 
 // 底部按钮
@@ -1421,10 +1446,12 @@ onLoad((options) => {
   gap: $spacing-sm;
   padding: $spacing-md;
   padding-bottom: calc(#{$spacing-md} + env(safe-area-inset-bottom));
-  background: $bg-card;
-  box-shadow: 0 -4rpx 16rpx rgba(0, 0, 0, 0.05);
+  background: rgba(255, 251, 247, 0.95);
+  backdrop-filter: blur(20rpx);
+  border-top: 1rpx solid $border-light;
   width: 750rpx;
   box-sizing: border-box;
+  z-index: $z-sticky;
 }
 
 .btn-secondary {
@@ -1433,9 +1460,9 @@ onLoad((options) => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: $bg-base;
+  background: $bg-card;
   border-radius: $radius-lg;
-  border: 2rpx solid $uni-border-color;
+  border: 2rpx solid $border-medium;
 
   text {
     font-size: $font-md;
@@ -1443,7 +1470,7 @@ onLoad((options) => {
   }
 
   &:active {
-    background: $bg-warm;
+    background: $bg-soft;
   }
 }
 
@@ -1453,7 +1480,7 @@ onLoad((options) => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: $gradient-primary;
+  background: $book-gradient;
   border-radius: $radius-lg;
   box-shadow: $shadow-button;
 
@@ -1468,7 +1495,7 @@ onLoad((options) => {
   }
 
   &.disabled {
-    background: $text-light;
+    background: $border-medium;
     box-shadow: none;
   }
 }

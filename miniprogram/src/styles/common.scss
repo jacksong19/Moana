@@ -1,12 +1,12 @@
 // ============================================
-// Moana 全局样式 - 温暖有机风格
+// Moana 全局样式 - 温暖童话花园风格
 // ============================================
 
 @import './variables.scss';
 
 // 重置样式
 page {
-  background-color: $bg-base;
+  background: $bg-cream;
   font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
   font-size: $font-base;
   color: $text-primary;
@@ -26,13 +26,22 @@ view, text, image {
 
 .page-container {
   min-height: 100vh;
-  background: $gradient-warm;
+  background: $bg-cream;
   padding-bottom: calc(#{$spacing-lg} + #{$safe-bottom});
   // 使用 750rpx 固定宽度，避免微信小程序中 100%/100vw 导致的右侧截断问题
   width: 750rpx;
   box-sizing: border-box;
   // 只禁止水平溢出，允许垂直滚动
   overflow-x: hidden;
+}
+
+// 温暖主题页面容器
+.warm-page {
+  min-height: 100vh;
+  background: $bg-cream;
+  width: 750rpx;
+  position: relative;
+  overflow: hidden;
 }
 
 .safe-top {
@@ -116,7 +125,7 @@ view, text, image {
 
 .text-primary { color: $text-primary; }
 .text-secondary { color: $text-secondary; }
-.text-light { color: $text-light; }
+.text-tertiary { color: $text-tertiary; }
 .text-white { color: $text-white; }
 .text-coral { color: $primary; }
 .text-teal { color: $secondary; }
@@ -248,7 +257,7 @@ view, text, image {
 .btn-child {
   min-height: 120rpx;
   min-width: 200rpx;
-  font-size: calc(#{$font-md} * #{$child-scale});
+  font-size: $font-lg;
   border-radius: $radius-xl;
   padding: $spacing-md $spacing-xl;
 }
@@ -427,4 +436,126 @@ view, text, image {
     background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 100'%3E%3Cpath fill='%23FFFFFF' d='M0,50 C360,100 1080,0 1440,50 L1440,100 L0,100 Z'/%3E%3C/svg%3E");
     background-size: cover;
   }
+}
+
+// ============================================
+// 温暖主题样式
+// ============================================
+
+// 温暖卡片
+.warm-card {
+  background: $bg-card;
+  border: 1rpx solid $border-light;
+  border-radius: $radius-lg;
+  box-shadow: $shadow-card;
+  overflow: hidden;
+}
+
+.warm-card-elevated {
+  background: $bg-elevated;
+  border: 1rpx solid $border-light;
+  border-radius: $radius-lg;
+  box-shadow: $shadow-md;
+}
+
+// 温暖主题文字
+.text-warm {
+  color: $text-primary;
+}
+
+.text-warm-secondary {
+  color: $text-secondary;
+}
+
+.text-warm-muted {
+  color: $text-tertiary;
+}
+
+.text-accent {
+  color: $accent;
+}
+
+// 温暖主题按钮
+.btn-warm {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: $spacing-sm $spacing-lg;
+  background: $bg-card;
+  border: 1rpx solid $border-medium;
+  border-radius: $radius-lg;
+  color: $text-primary;
+  font-size: $font-base;
+  font-weight: $font-semibold;
+  transition: all $duration-base $ease-out;
+
+  &:active {
+    transform: scale(0.96);
+    background: $bg-soft;
+  }
+}
+
+.btn-warm-primary {
+  @extend .btn-warm;
+  background: $book-gradient;
+  border: none;
+  color: $text-white;
+  box-shadow: $shadow-colored-book;
+}
+
+.btn-warm-song {
+  @extend .btn-warm;
+  background: $song-gradient;
+  border: none;
+  color: $text-white;
+  box-shadow: $shadow-colored-song;
+}
+
+.btn-warm-video {
+  @extend .btn-warm;
+  background: $video-gradient;
+  border: none;
+  color: $text-white;
+  box-shadow: $shadow-colored-video;
+}
+
+// 温暖动画
+@keyframes warm-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10rpx); }
+}
+
+@keyframes warm-pulse {
+  0%, 100% { opacity: 0.8; }
+  50% { opacity: 1; }
+}
+
+@keyframes warm-rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.animate-float {
+  animation: warm-float 3s ease-in-out infinite;
+}
+
+.animate-glow {
+  animation: warm-pulse 2s ease-in-out infinite;
+}
+
+.animate-rotate {
+  animation: warm-rotate 8s linear infinite;
+}
+
+// 内容类型阴影高亮
+.highlight-book {
+  box-shadow: $shadow-colored-book;
+}
+
+.highlight-song {
+  box-shadow: $shadow-colored-song;
+}
+
+.highlight-video {
+  box-shadow: $shadow-colored-video;
 }

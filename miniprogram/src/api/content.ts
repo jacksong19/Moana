@@ -579,7 +579,33 @@ export interface VideoPage {
   audio_url: string
 }
 
-// 生成视频参数
+// 场景模板类型
+export type SceneTemplateId = 'cover_subtle' | 'character_dialogue' | 'scene_transition' | 'action_scene' | 'emotional_moment'
+
+// 场景模板配置 (Veo 3.1 专版)
+export interface SceneTemplate {
+  id: SceneTemplateId
+  name: string
+  icon: string
+  description: string
+  preset: {
+    duration: number
+    resolution: string
+    motion_mode: string
+  }
+}
+
+// 负面提示词预设类型
+export type NegativePresetId = 'realistic' | 'blur' | 'style_change' | 'shaky' | 'dark' | 'fast' | 'distortion'
+
+// 负面提示词预设配置
+export interface NegativePreset {
+  id: NegativePresetId
+  label: string
+  value: string
+}
+
+// 生成视频参数 (Veo 3.1 专版)
 export interface GenerateVideoParams {
   picture_book: {
     title: string
@@ -588,12 +614,20 @@ export interface GenerateVideoParams {
   child_name: string
   theme_topic: string
   theme_category: string
-  // 新视频配置参数（Veo/多提供商）
-  aspect_ratio?: string      // 16:9, 9:16, 4:3, 3:4, 1:1
-  resolution?: string        // 720P, 1080P
-  duration_seconds?: number  // 5, 8, 10, 15
-  motion_mode?: string       // static, slow, normal, dynamic, cinematic
-  enable_audio?: boolean     // 是否启用音效
+  // Veo 3.1 基础参数
+  aspect_ratio?: '16:9' | '9:16' | '4:3' | '3:4' | '1:1'  // 默认 16:9
+  resolution?: '720P' | '1080P'                           // 默认 720P
+  duration_seconds?: 4 | 5 | 6 | 8                        // Veo 3.1 支持 4-8 秒，默认 5
+  motion_mode?: 'static' | 'slow' | 'normal' | 'dynamic' | 'cinematic'  // 默认 normal
+  enable_audio?: boolean                                  // 是否生成原生音效，默认 true
+  // Veo 3.1 增强参数
+  image_url?: string              // 首帧图片 URL
+  prompt?: string                 // 动作描述（使用绘本页面文字）
+  reference_images?: string[]     // 角色参考图 URL 列表（最多3张）
+  scene_template?: SceneTemplateId // 场景模板 ID
+  auto_enhance_prompt?: boolean   // AI 自动优化提示词（默认 true）
+  negative_prompt?: string        // 负面提示词
+  last_frame_url?: string         // 结束帧图片 URL
   // 旧参数（兼容）
   motion_style?: MotionStyle
 }

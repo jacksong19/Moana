@@ -84,7 +84,7 @@
         </view>
 
         <view class="style-sections">
-          <!-- 艺术风格 - 大卡片展示 -->
+          <!-- 艺术风格 - 分类展示 -->
           <view class="style-section art-section">
             <view class="section-header">
               <view class="section-icon-wrap">
@@ -92,15 +92,29 @@
               </view>
               <text class="section-title">艺术风格</text>
             </view>
+            <!-- 风格分类 Tab -->
+            <view class="style-category-tabs">
+              <view
+                v-for="cat in styleCategories"
+                :key="cat.id"
+                class="style-tab-item"
+                :class="{ active: selectedStyleCategory === cat.id }"
+                @tap="selectedStyleCategory = cat.id"
+              >
+                <text class="style-tab-icon">{{ cat.icon }}</text>
+                <text class="style-tab-name">{{ cat.name }}</text>
+              </view>
+            </view>
+            <!-- 风格卡片 -->
             <view class="art-style-carousel">
               <view
-                v-for="style in artStyles"
+                v-for="style in currentCategoryStyles"
                 :key="style.value"
                 class="art-card"
-                :class="{ selected: selectedArtStyle === style.value, recommended: style.value === 'pixar_3d' }"
+                :class="{ selected: selectedArtStyle === style.value, recommended: style.recommended }"
                 @tap="selectedArtStyle = style.value"
               >
-                <view class="art-card-bg" :class="style.value"></view>
+                <view class="art-card-bg" :class="style.cssClass || style.value"></view>
                 <view class="art-card-content">
                   <text class="art-icon">{{ style.icon }}</text>
                   <text class="art-name">{{ style.label }}</text>
@@ -109,7 +123,7 @@
                 <view v-if="selectedArtStyle === style.value" class="art-check">
                   <text>✓</text>
                 </view>
-                <view v-if="style.value === 'pixar_3d'" class="art-badge">推荐</view>
+                <view v-if="style.recommended" class="art-badge">推荐</view>
               </view>
             </view>
           </view>
@@ -138,36 +152,6 @@
                 </view>
                 <text class="char-name">{{ animal.label }}</text>
                 <view v-if="selectedAnimal === animal.value" class="char-ring"></view>
-              </view>
-            </view>
-          </view>
-
-          <!-- 画面色调 - 色彩条展示 -->
-          <view class="style-section palette-section">
-            <view class="section-header">
-              <view class="section-icon-wrap palette">
-                <text class="section-icon">🌈</text>
-              </view>
-              <text class="section-title">画面色调</text>
-            </view>
-            <view class="palette-list">
-              <view
-                v-for="palette in colorPalettes"
-                :key="palette.value"
-                class="palette-card"
-                :class="{ selected: selectedPalette === palette.value }"
-                @tap="selectedPalette = palette.value"
-              >
-                <view class="palette-preview" :class="palette.value">
-                  <view class="palette-stripe" v-for="i in 4" :key="i"></view>
-                </view>
-                <view class="palette-info">
-                  <text class="palette-name">{{ palette.label }}</text>
-                  <text class="palette-desc">{{ palette.description }}</text>
-                </view>
-                <view v-if="selectedPalette === palette.value" class="palette-check">
-                  <text>✓</text>
-                </view>
               </view>
             </view>
           </view>
@@ -204,7 +188,7 @@
                     <text class="voice-name">{{ voice.name }}</text>
                     <text v-if="voice.recommended" class="voice-badge">推荐</text>
                     <text class="voice-gender-tag" :class="voice.gender">
-                      {{ voice.gender === 'female' ? '女声' : '男声' }}
+                      {{ voice.gender === 'female' ? '女声' : voice.gender === 'male' ? '男声' : '中性' }}
                     </text>
                   </view>
                   <text class="voice-style">{{ voice.style }}</text>
@@ -241,10 +225,6 @@
             <text class="confirm-value">{{ currentAnimalName }}</text>
           </view>
           <view class="confirm-item">
-            <text class="confirm-label">画面色调</text>
-            <text class="confirm-value">{{ currentPaletteName }}</text>
-          </view>
-          <view class="confirm-item">
             <text class="confirm-label">旁白音色</text>
             <text class="confirm-value">{{ currentVoiceName }}</text>
           </view>
@@ -275,6 +255,9 @@
     <GeneratingProgress
       v-if="isGenerating"
       :progress="generatingProgress"
+      :stage="generatingStage"
+      :message="generatingMessage"
+      type="book"
     />
   </view>
 </template>
@@ -293,7 +276,6 @@ import {
   type PictureBook,
   type ArtStyle,
   type ProtagonistAnimal,
-  type ColorPalette,
   type VoiceId
 } from '@/api/content'
 
@@ -320,15 +302,49 @@ const themeCategories = [
 const selectedCategory = ref('habit')
 const selectedTheme = ref<ThemeItem | null>(null)
 
-// 艺术风格选项
-const artStyles = [
-  { value: 'pixar_3d' as ArtStyle, label: '3D 动画', icon: '🎬', desc: '皮克斯风格' },
-  { value: 'watercolor' as ArtStyle, label: '水彩', icon: '🎨', desc: '柔和温馨' },
-  { value: 'flat_vector' as ArtStyle, label: '扁平插画', icon: '✨', desc: '现代简约' },
-  { value: 'crayon' as ArtStyle, label: '蜡笔画', icon: '🖍️', desc: '童趣手绘' },
-  { value: 'anime' as ArtStyle, label: '日系动漫', icon: '🌸', desc: '可爱细腻' }
+// 风格分类（按后端 Gemini 配置）
+const styleCategories = [
+  { id: 'children', name: '儿童内容', icon: '📚' },
+  { id: 'threed', name: '3D 风格', icon: '🎬' },
+  { id: 'anime', name: '动漫风格', icon: '🌸' },
+  { id: 'artistic', name: '艺术风格', icon: '🎨' }
 ]
-const selectedArtStyle = ref<ArtStyle>('pixar_3d')
+const selectedStyleCategory = ref('children')
+
+// 按分类的艺术风格选项（cssClass 用于避免数字开头的类名）
+type StyleOption = { value: ArtStyle; label: string; icon: string; desc: string; cssClass?: string; recommended?: boolean }
+const artStylesByCategory: Record<string, StyleOption[]> = {
+  children: [
+    { value: 'storybook', label: '绘本风格', icon: '📖', desc: '温暖色调', recommended: true },
+    { value: 'cartoon', label: '卡通风格', icon: '🎨', desc: '鲜艳色彩' },
+    { value: 'watercolor', label: '水彩风格', icon: '💧', desc: '梦幻氛围' },
+    { value: 'flat', label: '扁平风格', icon: '✨', desc: '简洁几何' }
+  ],
+  threed: [
+    { value: 'pixar', label: '皮克斯', icon: '🎬', desc: '动画电影' },
+    { value: 'pixar_3d', label: '3D 卡通', icon: '🧸', desc: '柔和阴影' },
+    { value: 'clay', label: '粘土风格', icon: '🎭', desc: '手工质感' },
+    { value: 'figurine', label: '手办风格', icon: '🎎', desc: '收藏品风' }
+  ],
+  anime: [
+    { value: 'anime', label: '日式动漫', icon: '🌸', desc: '细致眼睛' },
+    { value: 'chibi', label: 'Q版萌系', icon: '🎀', desc: '大头小身' },
+    { value: 'ghibli', label: '吉卜力', icon: '🏰', desc: '宫崎骏风' }
+  ],
+  artistic: [
+    { value: 'oil_painting', label: '油画', icon: '🖼️', desc: '古典纹理' },
+    { value: 'sketch', label: '素描', icon: '✏️', desc: '手绘线条' },
+    { value: 'ink_wash', label: '水墨画', icon: '🖌️', desc: '中国风' },
+    { value: 'pixel_art', label: '像素艺术', icon: '👾', desc: '复古游戏' }
+  ]
+}
+
+// 当前分类的风格列表
+const currentCategoryStyles = computed(() => {
+  return artStylesByCategory[selectedStyleCategory.value] || artStylesByCategory.children
+})
+
+const selectedArtStyle = ref<ArtStyle>('storybook')
 
 // 主角动物选项
 const protagonistAnimals = [
@@ -341,30 +357,22 @@ const protagonistAnimals = [
 ]
 const selectedAnimal = ref<ProtagonistAnimal>('bunny')
 
-// 色调选项
-const colorPalettes = [
-  { value: 'pastel' as ColorPalette, label: '马卡龙', description: '柔和温馨' },
-  { value: 'vibrant' as ColorPalette, label: '鲜艳活泼', description: '明快活泼' },
-  { value: 'warm' as ColorPalette, label: '暖色温馨', description: '温暖舒适' },
-  { value: 'cool' as ColorPalette, label: '清新冷调', description: '清爽宁静' },
-  { value: 'monochrome' as ColorPalette, label: '黑白经典', description: '优雅简洁' }
+// Gemini TTS 音色选项（默认）
+const voiceOptions: Array<{ id: VoiceId; name: string; gender: 'female' | 'male' | 'neutral'; style: string; emoji: string; recommended?: boolean }> = [
+  { id: 'Kore', name: '温暖女声', gender: 'female', style: '温暖亲切', emoji: '🌟', recommended: true },
+  { id: 'Leda', name: '柔和女声', gender: 'female', style: '柔和舒缓', emoji: '🌙' },
+  { id: 'Aoede', name: '清晰女声', gender: 'female', style: '清晰标准', emoji: '📚' },
+  { id: 'Puck', name: '活泼中性', gender: 'neutral', style: '活泼有趣', emoji: '🎈' },
+  { id: 'Charon', name: '沉稳男声', gender: 'male', style: '沉稳大气', emoji: '👔' },
+  { id: 'Fenrir', name: '深沉男声', gender: 'male', style: '深沉有力', emoji: '🎭' }
 ]
-const selectedPalette = ref<ColorPalette>('pastel')
-
-// TTS 音色选项（后端实测支持的 6 个音色）
-const voiceOptions = [
-  { id: 'Cherry' as VoiceId, name: '芊悦', gender: 'female', style: '温柔亲切', emoji: '🍒', recommended: true },
-  { id: 'Jennifer' as VoiceId, name: '詹妮弗', gender: 'female', style: '清晰标准', emoji: '🎀' },
-  { id: 'Kiki' as VoiceId, name: '阿清', gender: 'female', style: '粤语', emoji: '🌸' },
-  { id: 'Ethan' as VoiceId, name: '晨煦', gender: 'male', style: '成熟稳重', emoji: '👔' },
-  { id: 'Ryan' as VoiceId, name: '甜茶', gender: 'male', style: '温暖亲和', emoji: '🌟' },
-  { id: 'Nofish' as VoiceId, name: '不吃鱼', gender: 'male', style: '活泼有趣', emoji: '🐟' }
-]
-const selectedVoiceId = ref<VoiceId>('Cherry')
+const selectedVoiceId = ref<VoiceId>('Kore')
 
 // 生成状态
 const isGenerating = ref(false)
 const generatingProgress = ref(0)
+const generatingStage = ref('')
+const generatingMessage = ref('')
 
 // 计算属性
 const childName = computed(() => childStore.currentChild?.name || '宝贝')
@@ -392,15 +400,16 @@ const filteredThemes = computed(() => {
 })
 
 const currentArtStyleName = computed(() => {
-  return artStyles.find(s => s.value === selectedArtStyle.value)?.label || ''
+  // 搜索所有分类找到当前选中的风格
+  for (const styles of Object.values(artStylesByCategory)) {
+    const found = styles.find(s => s.value === selectedArtStyle.value)
+    if (found) return found.label
+  }
+  return ''
 })
 
 const currentAnimalName = computed(() => {
   return protagonistAnimals.find(a => a.value === selectedAnimal.value)?.label || ''
-})
-
-const currentPaletteName = computed(() => {
-  return colorPalettes.find(p => p.value === selectedPalette.value)?.label || ''
 })
 
 const currentVoiceName = computed(() => {
@@ -522,11 +531,13 @@ async function startGenerate() {
 
   isGenerating.value = true
   generatingProgress.value = 0
+  generatingStage.value = ''
+  generatingMessage.value = ''
 
   try {
     const ageMonths = childStore.currentChildAgeMonths || 36
 
-    console.log('[绘本] 发起异步生成请求，风格:', selectedArtStyle.value, selectedAnimal.value, selectedPalette.value, '音色:', selectedVoiceId.value)
+    console.log('[绘本] 发起异步生成请求，风格:', selectedArtStyle.value, '主角:', selectedAnimal.value, '音色:', selectedVoiceId.value)
     const asyncResult = await generatePictureBookAsync({
       child_name: childStore.currentChild.name,
       age_months: ageMonths,
@@ -536,7 +547,6 @@ async function startGenerate() {
       protagonist: {
         animal: selectedAnimal.value
       },
-      color_palette: selectedPalette.value,
       voice_id: selectedVoiceId.value
     })
 
@@ -558,9 +568,12 @@ async function startGenerate() {
         try {
           const status = await getPictureBookTaskStatus(taskId)
           consecutiveErrors = 0
-          console.log('[绘本] 状态:', status.status, '进度:', status.progress, '阶段:', status.stage)
+          console.log('[绘本] 状态:', status.status, '进度:', status.progress, '阶段:', status.stage, '消息:', status.message)
 
+          // 更新进度、阶段和消息
           generatingProgress.value = status.progress || Math.min(attempts * 2, 95)
+          generatingStage.value = status.stage || ''
+          generatingMessage.value = status.message || ''
 
           if (status.status === 'completed') {
             generatingProgress.value = 100
@@ -1022,6 +1035,47 @@ onLoad((options) => {
   color: $text-tertiary;
 }
 
+// 风格分类 Tab
+.style-category-tabs {
+  display: flex;
+  gap: $spacing-xs;
+  margin-bottom: $spacing-md;
+  padding: $spacing-xs;
+  background: $bg-soft;
+  border-radius: $radius-md;
+}
+
+.style-tab-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: $spacing-xs $spacing-sm;
+  border-radius: $radius-sm;
+  transition: all $duration-fast;
+  cursor: pointer;
+
+  &.active {
+    background: $bg-card;
+    box-shadow: $shadow-sm;
+  }
+}
+
+.style-tab-icon {
+  font-size: 24rpx;
+  margin-bottom: 2rpx;
+}
+
+.style-tab-name {
+  font-size: 20rpx;
+  color: $text-tertiary;
+
+  .active & {
+    color: $book-primary;
+    font-weight: $font-medium;
+  }
+}
+
 // 艺术风格卡片
 .art-style-carousel {
   display: flex;
@@ -1065,11 +1119,28 @@ onLoad((options) => {
   bottom: 0;
   opacity: 0.15;
 
-  &.pixar_3d { background: linear-gradient(145deg, #FF7B54 0%, #7FB285 50%, #F5A623 100%); }
+  // 儿童内容
+  &.storybook { background: linear-gradient(145deg, #FFE4C4 0%, #F5A623 50%, #7FB285 100%); }
+  &.cartoon { background: linear-gradient(145deg, #FF7B54 0%, #FFE66D 50%, #4ECDC4 100%); }
   &.watercolor { background: linear-gradient(145deg, #74B9FF 0%, #FFB347 50%, #4ECDC4 100%); }
+  &.flat { background: linear-gradient(145deg, #FFE66D 0%, #FF7B54 50%, #7FB285 100%); }
+  // 3D 风格
+  &.pixar { background: linear-gradient(145deg, #FF7B54 0%, #7FB285 50%, #F5A623 100%); }
+  &.pixar_3d { background: linear-gradient(145deg, #74B9FF 0%, #A29BFE 50%, #81ECEC 100%); }
+  &.clay { background: linear-gradient(145deg, #E8A87C 0%, #D4A574 50%, #C9956C 100%); }
+  &.figurine { background: linear-gradient(145deg, #DFE6E9 0%, #B2BEC3 50%, #636E72 100%); }
+  // 动漫风格
+  &.anime { background: linear-gradient(145deg, #FFB6C1 0%, #7FB285 50%, #74B9FF 100%); }
+  &.chibi { background: linear-gradient(145deg, #FFB5BA 0%, #FFF5BA 50%, #B5D8FF 100%); }
+  &.ghibli { background: linear-gradient(145deg, #7FB285 0%, #74B9FF 50%, #F5A623 100%); }
+  // 艺术风格
+  &.oil_painting { background: linear-gradient(145deg, #8B4513 0%, #D4A574 50%, #FFE4C4 100%); }
+  &.sketch { background: linear-gradient(145deg, #2D3436 0%, #636E72 50%, #DFE6E9 100%); }
+  &.ink_wash { background: linear-gradient(145deg, #2D3436 0%, #B2BEC3 50%, #DFE6E9 100%); }
+  &.pixel_art { background: linear-gradient(145deg, #2ED573 0%, #3742FA 50%, #FF4757 100%); }
+  // 兼容旧风格
   &.flat_vector { background: linear-gradient(145deg, #FFE66D 0%, #FF7B54 50%, #7FB285 100%); }
   &.crayon { background: linear-gradient(145deg, #F5A623 0%, #FF7B54 50%, #7FB285 100%); }
-  &.anime { background: linear-gradient(145deg, #FFB6C1 0%, #7FB285 50%, #74B9FF 100%); }
 }
 
 .art-card-content {
@@ -1204,117 +1275,6 @@ onLoad((options) => {
   pointer-events: none;
 }
 
-// 色彩风格
-.palette-list {
-  display: flex;
-  flex-direction: column;
-  gap: $spacing-sm;
-}
-
-.palette-card {
-  display: flex;
-  align-items: center;
-  gap: $spacing-md;
-  padding: $spacing-sm $spacing-md;
-  background: $bg-soft;
-  border-radius: $radius-md;
-  border: 2rpx solid $border-light;
-  transition: all $duration-fast;
-
-  &.selected {
-    border-color: $book-primary;
-    background: rgba($book-primary, 0.08);
-    box-shadow: $shadow-colored-book;
-  }
-
-  &:active {
-    transform: scale(0.98);
-  }
-}
-
-.palette-preview {
-  width: 80rpx;
-  height: 48rpx;
-  border-radius: $radius-sm;
-  overflow: hidden;
-  display: flex;
-  flex-shrink: 0;
-
-  &.pastel .palette-stripe {
-    &:nth-child(1) { background: #FFB5BA; }
-    &:nth-child(2) { background: #B5D8FF; }
-    &:nth-child(3) { background: #C5F0A4; }
-    &:nth-child(4) { background: #FFF5BA; }
-  }
-
-  &.vibrant .palette-stripe {
-    &:nth-child(1) { background: #FF4757; }
-    &:nth-child(2) { background: #3742FA; }
-    &:nth-child(3) { background: #2ED573; }
-    &:nth-child(4) { background: #FFA502; }
-  }
-
-  &.warm .palette-stripe {
-    &:nth-child(1) { background: #FF6B35; }
-    &:nth-child(2) { background: #F7C566; }
-    &:nth-child(3) { background: #E8A87C; }
-    &:nth-child(4) { background: #FFE4C4; }
-  }
-
-  &.cool .palette-stripe {
-    &:nth-child(1) { background: #74B9FF; }
-    &:nth-child(2) { background: #81ECEC; }
-    &:nth-child(3) { background: #A29BFE; }
-    &:nth-child(4) { background: #DFE6E9; }
-  }
-
-  &.monochrome .palette-stripe {
-    &:nth-child(1) { background: #2D3436; }
-    &:nth-child(2) { background: #636E72; }
-    &:nth-child(3) { background: #B2BEC3; }
-    &:nth-child(4) { background: #DFE6E9; }
-  }
-}
-
-.palette-stripe {
-  flex: 1;
-  height: 100%;
-}
-
-.palette-info {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 2rpx;
-}
-
-.palette-name {
-  font-size: $font-sm;
-  font-weight: $font-medium;
-  color: $text-primary;
-}
-
-.palette-desc {
-  font-size: $font-xs;
-  color: $text-tertiary;
-}
-
-.palette-check {
-  width: 36rpx;
-  height: 36rpx;
-  border-radius: 50%;
-  background: $book-primary;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-
-  text {
-    font-size: 20rpx;
-    color: $text-white;
-  }
-}
-
 // 音色选择
 .voice-list {
   display: flex;
@@ -1426,6 +1386,7 @@ onLoad((options) => {
 
   &.female { background: $book-light; color: $book-primary; }
   &.male { background: rgba(91, 164, 217, 0.2); color: #5ba4d9; }
+  &.neutral { background: rgba(168, 149, 214, 0.2); color: #8875bf; }
   &.child { background: $video-light; color: $video-primary; }
 }
 

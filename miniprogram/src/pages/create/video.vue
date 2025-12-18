@@ -104,30 +104,47 @@
           </view>
         </view>
 
-        <!-- 动效风格选择 -->
+        <!-- 宽高比选择 -->
+        <view class="style-section">
+          <text class="style-title">
+            <text class="title-icon">📐</text>
+            画面比例
+          </text>
+          <view class="aspect-ratio-list">
+            <view
+              v-for="ratio in aspectRatioOptions"
+              :key="ratio.value"
+              class="aspect-ratio-item"
+              :class="{ active: selectedAspectRatio === ratio.value }"
+              @tap="selectedAspectRatio = ratio.value"
+            >
+              <view class="ratio-preview" :style="{ aspectRatio: ratio.value.replace(':', '/') }"></view>
+              <text class="ratio-label">{{ ratio.label }}</text>
+              <text v-if="ratio.recommended" class="ratio-badge">推荐</text>
+            </view>
+          </view>
+        </view>
+
+        <!-- 运动模式选择 -->
         <view class="style-section">
           <text class="style-title">
             <text class="title-icon">🎬</text>
-            动效风格
+            运动模式
           </text>
-          <view class="motion-style-carousel">
+          <view class="motion-mode-list">
             <view
-              v-for="style in motionStyles"
-              :key="style.value"
-              class="motion-card"
-              :class="{ active: selectedMotionStyle === style.value }"
-              @tap="selectedMotionStyle = style.value"
+              v-for="mode in motionModes"
+              :key="mode.value"
+              class="motion-mode-item"
+              :class="{ active: selectedMotionMode === mode.value }"
+              @tap="selectedMotionMode = mode.value"
             >
-              <view class="motion-preview" :class="style.value">
-                <view class="preview-element element-1"></view>
-                <view class="preview-element element-2"></view>
-                <view class="preview-element element-3"></view>
+              <view class="mode-info">
+                <text class="mode-name">{{ mode.label }}</text>
+                <text class="mode-desc">{{ mode.desc }}</text>
               </view>
-              <view class="motion-info">
-                <text class="motion-name">{{ style.label }}</text>
-                <text class="motion-desc">{{ style.desc }}</text>
-              </view>
-              <view v-if="selectedMotionStyle === style.value" class="motion-check">
+              <view v-if="mode.recommended" class="mode-badge">推荐</view>
+              <view v-if="selectedMotionMode === mode.value" class="mode-check">
                 <text>✓</text>
               </view>
             </view>
@@ -137,19 +154,19 @@
         <!-- 分辨率选择 -->
         <view class="style-section">
           <text class="style-title">
-            <text class="title-icon">📐</text>
+            <text class="title-icon">🎞️</text>
             视频分辨率
           </text>
-          <view class="resolution-list">
+          <view class="resolution-tabs">
             <view
               v-for="res in resolutionOptions"
               :key="res.value"
-              class="resolution-item"
+              class="resolution-tab"
               :class="{ active: selectedResolution === res.value }"
               @tap="selectedResolution = res.value"
             >
-              <view class="res-ratio" :style="{ aspectRatio: res.ratio }"></view>
-              <text class="res-label">{{ res.label }}</text>
+              <text class="res-value">{{ res.label }}</text>
+              <text v-if="res.note" class="res-note">{{ res.note }}</text>
               <text v-if="res.recommended" class="res-badge">推荐</text>
             </view>
           </view>
@@ -175,23 +192,22 @@
           </view>
         </view>
 
-        <!-- 镜头类型选择 -->
+        <!-- 音效选择 -->
         <view class="style-section">
           <text class="style-title">
-            <text class="title-icon">🎥</text>
-            镜头类型
+            <text class="title-icon">🔊</text>
+            音效设置
           </text>
-          <view class="shot-type-grid">
-            <view
-              v-for="shot in shotTypeOptions"
-              :key="shot.value"
-              class="shot-type-item"
-              :class="{ active: selectedShotType === shot.value }"
-              @tap="selectedShotType = shot.value"
-            >
-              <text class="shot-icon">{{ shot.icon }}</text>
-              <text class="shot-label">{{ shot.label }}</text>
+          <view class="audio-toggle-row">
+            <view class="audio-info">
+              <text class="audio-label">{{ audioEnabled ? '启用音效' : '静音模式' }}</text>
+              <text class="audio-desc">{{ audioEnabled ? 'AI 生成配套环境音效' : '无声视频，适合后期配音' }}</text>
             </view>
+            <switch
+              :checked="audioEnabled"
+              @change="audioEnabled = $event.detail.value"
+              color="#FF6B6B"
+            />
           </view>
         </view>
 
@@ -214,15 +230,21 @@
     </view>
 
     <!-- 生成进度 -->
-    <GeneratingProgress v-if="generating" :progress="generateProgress" type="video" />
+    <GeneratingProgress
+      v-if="generating"
+      :progress="generateProgress"
+      :stage="generatingStage"
+      :message="generatingMessage"
+      type="video"
+    />
   </view>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
-import type { PictureBook, Video, VideoPage, MotionStyle } from '@/api/content'
-import { getGeneratedList, getContentDetail, generateVideo } from '@/api/content'
+import type { PictureBook, Video, VideoPage, VideoTaskStatus } from '@/api/content'
+import { getGeneratedList, getContentDetail, generateVideoAsync, getVideoTaskStatus } from '@/api/content'
 import { useChildStore } from '@/stores/child'
 import GeneratingProgress from '@/components/GeneratingProgress/GeneratingProgress.vue'
 
@@ -235,42 +257,50 @@ const loading = ref(true)
 const loadingDetail = ref(false)
 const generating = ref(false)
 const generateProgress = ref(0)
+const generatingStage = ref('')
+const generatingMessage = ref('')
 const pictureBooks = ref<PictureBook[]>([])
 const selectedBook = ref<PictureBook | null>(null)
+const currentTaskId = ref<string | null>(null)
 
-// 动效风格选项
-const motionStyles = [
-  { value: 'gentle' as MotionStyle, label: '柔和流动', desc: '轻柔缓慢的过渡动画，适合睡前故事' },
-  { value: 'dynamic' as MotionStyle, label: '活泼跳跃', desc: '生动明快的动态效果，适合冒险故事' },
-  { value: 'static' as MotionStyle, label: '静态展示', desc: '稳定优雅的图片展示，专注画面欣赏' }
+// 宽高比选项
+const aspectRatioOptions = [
+  { value: '16:9', label: '横屏 16:9', desc: '视频、电影', recommended: true },
+  { value: '9:16', label: '竖屏 9:16', desc: '手机、短视频' },
+  { value: '4:3', label: '横屏 4:3', desc: '传统视频' },
+  { value: '3:4', label: '竖屏 3:4', desc: '社交媒体' },
+  { value: '1:1', label: '正方形', desc: '微信、Instagram' }
 ]
-const selectedMotionStyle = ref<MotionStyle>('gentle')
+const selectedAspectRatio = ref('16:9')
 
 // 分辨率选项
 const resolutionOptions = [
-  { value: '720p', label: '720P', ratio: '16/9', recommended: false },
-  { value: '1080p', label: '1080P', ratio: '16/9', recommended: true },
-  { value: '9:16', label: '竖屏', ratio: '9/16', recommended: false }
+  { value: '720P', label: '720P 高清', recommended: true },
+  { value: '1080P', label: '1080P 全高清', note: '生成时间更长' }
 ]
-const selectedResolution = ref('1080p')
+const selectedResolution = ref('720P')
 
-// 时长选项
+// 时长选项（单片段时长）
 const durationOptions = [
-  { value: 'auto', label: '自动', desc: '根据内容' },
-  { value: '30s', label: '30秒', desc: '精简版' },
-  { value: '60s', label: '60秒', desc: '标准版' },
-  { value: '90s', label: '90秒', desc: '完整版' }
+  { value: 5, label: '5秒', desc: '快速预览', recommended: true },
+  { value: 8, label: '8秒', desc: '标准时长' },
+  { value: 10, label: '10秒', desc: '较长动画' },
+  { value: 15, label: '15秒', desc: '完整片段' }
 ]
-const selectedDuration = ref('auto')
+const selectedDuration = ref(5)
 
-// 镜头类型选项
-const shotTypeOptions = [
-  { value: 'zoom', label: '缩放', icon: '🔍' },
-  { value: 'pan', label: '平移', icon: '↔️' },
-  { value: 'fade', label: '淡入淡出', icon: '🌓' },
-  { value: 'mixed', label: '混合', icon: '🎭' }
+// 运动模式选项
+const motionModes = [
+  { value: 'static', label: '静态', desc: '几乎无运动，展示静态场景' },
+  { value: 'slow', label: '缓慢', desc: '轻微运动，氛围感' },
+  { value: 'normal', label: '正常', desc: '自然运动', recommended: true },
+  { value: 'dynamic', label: '动态', desc: '较多运动，动作场景' },
+  { value: 'cinematic', label: '电影感', desc: '电影级镜头运动' }
 ]
-const selectedShotType = ref('mixed')
+const selectedMotionMode = ref('normal')
+
+// 音效选项
+const audioEnabled = ref(true)
 
 // 格式化时长
 function formatDuration(seconds?: number): string {
@@ -313,6 +343,9 @@ function goBack() {
       content: '视频正在生成中，确定要离开吗？',
       success: (res) => {
         if (res.confirm) {
+          stopPolling()
+          generating.value = false
+          currentTaskId.value = null
           uni.navigateBack()
         }
       }
@@ -365,24 +398,89 @@ async function loadPictureBooks() {
   }
 }
 
-// 模拟进度
-let progressTimer: number | null = null
+// 轮询任务状态
+let pollingTimer: number | null = null
+let pollErrorCount = 0
+const POLL_INTERVAL = 3000  // 3秒轮询一次
+const MAX_POLL_ERRORS = 10  // 最大连续错误次数
 
-function startProgressSimulation() {
-  generateProgress.value = 0
-  progressTimer = setInterval(() => {
-    if (generateProgress.value < 90) {
-      // 缓慢增长到 90%
-      const increment = Math.random() * 2 + 0.5
-      generateProgress.value = Math.min(90, generateProgress.value + increment)
-    }
-  }, 1000)
+function stopPolling() {
+  if (pollingTimer) {
+    clearTimeout(pollingTimer)
+    pollingTimer = null
+  }
+  pollErrorCount = 0
 }
 
-function stopProgressSimulation() {
-  if (progressTimer) {
-    clearInterval(progressTimer)
-    progressTimer = null
+async function pollTaskStatus(taskId: string) {
+  try {
+    const status = await getVideoTaskStatus(taskId)
+    console.log('[视频生成] 状态:', status)
+
+    // 重置错误计数
+    pollErrorCount = 0
+
+    // 更新进度
+    generateProgress.value = status.progress || 0
+    generatingStage.value = status.stage || ''
+    generatingMessage.value = status.message || ''
+
+    if (status.status === 'completed' && status.result) {
+      // 生成完成
+      stopPolling()
+      generateProgress.value = 100
+      generatingStage.value = 'completed'
+      generatingMessage.value = '视频生成完成'
+
+      // 保存到临时存储
+      uni.setStorageSync('temp_video', status.result)
+
+      // 延迟跳转
+      setTimeout(() => {
+        generating.value = false
+        currentTaskId.value = null
+        uni.navigateTo({
+          url: `/pages/play/video?id=${status.result!.id}&fromGenerate=1`
+        })
+      }, 500)
+      return
+    }
+
+    if (status.status === 'failed') {
+      // 生成失败
+      stopPolling()
+      generating.value = false
+      currentTaskId.value = null
+      const errMsg = status.error || '视频生成失败'
+      uni.showToast({ title: errMsg, icon: 'none', duration: 3000 })
+      return
+    }
+
+    // 继续轮询
+    pollingTimer = setTimeout(() => pollTaskStatus(taskId), POLL_INTERVAL) as unknown as number
+  } catch (e: any) {
+    console.error('[视频生成] 轮询错误:', e)
+    pollErrorCount++
+
+    // 更新提示
+    generatingMessage.value = `网络不稳定，正在重试... (${pollErrorCount}/${MAX_POLL_ERRORS})`
+
+    if (pollErrorCount >= MAX_POLL_ERRORS) {
+      // 超过最大错误次数
+      stopPolling()
+      generating.value = false
+      currentTaskId.value = null
+      uni.showModal({
+        title: '网络异常',
+        content: '轮询超时次数过多，请检查网络后重试。任务可能仍在后台运行。',
+        showCancel: false
+      })
+      return
+    }
+
+    // 网络错误时继续轮询，延长间隔
+    const retryInterval = POLL_INTERVAL + pollErrorCount * 1000  // 逐渐延长
+    pollingTimer = setTimeout(() => pollTaskStatus(taskId), retryInterval) as unknown as number
   }
 }
 
@@ -402,7 +500,9 @@ async function handleGenerate() {
   }
 
   generating.value = true
-  startProgressSimulation()
+  generateProgress.value = 0
+  generatingStage.value = 'init'
+  generatingMessage.value = '正在提交任务...'
 
   try {
     // 准备参数
@@ -421,32 +521,30 @@ async function handleGenerate() {
       child_name: child.name,
       theme_topic: selectedBook.value.theme_topic || '',
       theme_category: 'habit', // 默认分类
-      motion_style: selectedMotionStyle.value
+      // 新视频配置参数
+      aspect_ratio: selectedAspectRatio.value,
+      resolution: selectedResolution.value,
+      duration_seconds: selectedDuration.value,
+      motion_mode: selectedMotionMode.value,
+      enable_audio: audioEnabled.value
     }
 
-    const video = await generateVideo(params)
+    // 提交异步任务
+    const response = await generateVideoAsync(params)
+    console.log('[视频生成] 任务已提交:', response.task_id)
 
-    // 完成进度
-    stopProgressSimulation()
-    generateProgress.value = 100
+    currentTaskId.value = response.task_id
+    generatingMessage.value = '任务已提交，正在生成...'
 
-    // 保存到临时存储，供播放页使用
-    uni.setStorageSync('temp_video', video)
-
-    // 延迟跳转
-    setTimeout(() => {
-      generating.value = false
-      uni.navigateTo({
-        url: `/pages/play/video?id=${video.id}&fromGenerate=1`
-      })
-    }, 500)
+    // 开始轮询
+    pollTaskStatus(response.task_id)
 
   } catch (e: any) {
-    console.error('生成视频失败:', e)
-    stopProgressSimulation()
+    console.error('提交视频任务失败:', e)
     generating.value = false
+    currentTaskId.value = null
 
-    const errMsg = e?.message || '生成失败，请重试'
+    const errMsg = e?.message || '提交失败，请重试'
     uni.showToast({ title: errMsg, icon: 'none', duration: 3000 })
   }
 }
@@ -904,177 +1002,21 @@ onMounted(() => {
   }
 }
 
-// 动效风格卡片轮播
-.motion-style-carousel {
+// 宽高比选择
+.aspect-ratio-list {
   display: flex;
-  flex-direction: column;
-  gap: $spacing-sm;
+  gap: $spacing-xs;
+  flex-wrap: wrap;
 }
 
-.motion-card {
-  display: flex;
-  align-items: center;
-  gap: $spacing-md;
-  padding: $spacing-md;
-  background: $bg-card;
-  border: 1rpx solid $border-light;
-  border-radius: $radius-lg;
-  transition: all $duration-base;
-  position: relative;
-  box-shadow: $shadow-sm;
-
-  &.active {
-    border-color: $video-primary;
-    background: rgba($video-primary, 0.08);
-    box-shadow: $shadow-colored-video;
-  }
-
-  &:active {
-    transform: scale(0.98);
-  }
-}
-
-.motion-preview {
-  width: 120rpx;
-  height: 80rpx;
-  border-radius: $radius-sm;
-  background: linear-gradient(135deg, rgba($video-primary, 0.12), rgba($video-primary, 0.04));
-  position: relative;
-  overflow: hidden;
-  flex-shrink: 0;
-
-  .preview-element {
-    position: absolute;
-    border-radius: $radius-xs;
-    background: $video-primary;
-  }
-
-  &.gentle {
-    .element-1 {
-      width: 40rpx;
-      height: 40rpx;
-      top: 20rpx;
-      left: 20rpx;
-      animation: gentleFloat 3s ease-in-out infinite;
-    }
-    .element-2 {
-      width: 24rpx;
-      height: 24rpx;
-      top: 30rpx;
-      right: 20rpx;
-      animation: gentleFloat 3s ease-in-out infinite 0.5s;
-      opacity: 0.7;
-    }
-    .element-3 {
-      width: 16rpx;
-      height: 16rpx;
-      bottom: 15rpx;
-      left: 50rpx;
-      animation: gentleFloat 3s ease-in-out infinite 1s;
-      opacity: 0.5;
-    }
-  }
-
-  &.dynamic {
-    .element-1 {
-      width: 30rpx;
-      height: 30rpx;
-      top: 25rpx;
-      left: 15rpx;
-      animation: dynamicBounce 0.8s ease-in-out infinite;
-    }
-    .element-2 {
-      width: 24rpx;
-      height: 24rpx;
-      top: 20rpx;
-      left: 55rpx;
-      animation: dynamicBounce 0.8s ease-in-out infinite 0.2s;
-      opacity: 0.8;
-    }
-    .element-3 {
-      width: 20rpx;
-      height: 20rpx;
-      top: 30rpx;
-      right: 15rpx;
-      animation: dynamicBounce 0.8s ease-in-out infinite 0.4s;
-      opacity: 0.6;
-    }
-  }
-
-  &.static {
-    .element-1 {
-      width: 50rpx;
-      height: 35rpx;
-      top: 22rpx;
-      left: 35rpx;
-      opacity: 0.9;
-    }
-    .element-2, .element-3 {
-      display: none;
-    }
-  }
-}
-
-@keyframes gentleFloat {
-  0%, 100% { transform: translateY(0) scale(1); }
-  50% { transform: translateY(-8rpx) scale(1.05); }
-}
-
-@keyframes dynamicBounce {
-  0%, 100% { transform: translateY(0) scale(1); }
-  50% { transform: translateY(-15rpx) scale(1.15); }
-}
-
-.motion-info {
+.aspect-ratio-item {
   flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 4rpx;
-}
-
-.motion-name {
-  font-size: $font-base;
-  font-weight: $font-semibold;
-  color: $text-primary;
-}
-
-.motion-desc {
-  font-size: $font-xs;
-  color: $text-tertiary;
-  line-height: 1.4;
-}
-
-.motion-check {
-  width: 40rpx;
-  height: 40rpx;
-  border-radius: 50%;
-  background: $video-primary;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  box-shadow: $shadow-colored-video;
-
-  text {
-    font-size: 24rpx;
-    color: $text-white;
-    font-weight: $font-bold;
-  }
-}
-
-// 分辨率选择
-.resolution-list {
-  display: flex;
-  gap: $spacing-sm;
-}
-
-.resolution-item {
-  flex: 1;
+  min-width: 120rpx;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: $spacing-xs;
-  padding: $spacing-md $spacing-sm;
+  padding: $spacing-sm;
   background: $bg-card;
   border: 1rpx solid $border-light;
   border-radius: $radius-md;
@@ -1093,18 +1035,154 @@ onMounted(() => {
   }
 }
 
-.res-ratio {
-  width: 60rpx;
-  max-height: 50rpx;
+.ratio-preview {
+  width: 48rpx;
+  max-height: 48rpx;
   background: linear-gradient(135deg, rgba($video-primary, 0.3), rgba($video-primary, 0.1));
   border: 2rpx solid rgba($video-primary, 0.5);
   border-radius: $radius-xs;
 }
 
-.res-label {
-  font-size: $font-sm;
+.ratio-label {
+  font-size: $font-xs;
+  font-weight: $font-medium;
+  color: $text-primary;
+  text-align: center;
+}
+
+.ratio-badge {
+  position: absolute;
+  top: -8rpx;
+  right: -8rpx;
+  padding: 4rpx 10rpx;
+  background: $video-primary;
+  border-radius: $radius-sm;
+  font-size: 18rpx;
+  color: $text-white;
+  font-weight: $font-medium;
+}
+
+// 运动模式选择
+.motion-mode-list {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-sm;
+}
+
+.motion-mode-item {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  padding: $spacing-md;
+  background: $bg-card;
+  border: 1rpx solid $border-light;
+  border-radius: $radius-md;
+  transition: all $duration-base;
+  position: relative;
+  box-shadow: $shadow-sm;
+
+  &.active {
+    border-color: $video-primary;
+    background: rgba($video-primary, 0.08);
+    box-shadow: $shadow-colored-video;
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
+}
+
+.mode-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+}
+
+.mode-name {
+  font-size: $font-base;
   font-weight: $font-semibold;
   color: $text-primary;
+}
+
+.mode-desc {
+  font-size: $font-xs;
+  color: $text-tertiary;
+  line-height: 1.4;
+}
+
+.mode-badge {
+  padding: 4rpx 12rpx;
+  background: rgba($video-primary, 0.15);
+  border-radius: $radius-sm;
+  font-size: 20rpx;
+  color: $video-primary;
+  font-weight: $font-medium;
+}
+
+.mode-check {
+  width: 40rpx;
+  height: 40rpx;
+  border-radius: 50%;
+  background: $video-primary;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: $shadow-colored-video;
+
+  text {
+    font-size: 24rpx;
+    color: $text-white;
+    font-weight: $font-bold;
+  }
+}
+
+// 分辨率选择（Tab 样式）
+.resolution-tabs {
+  display: flex;
+  gap: $spacing-sm;
+}
+
+.resolution-tab {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4rpx;
+  padding: $spacing-md;
+  background: $bg-card;
+  border: 1rpx solid $border-light;
+  border-radius: $radius-md;
+  transition: all $duration-base;
+  position: relative;
+  box-shadow: $shadow-sm;
+
+  &.active {
+    border-color: $video-primary;
+    background: rgba($video-primary, 0.08);
+    box-shadow: $shadow-colored-video;
+
+    .res-value {
+      color: $video-primary;
+    }
+  }
+
+  &:active {
+    transform: scale(0.96);
+  }
+}
+
+.res-value {
+  font-size: $font-base;
+  font-weight: $font-semibold;
+  color: $text-primary;
+  transition: color $duration-base;
+}
+
+.res-note {
+  font-size: 20rpx;
+  color: $text-tertiary;
 }
 
 .res-badge {
@@ -1165,49 +1243,33 @@ onMounted(() => {
   color: $text-tertiary;
 }
 
-// 镜头类型选择
-.shot-type-grid {
+// 音效开关
+.audio-toggle-row {
   display: flex;
-  gap: $spacing-sm;
-}
-
-.shot-type-item {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: $spacing-xs;
-  padding: $spacing-md $spacing-sm;
+  justify-content: space-between;
+  padding: $spacing-md;
   background: $bg-card;
   border: 1rpx solid $border-light;
   border-radius: $radius-md;
-  transition: all $duration-base;
   box-shadow: $shadow-sm;
-
-  &.active {
-    border-color: $video-primary;
-    background: rgba($video-primary, 0.08);
-    box-shadow: $shadow-colored-video;
-
-    .shot-icon {
-      transform: scale(1.1);
-    }
-  }
-
-  &:active {
-    transform: scale(0.96);
-  }
 }
 
-.shot-icon {
-  font-size: 36rpx;
-  transition: transform $duration-base;
+.audio-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
 }
 
-.shot-label {
-  font-size: $font-xs;
-  font-weight: $font-medium;
+.audio-label {
+  font-size: $font-base;
+  font-weight: $font-semibold;
   color: $text-primary;
+}
+
+.audio-desc {
+  font-size: $font-xs;
+  color: $text-tertiary;
 }
 
 // 底部

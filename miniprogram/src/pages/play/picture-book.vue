@@ -355,14 +355,20 @@ function playCurrentPageAudio() {
       audioContext = uni.createInnerAudioContext()
       audioContext.volume = 1.0
 
-      audioContext.onPlay(() => { audioReady.value = true })
+      audioContext.onPlay(() => {
+        console.log('[绘本音频] 播放开始')
+        audioReady.value = true
+      })
       audioContext.onEnded(() => { onAudioEnded() })
-      audioContext.onError(() => {
+      audioContext.onError((err: any) => {
+        console.error('[绘本音频] 播放错误:', err?.errMsg || err?.errCode || err)
+        console.error('[绘本音频] 错误URL:', page.audio_url)
         audioReady.value = false
         startFallbackTimer()
       })
 
       let audioUrl = page.audio_url!
+      console.log('[绘本音频] 准备播放:', audioUrl)
       if (audioUrl.startsWith('http://')) {
         audioUrl = audioUrl.replace('http://', 'https://')
       }

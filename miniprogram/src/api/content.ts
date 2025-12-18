@@ -588,7 +588,13 @@ export interface GenerateVideoParams {
   child_name: string
   theme_topic: string
   theme_category: string
-  // 新增视频动效风格
+  // 新视频配置参数（Veo/多提供商）
+  aspect_ratio?: string      // 16:9, 9:16, 4:3, 3:4, 1:1
+  resolution?: string        // 720P, 1080P
+  duration_seconds?: number  // 5, 8, 10, 15
+  motion_mode?: string       // static, slow, normal, dynamic, cinematic
+  enable_audio?: boolean     // 是否启用音效
+  // 旧参数（兼容）
   motion_style?: MotionStyle
 }
 
@@ -607,8 +613,8 @@ export interface Video {
 }
 
 /**
- * 生成视频
- * 视频生成需要较长时间（1-5分钟），设置 5 分钟超时
+ * 生成视频（同步版，已废弃）
+ * @deprecated 使用 generateVideoAsync 代替，避免 Cloudflare 524 超时
  */
 export async function generateVideo(params: GenerateVideoParams): Promise<Video> {
   console.log('[generateVideo] 开始请求，超时设置: 300000ms (5分钟)')
@@ -626,4 +632,45 @@ export async function generateVideo(params: GenerateVideoParams): Promise<Video>
     console.error(`[generateVideo] 请求失败，耗时: ${(Date.now() - startTime) / 1000}秒，错误:`, e)
     throw e
   }
+}
+
+// 异步生成视频响应
+export interface AsyncVideoResponse {
+  task_id: string
+  message: string
+}
+
+// 视频任务状态响应
+export interface VideoTaskStatus {
+  task_id: string
+  status: 'pending' | 'processing' | 'completed' | 'failed'
+  progress: number  // 0-100
+  stage: string     // 生成阶段描述
+  message?: string
+  content_id?: string  // 完成后返回
+  result?: Video       // 完成后返回完整结果
+  error?: string
+}
+
+/**
+ * 异步生成视频（新版 API，立即返回 task_id）
+ * 避免 Cloudflare 524 超时
+ */
+export async function generateVideoAsync(params: GenerateVideoParams): Promise<AsyncVideoResponse> {
+  console.log('[generateVideoAsync] 发起异步请求')
+  return request.post<AsyncVideoResponse>('/content/video/async', params, {
+    showLoading: false,
+    showError: true,
+    timeout: 30000  // 只是提交任务，30秒足够
+  })
+}
+
+/**
+ * 获取视频生成任务状态
+ */
+export async function getVideoTaskStatus(taskId: string): Promise<VideoTaskStatus> {
+  return request.get<VideoTaskStatus>(`/content/video/status/${taskId}`, {
+    timeout: 30000,
+    showError: false  // 不显示错误提示，由调用方处理
+  })
 }

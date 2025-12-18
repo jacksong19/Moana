@@ -81,7 +81,7 @@
       <view v-if="currentStep === 1" class="step-content animate-fadeIn">
         <view class="style-header">
           <text class="step-title">风格设置</text>
-          <text class="step-desc">选择 {{ childName }} 喜欢的音乐和封面风格</text>
+          <text class="step-desc">选择 {{ childName }} 喜欢的音乐风格和封面主角</text>
         </view>
 
         <view class="style-sections">
@@ -118,34 +118,6 @@
             </view>
           </view>
 
-          <!-- 封面艺术风格 - 横向滚动 -->
-          <view class="style-section cover-section">
-            <view class="section-header">
-              <view class="section-icon-wrap art">
-                <text class="section-icon">🎨</text>
-              </view>
-              <text class="section-title">封面风格</text>
-            </view>
-            <view class="cover-art-carousel">
-              <view
-                v-for="style in artStyles"
-                :key="style.value"
-                class="cover-art-card"
-                :class="{ selected: selectedArtStyle === style.value }"
-                @tap="selectedArtStyle = style.value"
-              >
-                <view class="cover-art-bg" :class="style.value"></view>
-                <view class="cover-art-content">
-                  <text class="cover-art-icon">{{ style.icon }}</text>
-                  <text class="cover-art-name">{{ style.label }}</text>
-                </view>
-                <view v-if="selectedArtStyle === style.value" class="cover-art-check">
-                  <text>✓</text>
-                </view>
-              </view>
-            </view>
-          </view>
-
           <!-- 封面主角 - 圆形头像 -->
           <view class="style-section character-section">
             <view class="section-header">
@@ -171,35 +143,6 @@
             </view>
           </view>
 
-          <!-- 画面色调 - 条纹预览 -->
-          <view class="style-section palette-section">
-            <view class="section-header">
-              <view class="section-icon-wrap palette">
-                <text class="section-icon">🌈</text>
-              </view>
-              <text class="section-title">画面色调</text>
-            </view>
-            <view class="palette-list">
-              <view
-                v-for="palette in colorPalettes"
-                :key="palette.value"
-                class="palette-card"
-                :class="{ selected: selectedPalette === palette.value }"
-                @tap="selectedPalette = palette.value"
-              >
-                <view class="palette-preview" :class="palette.value">
-                  <view class="palette-stripe" v-for="i in 4" :key="i"></view>
-                </view>
-                <view class="palette-info">
-                  <text class="palette-name">{{ palette.label }}</text>
-                  <text class="palette-desc">{{ palette.description }}</text>
-                </view>
-                <view v-if="selectedPalette === palette.value" class="palette-check">
-                  <text>✓</text>
-                </view>
-              </view>
-            </view>
-          </view>
         </view>
       </view>
 
@@ -222,16 +165,8 @@
             <text class="confirm-value">{{ currentStyleName }}</text>
           </view>
           <view class="confirm-item">
-            <text class="confirm-label">封面风格</text>
-            <text class="confirm-value">{{ currentArtStyleName }}</text>
-          </view>
-          <view class="confirm-item">
             <text class="confirm-label">封面主角</text>
             <text class="confirm-value">{{ currentAnimalName }}</text>
-          </view>
-          <view class="confirm-item">
-            <text class="confirm-label">画面色调</text>
-            <text class="confirm-value">{{ currentPaletteName }}</text>
           </view>
         </view>
 
@@ -280,9 +215,7 @@ import type {
   NurseryRhyme,
   SunoTaskStage,
   NurseryRhymeTaskStatus,
-  ArtStyle,
-  ProtagonistAnimal,
-  ColorPalette
+  ProtagonistAnimal
 } from '@/api/content'
 
 const childStore = useChildStore()
@@ -318,16 +251,6 @@ const musicStyles: { value: MusicStyle; name: string; icon: string; desc: string
 ]
 const selectedStyle = ref<MusicStyle>('cheerful')
 
-// 封面艺术风格选项
-const artStyles = [
-  { value: 'pixar_3d' as ArtStyle, label: '3D 动画', icon: '🎬', desc: '皮克斯风格' },
-  { value: 'watercolor' as ArtStyle, label: '水彩', icon: '🎨', desc: '柔和温馨' },
-  { value: 'flat_vector' as ArtStyle, label: '扁平插画', icon: '✨', desc: '现代简约' },
-  { value: 'crayon' as ArtStyle, label: '蜡笔画', icon: '🖍️', desc: '童趣手绘' },
-  { value: 'anime' as ArtStyle, label: '日系动漫', icon: '🌸', desc: '可爱细腻' }
-]
-const selectedArtStyle = ref<ArtStyle>('pixar_3d')
-
 // 主角动物选项
 const protagonistAnimals = [
   { value: 'bunny' as ProtagonistAnimal, label: '小兔子', emoji: '🐰' },
@@ -338,16 +261,6 @@ const protagonistAnimals = [
   { value: 'fox' as ProtagonistAnimal, label: '小狐狸', emoji: '🦊' }
 ]
 const selectedAnimal = ref<ProtagonistAnimal>('bunny')
-
-// 色调选项
-const colorPalettes = [
-  { value: 'pastel' as ColorPalette, label: '马卡龙', description: '柔和温馨' },
-  { value: 'vibrant' as ColorPalette, label: '鲜艳活泼', description: '明快活泼' },
-  { value: 'warm' as ColorPalette, label: '暖色温馨', description: '温暖舒适' },
-  { value: 'cool' as ColorPalette, label: '清新冷调', description: '清爽宁静' },
-  { value: 'monochrome' as ColorPalette, label: '黑白经典', description: '优雅简洁' }
-]
-const selectedPalette = ref<ColorPalette>('pastel')
 
 // 生成状态
 const isGenerating = ref(false)
@@ -408,17 +321,10 @@ const currentStyleName = computed(() => {
   return musicStyles.find(s => s.value === selectedStyle.value)?.name || ''
 })
 
-const currentArtStyleName = computed(() => {
-  return artStyles.find(s => s.value === selectedArtStyle.value)?.label || ''
-})
-
 const currentAnimalName = computed(() => {
   return protagonistAnimals.find(a => a.value === selectedAnimal.value)?.label || ''
 })
 
-const currentPaletteName = computed(() => {
-  return colorPalettes.find(p => p.value === selectedPalette.value)?.label || ''
-})
 
 const canNext = computed(() => {
   if (currentStep.value === 0) return !!selectedTheme.value
@@ -780,13 +686,10 @@ async function startGenerate() {
       theme_topic: selectedTheme.value.name,
       theme_category: selectedCategory.value,
       music_style: selectedStyle.value,
-      // 新增封面风格参数
       music_mood: selectedStyle.value,
-      art_style: selectedArtStyle.value,
       protagonist: {
         animal: selectedAnimal.value
-      },
-      color_palette: selectedPalette.value
+      }
     })
 
     console.log('[startGenerate] 异步请求返回:', asyncResult)
@@ -1200,9 +1103,7 @@ onLoad((options) => {
   flex-shrink: 0;
 
   &.music { background: rgba($song-primary, 0.12); }
-  &.art { background: rgba($book-primary, 0.12); }
   &.bunny { background: rgba(#FF9F9F, 0.15); }
-  &.palette { background: rgba($info, 0.12); }
 }
 
 .section-icon {
@@ -1331,100 +1232,6 @@ onLoad((options) => {
 }
 
 // ==========================================
-// 封面艺术风格 - 横向滚动卡片 (温暖花园主题)
-// ==========================================
-.cover-art-carousel {
-  display: flex;
-  gap: $spacing-sm;
-  overflow-x: auto;
-  padding-bottom: $spacing-xs;
-  margin: 0 -#{$spacing-md};
-  padding-left: $spacing-md;
-  padding-right: $spacing-md;
-
-  &::-webkit-scrollbar { display: none; }
-}
-
-.cover-art-card {
-  position: relative;
-  flex-shrink: 0;
-  width: 140rpx;
-  height: 120rpx;
-  border-radius: $radius-md;
-  overflow: hidden;
-  border: 2rpx solid $border-light;
-  transition: all $duration-base $ease-bounce;
-  box-shadow: $shadow-sm;
-
-  &.selected {
-    border-color: $song-primary;
-    transform: scale(1.05);
-    box-shadow: $shadow-colored-song;
-  }
-
-  &:active {
-    transform: scale(0.94);
-  }
-}
-
-.cover-art-bg {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  opacity: 0.2;
-
-  &.pixar_3d { background: linear-gradient(145deg, #7FB285 0%, #5BA4D9 50%, #FF7B54 100%); }
-  &.watercolor { background: linear-gradient(145deg, #5BA4D9 0%, #F5A623 50%, #7FB285 100%); }
-  &.flat_vector { background: linear-gradient(145deg, #F5A623 0%, #7FB285 50%, #5BA4D9 100%); }
-  &.crayon { background: linear-gradient(145deg, #F5A623 0%, #FF7B54 50%, #7FB285 100%); }
-  &.anime { background: linear-gradient(145deg, #FF9F9F 0%, #5BA4D9 50%, #7FB285 100%); }
-}
-
-.cover-art-content {
-  position: relative;
-  z-index: 1;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: $spacing-xs;
-  background: rgba($bg-card, 0.9);
-}
-
-.cover-art-icon {
-  font-size: 36rpx;
-  margin-bottom: 4rpx;
-}
-
-.cover-art-name {
-  font-size: 20rpx;
-  font-weight: $font-medium;
-  color: $text-primary;
-}
-
-.cover-art-check {
-  position: absolute;
-  top: 6rpx;
-  right: 6rpx;
-  width: 28rpx;
-  height: 28rpx;
-  border-radius: 50%;
-  background: $song-primary;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 2;
-
-  text {
-    font-size: 16rpx;
-    color: $text-white;
-  }
-}
-
-// ==========================================
 // 角色选择 - 圆形头像卡片 (温暖花园主题)
 // ==========================================
 .character-carousel {
@@ -1496,120 +1303,6 @@ onLoad((options) => {
   transform: scale(0.8);
   transition: all $duration-base $ease-bounce;
   pointer-events: none;
-}
-
-// ==========================================
-// 色彩风格 - 条纹预览卡片 (温暖花园主题)
-// ==========================================
-.palette-list {
-  display: flex;
-  flex-direction: column;
-  gap: $spacing-sm;
-}
-
-.palette-card {
-  display: flex;
-  align-items: center;
-  gap: $spacing-md;
-  padding: $spacing-sm $spacing-md;
-  background: $bg-card;
-  border-radius: $radius-md;
-  border: 1rpx solid $border-light;
-  transition: all $duration-fast;
-  box-shadow: $shadow-sm;
-
-  &.selected {
-    border-color: $song-primary;
-    background: rgba($song-primary, 0.08);
-    box-shadow: $shadow-colored-song;
-  }
-
-  &:active {
-    transform: scale(0.98);
-  }
-}
-
-.palette-preview {
-  width: 72rpx;
-  height: 44rpx;
-  border-radius: $radius-sm;
-  overflow: hidden;
-  display: flex;
-  flex-shrink: 0;
-
-  &.pastel .palette-stripe {
-    &:nth-child(1) { background: #FFB5BA; }
-    &:nth-child(2) { background: #B5D8FF; }
-    &:nth-child(3) { background: #C5F0A4; }
-    &:nth-child(4) { background: #FFF5BA; }
-  }
-
-  &.vibrant .palette-stripe {
-    &:nth-child(1) { background: #FF4757; }
-    &:nth-child(2) { background: #3742FA; }
-    &:nth-child(3) { background: #2ED573; }
-    &:nth-child(4) { background: #FFA502; }
-  }
-
-  &.warm .palette-stripe {
-    &:nth-child(1) { background: #FF6B35; }
-    &:nth-child(2) { background: #F7C566; }
-    &:nth-child(3) { background: #E8A87C; }
-    &:nth-child(4) { background: #FFE4C4; }
-  }
-
-  &.cool .palette-stripe {
-    &:nth-child(1) { background: #74B9FF; }
-    &:nth-child(2) { background: #81ECEC; }
-    &:nth-child(3) { background: #A29BFE; }
-    &:nth-child(4) { background: #DFE6E9; }
-  }
-
-  &.monochrome .palette-stripe {
-    &:nth-child(1) { background: #2D3436; }
-    &:nth-child(2) { background: #636E72; }
-    &:nth-child(3) { background: #B2BEC3; }
-    &:nth-child(4) { background: #DFE6E9; }
-  }
-}
-
-.palette-stripe {
-  flex: 1;
-  height: 100%;
-}
-
-.palette-info {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 2rpx;
-}
-
-.palette-name {
-  font-size: $font-sm;
-  font-weight: $font-medium;
-  color: $text-primary;
-}
-
-.palette-desc {
-  font-size: $font-xs;
-  color: $text-tertiary;
-}
-
-.palette-check {
-  width: 32rpx;
-  height: 32rpx;
-  border-radius: 50%;
-  background: $song-primary;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-
-  text {
-    font-size: 18rpx;
-    color: $text-white;
-  }
 }
 
 // 确认卡片 (温暖花园主题)

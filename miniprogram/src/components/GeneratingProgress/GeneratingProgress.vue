@@ -139,10 +139,8 @@ const currentEmojiIndex = ref(0)
 let tipInterval: number
 let emojiInterval: number
 
-// 根据 Suno 回调阶段映射到 UI 阶段索引
-// Suno 回调: text(文本完成) → first(首曲完成) → complete(全部完成)
-// 映射值表示"当前进行中的阶段索引"，用于判断 active 和 done 状态
-const stageMapping: Record<string, number> = {
+// 儿歌阶段映射 (Suno 回调: text → first → complete)
+const songStageMapping: Record<string, number> = {
   waiting: 0,   // 初始状态，"文本生成"进行中
   text: 1,      // text 回调 = 文本完成，"首曲生成"进行中
   first: 2,     // first 回调 = 首曲完成，"全部完成"进行中
@@ -150,16 +148,41 @@ const stageMapping: Record<string, number> = {
   error: -1     // 错误状态
 }
 
+// 绘本阶段映射 (后端返回: init → story → image_N → audio_N → saving → completed)
+// 映射到 UI 阶段索引: 0=故事, 1=插画, 2=语音, 3=完成
+const bookStageMapping: Record<string, number> = {
+  init: 0,         // 初始化
+  story: 0,        // 故事生成中
+  story_done: 1,   // 故事完成，开始图片
+  saving: 2,       // 保存中
+  completed: 3,    // 全部完成
+  error: -1
+}
+
+// 动态匹配 image_N 和 audio_N 阶段
+function getBookStageIndex(stage: string): number {
+  if (!stage) return 0
+  if (stage in bookStageMapping) return bookStageMapping[stage]
+  if (stage.startsWith('image_')) return 1  // 所有图片阶段映射到"插画"
+  if (stage.startsWith('audio_')) return 2  // 所有音频阶段映射到"语音"
+  return 0
+}
+
 const currentStage = computed(() => {
-  // 如果有后端返回的真实阶段，使用它
-  if (props.stage && props.type === 'song') {
-    return stageMapping[props.stage] ?? 0
+  if (props.stage) {
+    // 根据类型选择映射
+    if (props.type === 'song') {
+      return songStageMapping[props.stage] ?? 0
+    }
+    if (props.type === 'book') {
+      return getBookStageIndex(props.stage)
+    }
   }
-  // 否则根据进度估算
-  if (props.progress < 30) return 0
-  if (props.progress < 70) return 1
-  if (props.progress < 95) return 2
-  return 3
+  // 无阶段信息时根据进度估算
+  if (props.progress < 20) return 0   // 0-20%: 故事
+  if (props.progress < 70) return 1   // 20-70%: 插画
+  if (props.progress < 95) return 2   // 70-95%: 语音
+  return 3                            // 95-100%: 完成
 })
 
 // 阶段标题映射（严格对应 Suno 回调阶段）
@@ -171,12 +194,46 @@ const songStageTexts: Record<string, string> = {
   error: '生成失败'
 }
 
+// 绘本阶段标题映射（基础阶段）
+const bookStageTexts: Record<string, string> = {
+  init: '准备中',
+  story: '故事创作中',
+  story_done: '故事完成',
+  saving: '保存中',
+  completed: '生成完成',
+  error: '生成失败'
+}
+
+// 动态获取绘本阶段标题（支持 image_N 和 audio_N）
+function getBookStageText(stage: string): string {
+  if (!stage) return '生成中'
+  if (stage in bookStageTexts) return bookStageTexts[stage]
+  // 匹配 image_1, image_2 等
+  const imageMatch = stage.match(/^image_(\d+)$/)
+  if (imageMatch) return `第${imageMatch[1]}张插画`
+  // 匹配 audio_1, audio_2 等
+  const audioMatch = stage.match(/^audio_(\d+)$/)
+  if (audioMatch) return `第${audioMatch[1]}段语音`
+  return '生成中'
+}
+
 const statusText = computed(() => {
-  // 如果有后端返回的真实阶段，使用映射
-  if (props.stage && props.type === 'song') {
-    return songStageTexts[props.stage] || '生成中'
+  // 优先使用后端返回的 message（人类可读文本）
+  if (props.message) {
+    return props.message
   }
 
+  // 如果有后端返回的阶段代码，使用映射
+  if (props.stage) {
+    if (props.type === 'song') {
+      return songStageTexts[props.stage] || '生成中'
+    }
+    if (props.type === 'book') {
+      return getBookStageText(props.stage)
+    }
+  }
+
+  // 无阶段时根据进度估算
   if (props.type === 'song') {
     if (props.progress < 30) return '歌词创作中'
     if (props.progress < 70) return '音乐生成中'
@@ -190,18 +247,14 @@ const statusText = computed(() => {
     return '即将完成'
   }
   // 绘本
-  if (props.progress < 30) return '故事创作中'
+  if (props.progress < 20) return '故事创作中'
   if (props.progress < 70) return '插画生成中'
   if (props.progress < 95) return '语音合成中'
   return '即将完成'
 })
 
 const statusDesc = computed(() => {
-  // 如果有后端返回的消息，直接使用
-  if (props.message) {
-    return props.message
-  }
-
+  // statusDesc 显示鼓励性文字，不使用 message（message 已在 statusText 显示）
   if (props.type === 'song') {
     if (props.progress < 30) return 'AI 正在为宝贝编写专属歌词'
     if (props.progress < 70) return '正在谱写欢乐的旋律'
@@ -214,8 +267,8 @@ const statusDesc = computed(() => {
     if (props.progress < 95) return '正在合成最终视频'
     return '最后的润色中'
   }
-  // 绘本
-  if (props.progress < 30) return 'AI 正在为宝贝编写专属故事'
+  // 绘本 - 根据进度范围匹配后端分配
+  if (props.progress < 20) return 'AI 正在为宝贝编写专属故事'
   if (props.progress < 70) return '正在绘制精美的插画'
   if (props.progress < 95) return '为每一页配上温柔的声音'
   return '最后的润色中'

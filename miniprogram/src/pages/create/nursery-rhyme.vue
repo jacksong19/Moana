@@ -300,7 +300,7 @@ const steps = [
 ]
 const currentStep = ref(0)
 
-// 主题（后端只支持 habit 和 cognition）
+// 主题分类（与 API 返回的分类保持一致）
 const themeCategories = [
   { id: 'habit', name: '习惯养成', icon: '🌟' },
   { id: 'cognition', name: '认知世界', icon: '🌍' }
@@ -425,8 +425,8 @@ const canNext = computed(() => {
   return true
 })
 
-// 默认主题（API 未返回时使用，后端只支持 habit 和 cognition）
-// 使用与 API 一致的主题 ID
+// 默认主题（API 未返回时使用）
+// 使用与 API 一致的主题 ID 和分类结构
 const defaultThemes: Record<string, ThemeItem[]> = {
   habit: [
     { id: 'brush_teeth', name: '刷牙', subcategory: '生活习惯', age_range: [24, 48], keywords: [] },
@@ -451,7 +451,12 @@ const defaultThemes: Record<string, ThemeItem[]> = {
     { id: 'weather', name: '天气', subcategory: '自然认知', age_range: [24, 48], keywords: [] },
     { id: 'family', name: '家庭成员', subcategory: '社会认知', age_range: [12, 36], keywords: [] },
     { id: 'occupations', name: '职业', subcategory: '社会认知', age_range: [30, 60], keywords: [] },
-    { id: 'vehicles', name: '交通工具', subcategory: '生活认知', age_range: [18, 48], keywords: [] }
+    { id: 'vehicles', name: '交通工具', subcategory: '生活认知', age_range: [18, 48], keywords: [] },
+    // 情绪主题（API 将其归类在 cognition 下）
+    { id: 'happy', name: '开心', subcategory: '情绪认知', age_range: [18, 48], keywords: [] },
+    { id: 'sad', name: '难过', subcategory: '情绪认知', age_range: [24, 48], keywords: [] },
+    { id: 'angry', name: '生气', subcategory: '情绪管理', age_range: [24, 60], keywords: [] },
+    { id: 'scared', name: '害怕', subcategory: '情绪管理', age_range: [24, 60], keywords: [] }
   ]
 }
 

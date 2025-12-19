@@ -61,12 +61,50 @@
           @longpress="showActionSheet(item)"
         >
           <view class="card-cover">
-            <image v-if="item.cover_url" :src="item.cover_url" mode="aspectFill" class="cover-img" />
+            <!-- 绘本类型：图片轮播预览 -->
+            <swiper
+              v-if="(item as any).content_type === 'picture_book' && item.pages && item.pages.length > 1"
+              class="cover-swiper"
+              :autoplay="true"
+              :interval="2000"
+              :duration="500"
+              :circular="true"
+              :indicator-dots="false"
+            >
+              <swiper-item v-for="(page, pageIndex) in item.pages" :key="pageIndex">
+                <image :src="page.image_url" mode="aspectFill" class="swiper-img" />
+              </swiper-item>
+            </swiper>
+            <!-- 视频类型：无声自动播放预览 -->
+            <video
+              v-else-if="(item as any).content_type === 'video' && (item as any).video_url"
+              :src="(item as any).video_url"
+              :autoplay="true"
+              :loop="true"
+              :muted="true"
+              :controls="false"
+              :show-play-btn="false"
+              :show-center-play-btn="false"
+              :show-fullscreen-btn="false"
+              :show-progress="false"
+              :enable-progress-gesture="false"
+              object-fit="cover"
+              class="cover-video"
+              @error="(e: any) => console.error('[video preview] 加载失败:', item.title, e)"
+            />
+            <!-- 其他类型或无详情：显示封面图 -->
+            <image
+              v-else-if="item.cover_url"
+              :src="item.cover_url"
+              mode="aspectFill"
+              class="cover-img"
+            />
+            <!-- 无封面：显示占位符 -->
             <view v-else class="cover-placeholder">
-              <text>{{ getTypeIcon(item.content_type) }}</text>
+              <text>{{ getTypeIcon((item as any).content_type) }}</text>
             </view>
             <view class="card-type-badge">
-              <text>{{ getTypeLabel(item.content_type) }}</text>
+              <text>{{ getTypeLabel((item as any).content_type) }}</text>
             </view>
             <view class="play-btn" @tap.stop="goToPlay(item)">
               <text>▶</text>
@@ -103,7 +141,7 @@
 import { ref, computed, watch } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { useContentStore } from '@/stores/content'
-import type { PictureBook } from '@/api/content'
+import { getContentDetail, type PictureBook } from '@/api/content'
 import SkeletonCard from '@/components/SkeletonCard/SkeletonCard.vue'
 
 const contentStore = useContentStore()
@@ -165,11 +203,39 @@ async function loadData(refresh = false) {
   try {
     await contentStore.fetchGeneratedList(refresh)
     hasMore.value = contentStore.generatedList.length >= 20
+
+    // 获取绘本详情用于轮播预览（视频已由列表接口返回 video_url）
+    await fetchPictureBookDetails()
   } catch (e) {
     console.error('加载失败:', e)
   } finally {
     loading.value = false
   }
+}
+
+// 获取绘本详情（列表接口不返回 pages，用于轮播预览）
+async function fetchPictureBookDetails() {
+  // 只获取绘本的详情（视频已由列表接口返回 video_url）
+  const pictureBooks = contentStore.generatedList.filter((item: any) =>
+    item.content_type === 'picture_book' && (!item.pages || item.pages.length === 0)
+  )
+
+  if (pictureBooks.length === 0) return
+
+  // 并行获取所有绘本详情
+  const detailPromises = pictureBooks.map(async (book) => {
+    try {
+      const detail = await getContentDetail(book.id)
+      const index = contentStore.generatedList.findIndex(item => item.id === book.id)
+      if (index !== -1) {
+        contentStore.generatedList[index] = { ...contentStore.generatedList[index], ...detail }
+      }
+    } catch (e) {
+      console.error('[library] 获取绘本详情失败:', book.title, e)
+    }
+  })
+
+  await Promise.all(detailPromises)
 }
 
 function loadMore() {
@@ -438,6 +504,25 @@ onShow(() => {
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+.cover-video {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 200rpx;
+  pointer-events: none; // 防止点击视频触发控件
+}
+
+.cover-swiper {
+  width: 100%;
+  height: 200rpx;
+}
+
+.swiper-img {
+  width: 100%;
+  height: 100%;
 }
 
 .cover-placeholder {

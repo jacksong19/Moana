@@ -164,19 +164,38 @@
 
           <view v-show="showAdvanced" class="advanced-content">
             <!-- 艺术风格（仅绘本和视频显示） -->
-            <view v-if="selectedType !== 'nursery_rhyme'" class="setting-group">
+            <view v-if="selectedType !== 'nursery_rhyme'" class="setting-group art-style-group">
               <text class="setting-label">艺术风格</text>
-              <view class="style-options">
+              <!-- 风格分类 Tab -->
+              <view class="style-category-tabs">
                 <view
-                  v-for="style in artStyles"
-                  :key="style.id"
-                  class="style-item"
-                  :class="{ selected: selectedArtStyle === style.id }"
-                  @tap="selectedArtStyle = style.id"
+                  v-for="cat in styleCategories"
+                  :key="cat.id"
+                  class="style-tab-item"
+                  :class="{ active: selectedStyleCategory === cat.id }"
+                  @tap="selectedStyleCategory = cat.id"
                 >
-                  <text class="style-name">{{ style.name }}</text>
+                  <text class="style-tab-icon">{{ cat.icon }}</text>
+                  <text class="style-tab-name">{{ cat.name }}</text>
                 </view>
               </view>
+              <!-- 风格卡片 -->
+              <scroll-view class="art-style-scroll" scroll-x enhanced :show-scrollbar="false">
+                <view class="art-style-list">
+                  <view
+                    v-for="style in currentCategoryStyles"
+                    :key="style.value"
+                    class="art-card"
+                    :class="{ selected: selectedArtStyle === style.value }"
+                    @tap="selectedArtStyle = style.value"
+                  >
+                    <text class="art-icon">{{ style.icon }}</text>
+                    <text class="art-name">{{ style.label }}</text>
+                    <text class="art-desc">{{ style.desc }}</text>
+                    <view v-if="selectedArtStyle === style.value" class="art-check">✓</view>
+                  </view>
+                </view>
+              </scroll-view>
             </view>
 
             <!-- 故事主角（影响歌词/故事内容） -->
@@ -321,14 +340,75 @@ const videoModes = [
 
 // Step 3: 高级设置
 const showAdvanced = ref(false)
-const selectedArtStyle = ref<ArtStyle>('storybook')
+const selectedArtStyle = ref<ArtStyle>('pixar_3d')
 const selectedProtagonist = ref<ProtagonistAnimal>('bunny')
 const selectedVoice = ref<VoiceId>('Cherry')
 const selectedMood = ref<MusicMood>('cheerful')
 const selectedDuration = ref(5)
 
-// 风格选项（从 API 加载）
-const artStyles = ref<Array<{ id: ArtStyle; name: string }>>([])
+// 风格分类（与 picture-book.vue 保持一致）
+const styleCategories = [
+  { id: 'threed', name: '3D 风格', icon: '🎬' },
+  { id: 'illustration', name: '插画风格', icon: '📚' },
+  { id: 'anime', name: '动漫风格', icon: '🌸' },
+  { id: 'artistic', name: '艺术风格', icon: '🎨' },
+  { id: 'craft', name: '手工风格', icon: '✂️' }
+]
+const selectedStyleCategory = ref('threed')
+
+// 艺术风格选项（与 picture-book.vue 保持一致）
+type StyleOption = { value: ArtStyle; label: string; icon: string; desc: string }
+const artStylesByCategory: Record<string, StyleOption[]> = {
+  threed: [
+    { value: 'pixar_3d', label: '皮克斯3D', icon: '🧸', desc: '圆润可爱' },
+    { value: 'pixar', label: '皮克斯电影', icon: '🎬', desc: '电影质感' },
+    { value: 'dreamworks', label: '梦工厂', icon: '🌙', desc: '夸张活泼' },
+    { value: 'disney_3d', label: '迪士尼3D', icon: '🏰', desc: '童话梦幻' },
+    { value: 'clay', label: '粘土风格', icon: '🎭', desc: '定格动画' },
+    { value: 'figurine', label: '手办风格', icon: '🎎', desc: '精致手办' },
+    { value: 'low_poly', label: '低多边形', icon: '💎', desc: '几何简约' }
+  ],
+  illustration: [
+    { value: 'storybook', label: '绘本风格', icon: '📖', desc: '温暖治愈' },
+    { value: 'watercolor', label: '水彩风格', icon: '💧', desc: '透明梦幻' },
+    { value: 'cartoon', label: '卡通风格', icon: '🎨', desc: '鲜艳明快' },
+    { value: 'flat', label: '扁平风格', icon: '✨', desc: '简洁现代' },
+    { value: 'crayon', label: '蜡笔风格', icon: '🖍️', desc: '童趣涂鸦' },
+    { value: 'colored_pencil', label: '彩铅风格', icon: '✏️', desc: '细腻柔和' }
+  ],
+  anime: [
+    { value: 'anime', label: '日式动漫', icon: '🌸', desc: '精致细腻' },
+    { value: 'chibi', label: 'Q版萌系', icon: '🎀', desc: '大头超萌' },
+    { value: 'ghibli', label: '吉卜力', icon: '🏰', desc: '宫崎骏风' },
+    { value: 'shinkai', label: '新海诚', icon: '🌅', desc: '光影唯美' },
+    { value: 'manga', label: '漫画风格', icon: '📔', desc: '黑白张力' },
+    { value: 'comic_book', label: '美式漫画', icon: '💥', desc: '英雄风格' }
+  ],
+  artistic: [
+    { value: 'oil_painting', label: '油画', icon: '🖼️', desc: '古典厚重' },
+    { value: 'impressionist', label: '印象派', icon: '🌻', desc: '莫奈光影' },
+    { value: 'sketch', label: '素描', icon: '✏️', desc: '铅笔手绘' },
+    { value: 'ink_wash', label: '水墨画', icon: '🖌️', desc: '中国意境' },
+    { value: 'pop_art', label: '波普艺术', icon: '🎪', desc: '大胆撞色' },
+    { value: 'art_nouveau', label: '新艺术', icon: '🌿', desc: '曲线装饰' },
+    { value: 'pixel_art', label: '像素艺术', icon: '👾', desc: '复古游戏' }
+  ],
+  craft: [
+    { value: 'papercut', label: '剪纸风格', icon: '✂️', desc: '传统民间' },
+    { value: 'felt_craft', label: '不织布', icon: '🧵', desc: '毛绒温暖' },
+    { value: 'origami', label: '折纸风格', icon: '🦢', desc: '几何折叠' },
+    { value: 'embroidery', label: '刺绣风格', icon: '🪡', desc: '精致针线' },
+    { value: 'mosaic', label: '马赛克', icon: '🎨', desc: '色块拼贴' },
+    { value: 'stained_glass', label: '彩色玻璃', icon: '🪟', desc: '彩窗光影' }
+  ]
+}
+
+// 当前分类的风格列表
+const currentCategoryStyles = computed(() => {
+  return artStylesByCategory[selectedStyleCategory.value] || artStylesByCategory.threed
+})
+
+// 其他选项（从 API 加载）
 const protagonists = ref<Array<{ animal: ProtagonistAnimal; name: string }>>([])
 const ttsVoices = ref<Array<{ id: VoiceId; name: string; style: string }>>([])
 const musicMoods = ref<Array<{ id: MusicMood; name: string }>>([])
@@ -343,12 +423,12 @@ onLoad((options) => {
 onMounted(async () => {
   try {
     const options = await getStyleOptions()
-    artStyles.value = options.art_styles.map(s => ({ id: s.id, name: s.name }))
+    // 艺术风格使用本地硬编码数据，不从 API 加载
     protagonists.value = options.protagonists.map(p => ({ animal: p.animal, name: p.name }))
     ttsVoices.value = options.tts_voices.map(v => ({ id: v.id, name: v.name, style: v.style }))
     musicMoods.value = options.music_moods.map(m => ({ id: m.id, name: m.name }))
   } catch (e) {
-    console.error('加载风格选项失败:', e)
+    console.error('加载选项失败:', e)
   }
 })
 
@@ -929,6 +1009,130 @@ async function handleSubmit() {
   font-size: 26rpx;
   color: $text-secondary;
   margin-bottom: 16rpx;
+}
+
+// 艺术风格分类 Tab
+.art-style-group {
+  .setting-label {
+    margin-bottom: 12rpx;
+  }
+}
+
+.style-category-tabs {
+  display: flex;
+  gap: 8rpx;
+  margin-bottom: 16rpx;
+  padding: 8rpx;
+  background: $bg-soft;
+  border-radius: $radius-md;
+  overflow-x: auto;
+
+  &::-webkit-scrollbar { display: none; }
+}
+
+.style-tab-item {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8rpx 16rpx;
+  border-radius: $radius-sm;
+  transition: all 0.2s;
+
+  &.active {
+    background: $bg-card;
+    box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.08);
+  }
+}
+
+.style-tab-icon {
+  font-size: 20rpx;
+  margin-bottom: 2rpx;
+}
+
+.style-tab-name {
+  font-size: 20rpx;
+  color: $text-tertiary;
+  white-space: nowrap;
+
+  .active & {
+    color: $primary;
+    font-weight: 500;
+  }
+}
+
+// 艺术风格卡片
+.art-style-scroll {
+  margin: 0 -24rpx;
+  padding: 0 24rpx;
+}
+
+.art-style-list {
+  display: flex;
+  gap: 12rpx;
+  padding-bottom: 8rpx;
+}
+
+.art-card {
+  position: relative;
+  flex-shrink: 0;
+  width: 180rpx;
+  padding: 16rpx 12rpx;
+  background: $bg-soft;
+  border: 2rpx solid $border-light;
+  border-radius: $radius-md;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6rpx;
+  transition: all 0.2s;
+
+  &.selected {
+    border-color: $primary;
+    background: rgba($primary, 0.08);
+  }
+
+  &:active {
+    transform: scale(0.96);
+  }
+}
+
+.art-icon {
+  font-size: 32rpx;
+}
+
+.art-name {
+  font-size: 24rpx;
+  font-weight: 500;
+  color: $text-primary;
+}
+
+.art-desc {
+  font-size: 18rpx;
+  color: $text-tertiary;
+  background: rgba(0,0,0,0.04);
+  padding: 2rpx 8rpx;
+  border-radius: $radius-full;
+  text-align: center;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.art-check {
+  position: absolute;
+  top: 6rpx;
+  right: 6rpx;
+  width: 28rpx;
+  height: 28rpx;
+  background: $primary;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16rpx;
+  color: white;
 }
 
 .style-options,

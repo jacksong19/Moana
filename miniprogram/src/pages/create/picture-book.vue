@@ -208,7 +208,13 @@
         <text class="step-desc">检查设置，开始生成专属绘本</text>
 
         <view class="confirm-card">
-          <view class="confirm-item">
+          <!-- 智能创作模式显示用户描述 -->
+          <view v-if="isSmartMode" class="confirm-item smart-prompt-item">
+            <text class="confirm-label">创作描述</text>
+            <text class="confirm-value smart-prompt">{{ customPrompt }}</text>
+          </view>
+          <!-- 普通模式显示主题 -->
+          <view v-else class="confirm-item">
             <text class="confirm-label">故事主题</text>
             <text class="confirm-value">{{ selectedTheme?.name }}</text>
           </view>
@@ -302,49 +308,69 @@ const themeCategories = [
 const selectedCategory = ref('habit')
 const selectedTheme = ref<ThemeItem | null>(null)
 
-// 风格分类（按后端 Gemini 配置）
+// 风格分类（丰富的风格选项）
 const styleCategories = [
-  { id: 'children', name: '儿童内容', icon: '📚' },
   { id: 'threed', name: '3D 风格', icon: '🎬' },
+  { id: 'illustration', name: '插画风格', icon: '📚' },
   { id: 'anime', name: '动漫风格', icon: '🌸' },
-  { id: 'artistic', name: '艺术风格', icon: '🎨' }
+  { id: 'artistic', name: '艺术风格', icon: '🎨' },
+  { id: 'craft', name: '手工风格', icon: '✂️' }
 ]
-const selectedStyleCategory = ref('children')
+const selectedStyleCategory = ref('threed')
 
 // 按分类的艺术风格选项（cssClass 用于避免数字开头的类名）
 type StyleOption = { value: ArtStyle; label: string; icon: string; desc: string; cssClass?: string; recommended?: boolean }
 const artStylesByCategory: Record<string, StyleOption[]> = {
-  children: [
-    { value: 'storybook', label: '绘本风格', icon: '📖', desc: '温暖色调', recommended: true },
-    { value: 'cartoon', label: '卡通风格', icon: '🎨', desc: '鲜艳色彩' },
-    { value: 'watercolor', label: '水彩风格', icon: '💧', desc: '梦幻氛围' },
-    { value: 'flat', label: '扁平风格', icon: '✨', desc: '简洁几何' }
-  ],
   threed: [
-    { value: 'pixar', label: '皮克斯', icon: '🎬', desc: '动画电影' },
-    { value: 'pixar_3d', label: '3D 卡通', icon: '🧸', desc: '柔和阴影' },
-    { value: 'clay', label: '粘土风格', icon: '🎭', desc: '手工质感' },
-    { value: 'figurine', label: '手办风格', icon: '🎎', desc: '收藏品风' }
+    { value: 'pixar_3d', label: '皮克斯3D', icon: '🧸', desc: '圆润可爱', recommended: true },
+    { value: 'pixar', label: '皮克斯电影', icon: '🎬', desc: '电影渲染' },
+    { value: 'dreamworks', label: '梦工厂', icon: '🌙', desc: '活泼表情' },
+    { value: 'disney_3d', label: '迪士尼3D', icon: '🏰', desc: '童话公主' },
+    { value: 'clay', label: '粘土风格', icon: '🎭', desc: '定格质感' },
+    { value: 'figurine', label: '手办风格', icon: '🎎', desc: '精致手办' },
+    { value: 'low_poly', label: '低多边形', icon: '💎', desc: '几何简约' }
+  ],
+  illustration: [
+    { value: 'storybook', label: '绘本风格', icon: '📖', desc: '温暖治愈' },
+    { value: 'watercolor', label: '水彩风格', icon: '💧', desc: '透明梦幻' },
+    { value: 'cartoon', label: '卡通风格', icon: '🎨', desc: '鲜艳明快' },
+    { value: 'flat', label: '扁平风格', icon: '✨', desc: '简洁现代' },
+    { value: 'crayon', label: '蜡笔风格', icon: '🖍️', desc: '童趣手绘' },
+    { value: 'colored_pencil', label: '彩铅风格', icon: '✏️', desc: '细腻柔和' }
   ],
   anime: [
-    { value: 'anime', label: '日式动漫', icon: '🌸', desc: '细致眼睛' },
-    { value: 'chibi', label: 'Q版萌系', icon: '🎀', desc: '大头小身' },
-    { value: 'ghibli', label: '吉卜力', icon: '🏰', desc: '宫崎骏风' }
+    { value: 'anime', label: '日式动漫', icon: '🌸', desc: '大眼精致' },
+    { value: 'chibi', label: 'Q版萌系', icon: '🎀', desc: '大头超萌' },
+    { value: 'ghibli', label: '吉卜力', icon: '🏰', desc: '宫崎骏风' },
+    { value: 'shinkai', label: '新海诚', icon: '🌅', desc: '唯美细腻' },
+    { value: 'manga', label: '漫画风格', icon: '📔', desc: '线条张力' },
+    { value: 'comic_book', label: '美式漫画', icon: '💥', desc: '英雄漫画' }
   ],
   artistic: [
-    { value: 'oil_painting', label: '油画', icon: '🖼️', desc: '古典纹理' },
-    { value: 'sketch', label: '素描', icon: '✏️', desc: '手绘线条' },
-    { value: 'ink_wash', label: '水墨画', icon: '🖌️', desc: '中国风' },
+    { value: 'oil_painting', label: '油画', icon: '🖼️', desc: '古典厚重' },
+    { value: 'impressionist', label: '印象派', icon: '🌻', desc: '莫奈光影' },
+    { value: 'sketch', label: '素描', icon: '✏️', desc: '铅笔手绘' },
+    { value: 'ink_wash', label: '水墨画', icon: '🖌️', desc: '传统意境' },
+    { value: 'pop_art', label: '波普艺术', icon: '🎪', desc: '撞色复古' },
+    { value: 'art_nouveau', label: '新艺术', icon: '🌿', desc: '曲线装饰' },
     { value: 'pixel_art', label: '像素艺术', icon: '👾', desc: '复古游戏' }
+  ],
+  craft: [
+    { value: 'papercut', label: '剪纸风格', icon: '✂️', desc: '传统民间' },
+    { value: 'felt_craft', label: '不织布', icon: '🧵', desc: '毛绒温暖' },
+    { value: 'origami', label: '折纸风格', icon: '🦢', desc: '折叠艺术' },
+    { value: 'embroidery', label: '刺绣风格', icon: '🪡', desc: '针线工艺' },
+    { value: 'mosaic', label: '马赛克', icon: '🎨', desc: '拼贴艺术' },
+    { value: 'stained_glass', label: '彩色玻璃', icon: '🪟', desc: '教堂光影' }
   ]
 }
 
 // 当前分类的风格列表
 const currentCategoryStyles = computed(() => {
-  return artStylesByCategory[selectedStyleCategory.value] || artStylesByCategory.children
+  return artStylesByCategory[selectedStyleCategory.value] || artStylesByCategory.threed
 })
 
-const selectedArtStyle = ref<ArtStyle>('storybook')
+const selectedArtStyle = ref<ArtStyle>('pixar_3d')
 
 // 主角动物选项
 const protagonistAnimals = [
@@ -357,22 +383,25 @@ const protagonistAnimals = [
 ]
 const selectedAnimal = ref<ProtagonistAnimal>('bunny')
 
-// Gemini TTS 音色选项（默认）
+// TTS 音色选项
 const voiceOptions: Array<{ id: VoiceId; name: string; gender: 'female' | 'male' | 'neutral'; style: string; emoji: string; recommended?: boolean }> = [
-  { id: 'Kore', name: '温暖女声', gender: 'female', style: '温暖亲切', emoji: '🌟', recommended: true },
+  { id: 'Cherry', name: '芊悦', gender: 'female', style: '温柔亲切', emoji: '🍒', recommended: true },
+  { id: 'Kore', name: '温暖女声', gender: 'female', style: '温暖亲切', emoji: '🌟' },
   { id: 'Leda', name: '柔和女声', gender: 'female', style: '柔和舒缓', emoji: '🌙' },
-  { id: 'Aoede', name: '清晰女声', gender: 'female', style: '清晰标准', emoji: '📚' },
   { id: 'Puck', name: '活泼中性', gender: 'neutral', style: '活泼有趣', emoji: '🎈' },
-  { id: 'Charon', name: '沉稳男声', gender: 'male', style: '沉稳大气', emoji: '👔' },
-  { id: 'Fenrir', name: '深沉男声', gender: 'male', style: '深沉有力', emoji: '🎭' }
+  { id: 'Charon', name: '沉稳男声', gender: 'male', style: '沉稳大气', emoji: '👔' }
 ]
-const selectedVoiceId = ref<VoiceId>('Kore')
+const selectedVoiceId = ref<VoiceId>('Cherry')
 
 // 生成状态
 const isGenerating = ref(false)
 const generatingProgress = ref(0)
 const generatingStage = ref('')
 const generatingMessage = ref('')
+
+// 智能创作模式
+const isSmartMode = ref(false)
+const customPrompt = ref('')
 
 // 计算属性
 const childName = computed(() => childStore.currentChild?.name || '宝贝')
@@ -537,8 +566,8 @@ async function startGenerate() {
   try {
     const ageMonths = childStore.currentChildAgeMonths || 36
 
-    console.log('[绘本] 发起异步生成请求，风格:', selectedArtStyle.value, '主角:', selectedAnimal.value, '音色:', selectedVoiceId.value)
-    const asyncResult = await generatePictureBookAsync({
+    // 构建请求参数
+    const requestParams: Parameters<typeof generatePictureBookAsync>[0] = {
       child_name: childStore.currentChild.name,
       age_months: ageMonths,
       theme_topic: selectedTheme.value.id,
@@ -548,7 +577,17 @@ async function startGenerate() {
         animal: selectedAnimal.value
       },
       voice_id: selectedVoiceId.value
-    })
+    }
+
+    // 智能创作模式：添加 creation_mode 和 custom_prompt
+    if (isSmartMode.value && customPrompt.value) {
+      requestParams.creation_mode = 'smart'
+      requestParams.custom_prompt = customPrompt.value
+      console.log('[绘本] 智能创作模式，描述:', customPrompt.value)
+    }
+
+    console.log('[绘本] 发起异步生成请求，风格:', selectedArtStyle.value, '主角:', selectedAnimal.value, '音色:', selectedVoiceId.value)
+    const asyncResult = await generatePictureBookAsync(requestParams)
 
     const taskId = asyncResult.task_id
     console.log('[绘本] 获取到 task_id:', taskId)
@@ -661,6 +700,41 @@ onMounted(() => {
 })
 
 onLoad((options) => {
+  // 智能创作模式
+  if (options?.creation_mode === 'smart' && options?.custom_prompt) {
+    isSmartMode.value = true
+    customPrompt.value = decodeURIComponent(options.custom_prompt)
+
+    // 设置从智能创作页面传递的参数
+    if (options.art_style) {
+      selectedArtStyle.value = options.art_style as ArtStyle
+    }
+    if (options.protagonist) {
+      selectedAnimal.value = options.protagonist as ProtagonistAnimal
+    }
+    if (options.voice_id) {
+      selectedVoiceId.value = options.voice_id as VoiceId
+    }
+
+    // 智能创作模式：跳过主题选择，直接到确认步骤
+    // 创建一个虚拟主题用于显示
+    selectedTheme.value = {
+      id: 'smart_custom',
+      name: '智能创作',
+      subcategory: '自定义',
+      age_range: [12, 72],
+      keywords: []
+    }
+
+    // 延迟跳转到确认步骤，确保组件初始化完成
+    setTimeout(() => {
+      currentStep.value = 2  // 直接跳到确认步骤
+    }, 100)
+
+    return
+  }
+
+  // 普通模式：预选主题
   if (options?.theme) {
     const themeId = options.theme
 
@@ -1092,8 +1166,8 @@ onLoad((options) => {
 .art-card {
   position: relative;
   flex-shrink: 0;
-  width: 200rpx;
-  height: 180rpx;
+  width: 220rpx;
+  height: 200rpx;
   border-radius: $radius-md;
   overflow: hidden;
   border: 2rpx solid $border-light;
@@ -1119,28 +1193,44 @@ onLoad((options) => {
   bottom: 0;
   opacity: 0.15;
 
-  // 儿童内容
-  &.storybook { background: linear-gradient(145deg, #FFE4C4 0%, #F5A623 50%, #7FB285 100%); }
-  &.cartoon { background: linear-gradient(145deg, #FF7B54 0%, #FFE66D 50%, #4ECDC4 100%); }
-  &.watercolor { background: linear-gradient(145deg, #74B9FF 0%, #FFB347 50%, #4ECDC4 100%); }
-  &.flat { background: linear-gradient(145deg, #FFE66D 0%, #FF7B54 50%, #7FB285 100%); }
   // 3D 风格
-  &.pixar { background: linear-gradient(145deg, #FF7B54 0%, #7FB285 50%, #F5A623 100%); }
   &.pixar_3d { background: linear-gradient(145deg, #74B9FF 0%, #A29BFE 50%, #81ECEC 100%); }
+  &.pixar { background: linear-gradient(145deg, #FF7B54 0%, #7FB285 50%, #F5A623 100%); }
+  &.dreamworks { background: linear-gradient(145deg, #45B7D1 0%, #96E6A1 50%, #DFE6E9 100%); }
+  &.disney_3d { background: linear-gradient(145deg, #E8A4C9 0%, #87CEEB 50%, #FFD700 100%); }
   &.clay { background: linear-gradient(145deg, #E8A87C 0%, #D4A574 50%, #C9956C 100%); }
   &.figurine { background: linear-gradient(145deg, #DFE6E9 0%, #B2BEC3 50%, #636E72 100%); }
+  &.low_poly { background: linear-gradient(145deg, #00CEC9 0%, #6C5CE7 50%, #FD79A8 100%); }
+  // 插画风格
+  &.storybook { background: linear-gradient(145deg, #FFE4C4 0%, #F5A623 50%, #7FB285 100%); }
+  &.watercolor { background: linear-gradient(145deg, #74B9FF 0%, #FFB347 50%, #4ECDC4 100%); }
+  &.cartoon { background: linear-gradient(145deg, #FF7B54 0%, #FFE66D 50%, #4ECDC4 100%); }
+  &.flat { background: linear-gradient(145deg, #FFE66D 0%, #FF7B54 50%, #7FB285 100%); }
+  &.flat_vector { background: linear-gradient(145deg, #FFE66D 0%, #FF7B54 50%, #7FB285 100%); }
+  &.crayon { background: linear-gradient(145deg, #F5A623 0%, #FF7B54 50%, #7FB285 100%); }
+  &.colored_pencil { background: linear-gradient(145deg, #FFEAA7 0%, #FDCB6E 50%, #E17055 100%); }
   // 动漫风格
   &.anime { background: linear-gradient(145deg, #FFB6C1 0%, #7FB285 50%, #74B9FF 100%); }
   &.chibi { background: linear-gradient(145deg, #FFB5BA 0%, #FFF5BA 50%, #B5D8FF 100%); }
   &.ghibli { background: linear-gradient(145deg, #7FB285 0%, #74B9FF 50%, #F5A623 100%); }
+  &.shinkai { background: linear-gradient(145deg, #667EEA 0%, #764BA2 50%, #F093FB 100%); }
+  &.manga { background: linear-gradient(145deg, #2D3436 0%, #636E72 50%, #FFFFFF 100%); }
+  &.comic_book { background: linear-gradient(145deg, #FF4757 0%, #2ED573 50%, #3742FA 100%); }
   // 艺术风格
   &.oil_painting { background: linear-gradient(145deg, #8B4513 0%, #D4A574 50%, #FFE4C4 100%); }
+  &.impressionist { background: linear-gradient(145deg, #F9CA24 0%, #6AB04C 50%, #686DE0 100%); }
   &.sketch { background: linear-gradient(145deg, #2D3436 0%, #636E72 50%, #DFE6E9 100%); }
   &.ink_wash { background: linear-gradient(145deg, #2D3436 0%, #B2BEC3 50%, #DFE6E9 100%); }
+  &.pop_art { background: linear-gradient(145deg, #FF6B6B 0%, #4ECDC4 50%, #FFE66D 100%); }
+  &.art_nouveau { background: linear-gradient(145deg, #C8A962 0%, #7D8471 50%, #2C3E50 100%); }
   &.pixel_art { background: linear-gradient(145deg, #2ED573 0%, #3742FA 50%, #FF4757 100%); }
-  // 兼容旧风格
-  &.flat_vector { background: linear-gradient(145deg, #FFE66D 0%, #FF7B54 50%, #7FB285 100%); }
-  &.crayon { background: linear-gradient(145deg, #F5A623 0%, #FF7B54 50%, #7FB285 100%); }
+  // 手工风格
+  &.papercut { background: linear-gradient(145deg, #E74C3C 0%, #F39C12 50%, #27AE60 100%); }
+  &.felt_craft { background: linear-gradient(145deg, #FFB8B8 0%, #A8E6CF 50%, #FDFFAB 100%); }
+  &.origami { background: linear-gradient(145deg, #74B9FF 0%, #FFFFFF 50%, #FF7675 100%); }
+  &.embroidery { background: linear-gradient(145deg, #D63031 0%, #00B894 50%, #FDCB6E 100%); }
+  &.mosaic { background: linear-gradient(145deg, #6C5CE7 0%, #00CEC9 50%, #FDCB6E 100%); }
+  &.stained_glass { background: linear-gradient(145deg, #0984E3 0%, #6C5CE7 50%, #E84393 100%); }
 }
 
 .art-card-content {
@@ -1163,12 +1253,16 @@ onLoad((options) => {
   font-size: $font-sm;
   font-weight: $font-semibold;
   color: $text-primary;
-  margin-bottom: 4rpx;
+  margin-bottom: 8rpx;
 }
 
 .art-desc {
-  font-size: $font-xs;
-  color: $text-tertiary;
+  display: inline-block;
+  font-size: 20rpx;
+  color: $text-secondary;
+  background: rgba(0, 0, 0, 0.05);
+  padding: 4rpx 12rpx;
+  border-radius: $radius-full;
   text-align: center;
 }
 
@@ -1440,6 +1534,26 @@ onLoad((options) => {
   font-size: $font-base;
   font-weight: $font-medium;
   color: $text-primary;
+
+  &.smart-prompt {
+    font-size: $font-sm;
+    line-height: 1.5;
+    color: $text-secondary;
+    text-align: right;
+    max-width: 400rpx;
+  }
+}
+
+.smart-prompt-item {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: $spacing-xs;
+
+  .confirm-value {
+    text-align: left;
+    max-width: 100%;
+    word-break: break-all;
+  }
 }
 
 .confirm-tip {

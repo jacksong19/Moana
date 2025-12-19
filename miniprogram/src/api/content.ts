@@ -58,14 +58,18 @@ export interface PictureBook {
 
 // 艺术风格类型（扩展支持 Gemini 服务的更多风格）
 export type ArtStyle =
-  // 当前前端支持的风格
-  | 'pixar_3d' | 'watercolor' | 'flat_vector' | 'crayon' | 'anime'
-  // Gemini 扩展风格（后端支持，前端暂不展示）
-  | 'storybook' | 'cartoon' | 'flat'
-  | 'pixar' | 'clay' | 'figurine'
-  | 'chibi' | 'manga' | 'ghibli'
-  | 'oil_painting' | 'sketch' | 'ink_wash' | 'pixel_art'
-  | 'none'
+  // 3D 风格
+  | 'pixar_3d' | 'pixar' | 'clay' | 'figurine' | 'dreamworks' | 'disney_3d' | 'low_poly'
+  // 插画风格
+  | 'storybook' | 'watercolor' | 'cartoon' | 'flat' | 'flat_vector' | 'crayon' | 'colored_pencil'
+  // 动漫风格
+  | 'anime' | 'chibi' | 'manga' | 'ghibli' | 'shinkai' | 'comic_book'
+  // 艺术风格
+  | 'oil_painting' | 'sketch' | 'ink_wash' | 'pixel_art' | 'impressionist' | 'pop_art' | 'art_nouveau'
+  // 特色风格
+  | 'papercut' | 'embroidery' | 'mosaic' | 'stained_glass' | 'felt_craft' | 'origami'
+  // 其他
+  | 'none' | string  // 支持自定义风格字符串
 
 // 主角动物类型
 export type ProtagonistAnimal = 'bunny' | 'bear' | 'cat' | 'dog' | 'panda' | 'fox'

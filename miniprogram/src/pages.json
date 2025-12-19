@@ -99,6 +99,13 @@
       }
     },
     {
+      "path": "pages/create/smart",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "智能创作"
+      }
+    },
+    {
       "path": "pages/report/index",
       "style": {
         "navigationStyle": "custom",

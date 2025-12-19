@@ -99,6 +99,9 @@ export interface ProtagonistConfig {
   accessory?: string
 }
 
+// 创作模式类型
+export type CreationMode = 'smart' | 'preset'
+
 // 生成绘本参数
 export interface GeneratePictureBookParams {
   child_name: string
@@ -111,6 +114,9 @@ export interface GeneratePictureBookParams {
   art_style?: ArtStyle
   protagonist?: ProtagonistConfig
   color_palette?: ColorPalette
+  // 智能创作参数
+  creation_mode?: CreationMode      // 创作模式：smart=智能创作, preset=预设主题
+  custom_prompt?: string            // 用户自定义描述（creation_mode='smart' 时必填）
 }
 
 // 音乐情绪类型
@@ -233,6 +239,9 @@ export interface GenerateNurseryRhymeParams {
   art_style?: ArtStyle
   protagonist?: ProtagonistConfig
   color_palette?: ColorPalette
+  // 智能创作参数
+  creation_mode?: CreationMode      // 创作模式：smart=智能创作, preset=预设主题
+  custom_prompt?: string            // 用户自定义描述（creation_mode='smart' 时必填）
 }
 
 // 歌词段落接口
@@ -706,5 +715,70 @@ export async function getVideoTaskStatus(taskId: string): Promise<VideoTaskStatu
   return request.get<VideoTaskStatus>(`/content/video/status/${taskId}`, {
     timeout: 30000,
     showError: false  // 不显示错误提示，由调用方处理
+  })
+}
+
+// ========== 智能创作 - 首帧生成 ==========
+
+// 首帧生成参数
+export interface GenerateFirstFrameParams {
+  prompt: string                    // 场景描述
+  child_name: string                // 宝贝名称
+  art_style?: ArtStyle              // 艺术风格
+  aspect_ratio?: '16:9' | '9:16' | '1:1'  // 画面比例
+}
+
+// 首帧生成响应
+export interface FirstFrameResponse {
+  image_url: string                 // 生成的首帧图片 URL
+  prompt_enhanced?: string          // AI 优化后的提示词
+}
+
+/**
+ * 生成视频首帧图片
+ * 用于视频独立创作模式，先生成首帧预览
+ */
+export async function generateFirstFrame(params: GenerateFirstFrameParams): Promise<FirstFrameResponse> {
+  console.log('[generateFirstFrame] 开始生成首帧')
+  return request.post<FirstFrameResponse>('/content/video/first-frame', params, {
+    showLoading: false,
+    showError: true,
+    timeout: 60000  // 1分钟超时，图片生成较快
+  })
+}
+
+// ========== 智能创作 - 独立视频创作 ==========
+
+// 独立视频创作参数
+export interface GenerateStandaloneVideoParams {
+  child_name: string
+  age_months: number
+  custom_prompt: string             // 视频场景描述
+  // 首帧（二选一）
+  first_frame_url?: string          // 已有首帧 URL
+  generate_first_frame?: boolean    // 是否自动生成首帧，默认 true
+  // Veo 3.1 参数
+  aspect_ratio?: '16:9' | '9:16' | '4:3' | '3:4' | '1:1'
+  resolution?: '720P' | '1080P'
+  duration_seconds?: 4 | 5 | 6 | 8
+  motion_mode?: 'static' | 'slow' | 'normal' | 'dynamic' | 'cinematic'
+  enable_audio?: boolean
+  // 高级参数
+  art_style?: ArtStyle              // 艺术风格
+  auto_enhance_prompt?: boolean     // AI 优化提示词
+  negative_prompt?: string          // 负面提示词
+  scene_template?: SceneTemplateId  // 场景模板
+}
+
+/**
+ * 独立创作视频（不依赖绘本）
+ * 用户输入描述 → 生成首帧 → 生成视频
+ */
+export async function generateStandaloneVideoAsync(params: GenerateStandaloneVideoParams): Promise<AsyncVideoResponse> {
+  console.log('[generateStandaloneVideoAsync] 发起独立视频创作请求')
+  return request.post<AsyncVideoResponse>('/content/video/standalone/async', params, {
+    showLoading: false,
+    showError: true,
+    timeout: 30000  // 只是提交任务
   })
 }

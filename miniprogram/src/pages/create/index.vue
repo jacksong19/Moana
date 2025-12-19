@@ -228,8 +228,9 @@ function fillTip(text: string) {
 
 async function handleAICreate() {
   if (!aiInput.value.trim()) return
+  // 跳转到智能创作页面，传递用户输入
   uni.navigateTo({
-    url: `/pages/create/picture-book?input=${encodeURIComponent(aiInput.value)}`
+    url: `/pages/create/smart?input=${encodeURIComponent(aiInput.value)}`
   })
 }
 

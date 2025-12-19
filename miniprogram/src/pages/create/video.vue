@@ -21,8 +21,28 @@
 
     <!-- 主内容 -->
     <scroll-view class="main-scroll" scroll-y>
-      <!-- 步骤指示器 - 3步 -->
-      <view class="step-indicator">
+      <!-- 模式切换 Tab -->
+      <view class="mode-tabs">
+        <view
+          class="mode-tab"
+          :class="{ active: creationMode === 'from_book' }"
+          @tap="switchCreationMode('from_book')"
+        >
+          <text class="tab-icon">📚</text>
+          <text class="tab-text">基于绘本</text>
+        </view>
+        <view
+          class="mode-tab"
+          :class="{ active: creationMode === 'standalone' }"
+          @tap="switchCreationMode('standalone')"
+        >
+          <text class="tab-icon">✨</text>
+          <text class="tab-text">独立创作</text>
+        </view>
+      </view>
+
+      <!-- 步骤指示器 - 基于绘本模式 3步 -->
+      <view v-if="creationMode === 'from_book'" class="step-indicator">
         <view class="step" :class="{ active: true, completed: currentStep > 0 }">
           <view class="step-dot">{{ currentStep > 0 ? '✓' : '1' }}</view>
           <text class="step-text">选择绘本</text>
@@ -39,8 +59,21 @@
         </view>
       </view>
 
-      <!-- 第一步：选择绘本 -->
-      <view class="section" v-show="currentStep === 0">
+      <!-- 步骤指示器 - 独立创作模式 2步 -->
+      <view v-else class="step-indicator">
+        <view class="step" :class="{ active: true, completed: currentStep > 0 }">
+          <view class="step-dot">{{ currentStep > 0 ? '✓' : '1' }}</view>
+          <text class="step-text">描述场景</text>
+        </view>
+        <view class="step-line" :class="{ active: currentStep >= 1 }"></view>
+        <view class="step" :class="{ active: currentStep >= 1 }">
+          <view class="step-dot">2</view>
+          <text class="step-text">配置生成</text>
+        </view>
+      </view>
+
+      <!-- 第一步：选择绘本（基于绘本模式） -->
+      <view class="section" v-show="currentStep === 0 && creationMode === 'from_book'">
         <text class="section-title">选择要转换的绘本</text>
         <text class="section-desc">将绘本故事转化为精彩动画视频</text>
 
@@ -91,8 +124,52 @@
         </view>
       </view>
 
-      <!-- 第二步：选择画面 -->
-      <view class="section" v-show="currentStep === 1 && selectedBook">
+      <!-- 第一步：输入描述（独立创作模式） -->
+      <view class="section" v-show="currentStep === 0 && creationMode === 'standalone'">
+        <text class="section-title">描述你想要的视频</text>
+        <text class="section-desc">AI 将根据描述生成专属动画视频</text>
+
+        <view class="standalone-input-area">
+          <view class="input-container">
+            <textarea
+              v-model="customPrompt"
+              class="prompt-input"
+              placeholder="例如：小兔子在花园里开心地吃蔬菜，旁边有蝴蝶飞舞..."
+              :maxlength="500"
+              auto-height
+            />
+            <view class="input-footer">
+              <text class="char-count">{{ customPrompt.length }}/500</text>
+            </view>
+          </view>
+
+          <!-- 首帧预览 -->
+          <view v-if="generatedFirstFrame" class="first-frame-preview">
+            <text class="preview-label">首帧预览</text>
+            <image :src="generatedFirstFrame" mode="aspectFit" class="preview-image" />
+            <view class="preview-actions">
+              <view class="regenerate-btn" @tap="handleGenerateFirstFrame">
+                <text>🔄 重新生成</text>
+              </view>
+            </view>
+          </view>
+
+          <!-- 生成首帧按钮 -->
+          <view
+            v-else
+            class="generate-first-frame-btn"
+            :class="{ disabled: !customPrompt.trim() || generatingFirstFrame }"
+            @tap="handleGenerateFirstFrame"
+          >
+            <text v-if="generatingFirstFrame">🔄 生成中...</text>
+            <text v-else>✨ 预览首帧（可选）</text>
+          </view>
+          <text class="first-frame-hint">生成首帧可以预览效果，跳过则由 AI 自动生成</text>
+        </view>
+      </view>
+
+      <!-- 第二步：选择画面（基于绘本模式） -->
+      <view class="section" v-show="currentStep === 1 && selectedBook && creationMode === 'from_book'">
         <text class="section-title">选择视频首帧画面</text>
         <text class="section-desc">选择一张绘本图片作为视频的起始画面</text>
 
@@ -144,8 +221,8 @@
         </view>
       </view>
 
-      <!-- 第三步：生成配置 -->
-      <view class="section" v-show="currentStep === 2 && selectedBook">
+      <!-- 第三步：生成配置（基于绘本模式） -->
+      <view class="section" v-show="currentStep === 2 && selectedBook && creationMode === 'from_book'">
         <!-- 预览信息 -->
         <view class="preview-card">
           <view class="preview-header">
@@ -370,6 +447,145 @@
         <text class="preview-tip">视频生成需要 1-5 分钟，请耐心等待</text>
       </view>
 
+      <!-- 第二步：生成配置（独立创作模式） -->
+      <view class="section" v-show="currentStep === 1 && creationMode === 'standalone'">
+        <!-- 预览信息 -->
+        <view class="preview-card">
+          <view class="preview-header">
+            <image
+              v-if="generatedFirstFrame"
+              :src="generatedFirstFrame"
+              mode="aspectFill"
+              class="preview-image"
+            />
+            <view v-else class="preview-placeholder">
+              <text>🎬</text>
+            </view>
+            <view class="preview-info">
+              <text class="preview-title">独立创作视频</text>
+              <text class="preview-meta">"{{ customPrompt.slice(0, 30) }}{{ customPrompt.length > 30 ? '...' : '' }}"</text>
+              <text class="preview-meta" v-if="generatedFirstFrame">已生成首帧</text>
+              <text class="preview-meta" v-else>AI 将自动生成首帧</text>
+            </view>
+          </view>
+        </view>
+
+        <!-- 场景模板 -->
+        <view class="style-section">
+          <text class="style-title">
+            <text class="title-icon">🎬</text>
+            场景模板
+          </text>
+          <text class="style-hint">选择模板自动应用最佳参数</text>
+          <view class="template-list">
+            <view
+              v-for="template in sceneTemplates"
+              :key="template.id"
+              class="template-card"
+              :class="{ active: selectedTemplate === template.id }"
+              @tap="handleTemplateSelect(template.id)"
+            >
+              <text class="template-icon">{{ template.icon }}</text>
+              <text class="template-name">{{ template.name }}</text>
+              <text class="template-desc">{{ template.description }}</text>
+              <view v-if="selectedTemplate === template.id" class="template-check">
+                <text>✓</text>
+              </view>
+            </view>
+          </view>
+        </view>
+
+        <!-- 宽高比选择 -->
+        <view class="style-section">
+          <text class="style-title">
+            <text class="title-icon">📐</text>
+            画面比例
+          </text>
+          <view class="aspect-ratio-list">
+            <view
+              v-for="ratio in aspectRatioOptions"
+              :key="ratio.value"
+              class="aspect-ratio-item"
+              :class="{ active: selectedAspectRatio === ratio.value }"
+              @tap="selectedAspectRatio = ratio.value"
+            >
+              <view class="ratio-preview" :style="{ aspectRatio: ratio.value.replace(':', '/') }"></view>
+              <text class="ratio-label">{{ ratio.label }}</text>
+              <text v-if="ratio.recommended" class="ratio-badge">推荐</text>
+            </view>
+          </view>
+        </view>
+
+        <!-- 运动模式选择 -->
+        <view class="style-section">
+          <text class="style-title">
+            <text class="title-icon">🎭</text>
+            运动模式
+          </text>
+          <view class="motion-mode-list">
+            <view
+              v-for="mode in motionModes"
+              :key="mode.value"
+              class="motion-mode-item"
+              :class="{ active: selectedMotionMode === mode.value }"
+              @tap="selectedMotionMode = mode.value"
+            >
+              <view class="mode-info">
+                <text class="mode-name">{{ mode.label }}</text>
+                <text class="mode-desc">{{ mode.desc }}</text>
+              </view>
+              <view v-if="mode.recommended" class="mode-badge">推荐</view>
+              <view v-if="selectedMotionMode === mode.value" class="mode-check">
+                <text>✓</text>
+              </view>
+            </view>
+          </view>
+        </view>
+
+        <!-- 分辨率选择 -->
+        <view class="style-section">
+          <text class="style-title">
+            <text class="title-icon">🎞️</text>
+            视频分辨率
+          </text>
+          <view class="resolution-tabs">
+            <view
+              v-for="res in resolutionOptions"
+              :key="res.value"
+              class="resolution-tab"
+              :class="{ active: selectedResolution === res.value }"
+              @tap="selectedResolution = res.value"
+            >
+              <text class="res-value">{{ res.label }}</text>
+              <text v-if="res.note" class="res-note">{{ res.note }}</text>
+              <text v-if="res.recommended" class="res-badge">推荐</text>
+            </view>
+          </view>
+        </view>
+
+        <!-- 视频时长选择 -->
+        <view class="style-section">
+          <text class="style-title">
+            <text class="title-icon">⏱️</text>
+            视频时长
+          </text>
+          <view class="duration-tabs">
+            <view
+              v-for="dur in durationOptions"
+              :key="dur.value"
+              class="duration-tab"
+              :class="{ active: selectedDuration === dur.value }"
+              @tap="selectedDuration = dur.value"
+            >
+              <text class="dur-value">{{ dur.label }}</text>
+              <text class="dur-desc">{{ dur.desc }}</text>
+            </view>
+          </view>
+        </view>
+
+        <text class="preview-tip">视频生成需要 1-5 分钟，请耐心等待</text>
+      </view>
+
       <!-- 底部占位 -->
       <view class="bottom-placeholder"></view>
     </scroll-view>
@@ -406,8 +622,15 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
-import type { PictureBook, Video, VideoPage, VideoTaskStatus, SceneTemplateId, NegativePresetId } from '@/api/content'
-import { getGeneratedList, getContentDetail, generateVideoAsync, getVideoTaskStatus } from '@/api/content'
+import type { PictureBook, Video, VideoPage, VideoTaskStatus, SceneTemplateId, NegativePresetId, ArtStyle } from '@/api/content'
+import {
+  getGeneratedList,
+  getContentDetail,
+  generateVideoAsync,
+  getVideoTaskStatus,
+  generateFirstFrame,
+  generateStandaloneVideoAsync
+} from '@/api/content'
 import { useChildStore } from '@/stores/child'
 import GeneratingProgress from '@/components/GeneratingProgress/GeneratingProgress.vue'
 
@@ -425,6 +648,15 @@ const generatingMessage = ref('')
 const pictureBooks = ref<PictureBook[]>([])
 const selectedBook = ref<PictureBook | null>(null)
 const currentTaskId = ref<string | null>(null)
+
+// 创作模式: 'from_book' | 'standalone'
+const creationMode = ref<'from_book' | 'standalone'>('from_book')
+
+// 独立创作相关状态
+const customPrompt = ref('')
+const generatedFirstFrame = ref<string | null>(null)
+const generatingFirstFrame = ref(false)
+const selectedArtStyle = ref<ArtStyle>('storybook')
 
 // 步骤控制
 const currentStep = ref(0)
@@ -568,14 +800,25 @@ function formatDuration(seconds?: number): string {
 
 // 当前步骤是否可以继续
 const canProceed = computed(() => {
-  if (currentStep.value === 0) {
-    return selectedBook.value && selectedBook.value.pages && selectedBook.value.pages.length > 0
-  }
-  if (currentStep.value === 1) {
-    return selectedPageIndex.value !== null
-  }
-  if (currentStep.value === 2) {
-    return true
+  if (creationMode.value === 'standalone') {
+    // 独立创作模式
+    if (currentStep.value === 0) {
+      return customPrompt.value.trim().length > 0
+    }
+    if (currentStep.value === 1) {
+      return true
+    }
+  } else {
+    // 基于绘本模式
+    if (currentStep.value === 0) {
+      return selectedBook.value && selectedBook.value.pages && selectedBook.value.pages.length > 0
+    }
+    if (currentStep.value === 1) {
+      return selectedPageIndex.value !== null
+    }
+    if (currentStep.value === 2) {
+      return true
+    }
   }
   return false
 })
@@ -584,17 +827,28 @@ const canProceed = computed(() => {
 const actionBtnText = computed(() => {
   if (generating.value) return '生成中...'
   if (loadingDetail.value) return '加载中...'
+  if (generatingFirstFrame.value) return '生成首帧中...'
 
-  if (currentStep.value === 0) {
-    if (!selectedBook.value) return '请选择绘本'
-    if (!canProceed.value) return '绘本无内容'
-    return '下一步：选择画面'
+  if (creationMode.value === 'standalone') {
+    // 独立创作模式
+    if (currentStep.value === 0) {
+      if (!customPrompt.value.trim()) return '请输入视频描述'
+      return '下一步：配置参数'
+    }
+    return '开始生成视频'
+  } else {
+    // 基于绘本模式
+    if (currentStep.value === 0) {
+      if (!selectedBook.value) return '请选择绘本'
+      if (!canProceed.value) return '绘本无内容'
+      return '下一步：选择画面'
+    }
+    if (currentStep.value === 1) {
+      if (selectedPageIndex.value === null) return '请选择首帧画面'
+      return '下一步：配置参数'
+    }
+    return '开始生成视频'
   }
-  if (currentStep.value === 1) {
-    if (selectedPageIndex.value === null) return '请选择首帧画面'
-    return '下一步：配置参数'
-  }
-  return '开始生成视频'
 })
 
 function goBack() {
@@ -627,18 +881,28 @@ function goToPrevStep() {
 }
 
 function handleNextStep() {
-  if (!canProceed.value || generating.value || loadingDetail.value) return
+  if (!canProceed.value || generating.value || loadingDetail.value || generatingFirstFrame.value) return
 
-  if (currentStep.value === 0) {
-    currentStep.value = 1
-    // 默认选择第一页作为首帧
-    if (selectedBook.value?.pages?.length && selectedPageIndex.value === null) {
-      selectedPageIndex.value = 0
+  if (creationMode.value === 'standalone') {
+    // 独立创作模式
+    if (currentStep.value === 0) {
+      currentStep.value = 1
+    } else if (currentStep.value === 1) {
+      handleStandaloneGenerate()
     }
-  } else if (currentStep.value === 1) {
-    currentStep.value = 2
-  } else if (currentStep.value === 2) {
-    handleGenerate()
+  } else {
+    // 基于绘本模式
+    if (currentStep.value === 0) {
+      currentStep.value = 1
+      // 默认选择第一页作为首帧
+      if (selectedBook.value?.pages?.length && selectedPageIndex.value === null) {
+        selectedPageIndex.value = 0
+      }
+    } else if (currentStep.value === 1) {
+      currentStep.value = 2
+    } else if (currentStep.value === 2) {
+      handleGenerate()
+    }
   }
 }
 
@@ -911,10 +1175,130 @@ async function handleGenerate() {
   }
 }
 
-onLoad(() => {
+// 独立创作模式：生成首帧
+async function handleGenerateFirstFrame() {
+  if (!customPrompt.value.trim()) {
+    uni.showToast({ title: '请输入视频描述', icon: 'none' })
+    return
+  }
+
+  const child = childStore.currentChild
+  if (!child) {
+    uni.showToast({ title: '请先添加宝贝信息', icon: 'none' })
+    return
+  }
+
+  generatingFirstFrame.value = true
+  generatedFirstFrame.value = null
+
+  try {
+    const result = await generateFirstFrame({
+      prompt: customPrompt.value,
+      child_name: child.name,
+      art_style: selectedArtStyle.value,
+      aspect_ratio: selectedAspectRatio.value as '16:9' | '9:16' | '1:1'
+    })
+
+    generatedFirstFrame.value = result.image_url
+    uni.showToast({ title: '首帧生成成功', icon: 'success' })
+  } catch (e: any) {
+    console.error('生成首帧失败:', e)
+    uni.showToast({ title: e?.message || '生成首帧失败', icon: 'none' })
+  } finally {
+    generatingFirstFrame.value = false
+  }
+}
+
+// 独立创作模式：生成视频
+async function handleStandaloneGenerate() {
+  if (!customPrompt.value.trim()) {
+    uni.showToast({ title: '请输入视频描述', icon: 'none' })
+    return
+  }
+
+  const child = childStore.currentChild
+  if (!child) {
+    uni.showToast({ title: '请先添加宝贝信息', icon: 'none' })
+    return
+  }
+
+  generating.value = true
+  generateProgress.value = 0
+  generatingStage.value = 'init'
+  generatingMessage.value = '正在提交任务...'
+
+  try {
+    // 构建负面提示词
+    const negativePromptValues = selectedNegativePresets.value
+      .map(id => negativePresetOptions.find(p => p.id === id)?.value)
+      .filter(Boolean)
+      .join(', ')
+
+    const params = {
+      child_name: child.name,
+      age_months: child.age_months || 36,
+      custom_prompt: customPrompt.value,
+      first_frame_url: generatedFirstFrame.value || undefined,
+      generate_first_frame: !generatedFirstFrame.value,
+      aspect_ratio: selectedAspectRatio.value as '16:9' | '9:16' | '4:3' | '3:4' | '1:1',
+      resolution: selectedResolution.value as '720P' | '1080P',
+      duration_seconds: selectedDuration.value as 4 | 5 | 6 | 8,
+      motion_mode: selectedMotionMode.value as 'static' | 'slow' | 'normal' | 'dynamic' | 'cinematic',
+      enable_audio: audioEnabled.value,
+      art_style: selectedArtStyle.value,
+      auto_enhance_prompt: autoEnhancePrompt.value,
+      negative_prompt: negativePromptValues || undefined,
+      scene_template: selectedTemplate.value || undefined
+    }
+
+    const response = await generateStandaloneVideoAsync(params)
+    console.log('[独立视频生成] 任务已提交:', response.task_id)
+
+    currentTaskId.value = response.task_id
+    generatingMessage.value = '任务已提交，正在生成...'
+
+    // 开始轮询（复用相同的轮询逻辑）
+    pollTaskStatus(response.task_id)
+
+  } catch (e: any) {
+    console.error('提交独立视频任务失败:', e)
+    generating.value = false
+    currentTaskId.value = null
+
+    const errMsg = e?.message || '提交失败，请重试'
+    uni.showToast({ title: errMsg, icon: 'none', duration: 3000 })
+  }
+}
+
+// 切换创作模式
+function switchCreationMode(mode: 'from_book' | 'standalone') {
+  creationMode.value = mode
+  currentStep.value = 0
+  // 重置状态
+  selectedBook.value = null
+  selectedPageIndex.value = null
+  referencePageIndexes.value = []
+  generatedFirstFrame.value = null
+}
+
+onLoad((options) => {
   const sysInfo = uni.getSystemInfoSync()
   statusBarHeight.value = sysInfo.statusBarHeight || 20
   navHeight.value = statusBarHeight.value + 44
+
+  // 处理从智能创作页面传递的参数
+  if (options?.mode === 'standalone') {
+    creationMode.value = 'standalone'
+  }
+  if (options?.custom_prompt) {
+    customPrompt.value = decodeURIComponent(options.custom_prompt)
+  }
+  if (options?.art_style) {
+    selectedArtStyle.value = options.art_style as ArtStyle
+  }
+  if (options?.duration) {
+    selectedDuration.value = parseInt(options.duration) || 5
+  }
 })
 
 onMounted(() => {
@@ -924,6 +1308,194 @@ onMounted(() => {
 
 <style lang="scss" scoped>
 @import '@/styles/variables.scss';
+
+// 模式切换 Tab
+.mode-tabs {
+  display: flex;
+  gap: $spacing-sm;
+  margin-bottom: $spacing-md;
+  background: $bg-card;
+  border: 1rpx solid $border-light;
+  border-radius: $radius-lg;
+  padding: $spacing-xs;
+  box-shadow: $shadow-card;
+}
+
+.mode-tab {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: $spacing-xs;
+  padding: $spacing-sm $spacing-md;
+  border-radius: $radius-md;
+  transition: all $duration-base;
+
+  &.active {
+    background: $video-gradient;
+    box-shadow: $shadow-colored-video;
+
+    .tab-text {
+      color: $text-white;
+      font-weight: $font-semibold;
+    }
+
+    .tab-icon {
+      transform: scale(1.1);
+    }
+  }
+
+  &:active:not(.active) {
+    background: rgba($video-primary, 0.08);
+  }
+}
+
+.tab-icon {
+  font-size: 28rpx;
+  transition: transform $duration-base;
+}
+
+.tab-text {
+  font-size: $font-sm;
+  color: $text-secondary;
+  transition: color $duration-base;
+}
+
+// 独立创作输入区域
+.standalone-input-area {
+  background: $bg-card;
+  border: 1rpx solid $border-light;
+  border-radius: $radius-lg;
+  padding: $spacing-md;
+  box-shadow: $shadow-card;
+}
+
+.input-container {
+  position: relative;
+  margin-bottom: $spacing-md;
+}
+
+.prompt-input {
+  width: 100%;
+  min-height: 160rpx;
+  padding: $spacing-md;
+  background: $bg-soft;
+  border: 1rpx solid $border-light;
+  border-radius: $radius-md;
+  font-size: $font-base;
+  color: $text-primary;
+  line-height: 1.6;
+  box-sizing: border-box;
+
+  &::placeholder {
+    color: $text-placeholder;
+  }
+}
+
+.input-footer {
+  position: absolute;
+  bottom: $spacing-sm;
+  right: $spacing-md;
+}
+
+.char-count {
+  font-size: $font-xs;
+  color: $text-placeholder;
+}
+
+// 首帧预览
+.first-frame-preview {
+  margin-bottom: $spacing-md;
+}
+
+.preview-label {
+  display: block;
+  font-size: $font-sm;
+  font-weight: $font-medium;
+  color: $text-secondary;
+  margin-bottom: $spacing-sm;
+}
+
+.first-frame-preview .preview-image {
+  width: 100%;
+  height: 300rpx;
+  border-radius: $radius-md;
+  background: $bg-soft;
+}
+
+.preview-actions {
+  display: flex;
+  justify-content: center;
+  margin-top: $spacing-sm;
+}
+
+.regenerate-btn {
+  padding: $spacing-xs $spacing-md;
+  background: $bg-soft;
+  border: 1rpx solid $border-light;
+  border-radius: $radius-full;
+
+  text {
+    font-size: $font-sm;
+    color: $text-secondary;
+  }
+
+  &:active {
+    background: $border-light;
+  }
+}
+
+.generate-first-frame-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: $spacing-md;
+  background: rgba($video-primary, 0.1);
+  border: 1rpx dashed $video-primary;
+  border-radius: $radius-md;
+  margin-bottom: $spacing-sm;
+
+  text {
+    font-size: $font-base;
+    color: $video-primary;
+  }
+
+  &.disabled {
+    background: $bg-soft;
+    border-color: $border-light;
+
+    text {
+      color: $text-placeholder;
+    }
+  }
+
+  &:active:not(.disabled) {
+    background: rgba($video-primary, 0.15);
+  }
+}
+
+.first-frame-hint {
+  display: block;
+  font-size: $font-xs;
+  color: $text-tertiary;
+  text-align: center;
+}
+
+// 预览占位符
+.preview-placeholder {
+  width: 120rpx;
+  height: 120rpx;
+  border-radius: $radius-md;
+  background: $bg-soft;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+
+  text {
+    font-size: 48rpx;
+  }
+}
 
 .page-container {
   min-height: 100vh;

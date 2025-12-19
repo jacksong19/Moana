@@ -491,6 +491,59 @@
           </view>
         </view>
 
+        <!-- 故事风格确认 -->
+        <view v-if="hasStoryEnhancement" class="confirm-card enhance-card">
+          <view class="enhance-card-header">
+            <text class="enhance-icon">📖</text>
+            <text class="enhance-title">故事风格</text>
+          </view>
+          <view class="enhance-tags">
+            <view v-if="storyEnhancement.narrative_pace" class="enhance-tag">
+              <text>{{ getStoryOptionLabel('narrative_pace', storyEnhancement.narrative_pace) }}</text>
+            </view>
+            <view v-if="storyEnhancement.interaction_density" class="enhance-tag">
+              <text>{{ getStoryOptionLabel('interaction_density', storyEnhancement.interaction_density) }}</text>
+            </view>
+            <view v-if="storyEnhancement.educational_focus" class="enhance-tag">
+              <text>{{ getStoryOptionLabel('educational_focus', storyEnhancement.educational_focus) }}</text>
+            </view>
+            <view v-if="storyEnhancement.language_style" class="enhance-tag">
+              <text>{{ getStoryOptionLabel('language_style', storyEnhancement.language_style) }}</text>
+            </view>
+            <view v-if="storyEnhancement.plot_complexity" class="enhance-tag">
+              <text>{{ getStoryOptionLabel('plot_complexity', storyEnhancement.plot_complexity) }}</text>
+            </view>
+            <view v-if="storyEnhancement.ending_style" class="enhance-tag">
+              <text>{{ getStoryOptionLabel('ending_style', storyEnhancement.ending_style) }}</text>
+            </view>
+          </view>
+        </view>
+
+        <!-- 画面设置确认 -->
+        <view v-if="hasVisualEnhancement" class="confirm-card enhance-card">
+          <view class="enhance-card-header">
+            <text class="enhance-icon">🎬</text>
+            <text class="enhance-title">画面设置</text>
+          </view>
+          <view class="enhance-tags">
+            <view v-if="visualEnhancement.time_atmosphere" class="enhance-tag visual">
+              <text>{{ getVisualOptionLabel('time_atmosphere', visualEnhancement.time_atmosphere) }}</text>
+            </view>
+            <view v-if="visualEnhancement.scene_environment" class="enhance-tag visual">
+              <text>{{ getVisualOptionLabel('scene_environment', visualEnhancement.scene_environment) }}</text>
+            </view>
+            <view v-if="visualEnhancement.emotional_tone" class="enhance-tag visual">
+              <text>{{ getVisualOptionLabel('emotional_tone', visualEnhancement.emotional_tone) }}</text>
+            </view>
+            <view v-if="visualEnhancement.composition_style" class="enhance-tag visual">
+              <text>{{ getVisualOptionLabel('composition_style', visualEnhancement.composition_style) }}</text>
+            </view>
+            <view v-if="visualEnhancement.lighting_effect" class="enhance-tag visual">
+              <text>{{ getVisualOptionLabel('lighting_effect', visualEnhancement.lighting_effect) }}</text>
+            </view>
+          </view>
+        </view>
+
         <view class="confirm-tip">
           <text class="tip-icon">💡</text>
           <text class="tip-text">生成过程大约需要 1-2 分钟，请耐心等待</text>
@@ -825,6 +878,45 @@ const visualEnhancementSummary = computed(() => {
   return `已选 ${selected.length} 项`
 })
 
+// 是否有故事增强选项
+const hasStoryEnhancement = computed(() => {
+  return Object.values(storyEnhancement.value).some(v => v !== null)
+})
+
+// 是否有视觉增强选项
+const hasVisualEnhancement = computed(() => {
+  return Object.values(visualEnhancement.value).some(v => v !== null)
+})
+
+// 获取故事选项的显示标签
+function getStoryOptionLabel(key: string, value: string): string {
+  const optionsMap: Record<string, Array<{value: string, label: string, emoji: string}>> = {
+    narrative_pace: narrativePaceOptions,
+    interaction_density: interactionDensityOptions,
+    educational_focus: educationalFocusOptions,
+    language_style: languageStyleOptions,
+    plot_complexity: plotComplexityOptions,
+    ending_style: endingStyleOptions
+  }
+  const options = optionsMap[key]
+  const opt = options?.find(o => o.value === value)
+  return opt ? `${opt.emoji} ${opt.label}` : value
+}
+
+// 获取视觉选项的显示标签
+function getVisualOptionLabel(key: string, value: string): string {
+  const optionsMap: Record<string, Array<{value: string, label: string, emoji: string}>> = {
+    time_atmosphere: timeAtmosphereOptions,
+    scene_environment: sceneEnvironmentOptions,
+    emotional_tone: emotionalToneOptions,
+    composition_style: compositionStyleOptions,
+    lighting_effect: lightingEffectOptions
+  }
+  const options = optionsMap[key]
+  const opt = options?.find(o => o.value === value)
+  return opt ? `${opt.emoji} ${opt.label}` : value
+}
+
 // TTS 音色选项（从 API 加载）
 const voiceOptions = ref<TTSVoiceDetail[]>([])
 
@@ -1144,6 +1236,14 @@ function selectTheme(theme: ThemeItem) {
 
 function prevStep() {
   if (currentStep.value > 0) {
+    // 智能创作模式下，步骤1点击上一步应回到模式选择器
+    if (isSmartMode.value && currentStep.value === 1) {
+      showModeSelector.value = true
+      isSmartMode.value = false
+      customPrompt.value = ''
+      currentStep.value = 0
+      return
+    }
     currentStep.value--
   }
 }
@@ -2602,5 +2702,58 @@ onUnmounted(() => {
   color: $text-primary;
   white-space: nowrap;
   transition: all $duration-fast;
+}
+
+// === 确认页增强卡片 ===
+.enhance-card {
+  margin-top: $spacing-sm;
+  padding: $spacing-md;
+}
+
+.enhance-card-header {
+  display: flex;
+  align-items: center;
+  gap: $spacing-xs;
+  margin-bottom: $spacing-sm;
+}
+
+.enhance-icon {
+  font-size: 24rpx;
+}
+
+.enhance-title {
+  font-size: $font-sm;
+  font-weight: $font-semibold;
+  color: $text-primary;
+}
+
+.enhance-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-xs;
+}
+
+.enhance-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 8rpx 16rpx;
+  background: rgba($book-primary, 0.1);
+  border-radius: $radius-full;
+  border: 1rpx solid rgba($book-primary, 0.2);
+
+  text {
+    font-size: $font-xs;
+    color: $book-primary;
+    font-weight: $font-medium;
+  }
+
+  &.visual {
+    background: rgba($video-primary, 0.1);
+    border-color: rgba($video-primary, 0.2);
+
+    text {
+      color: $video-primary;
+    }
+  }
 }
 </style>

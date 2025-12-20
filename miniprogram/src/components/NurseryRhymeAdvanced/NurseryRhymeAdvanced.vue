@@ -37,8 +37,8 @@
                       v-for="opt in group.options"
                       :key="opt.value"
                       class="chip"
-                      :class="{ selected: params.music_genre?.includes(opt.value) }"
-                      @tap="toggleArrayValue('music_genre', opt.value)"
+                      :class="{ selected: params.music_genre === opt.value }"
+                      @tap="updateParam('music_genre', opt.value)"
                     >
                       {{ opt.label }}
                     </view>
@@ -149,8 +149,8 @@
                 v-for="tech in vocalTechniques"
                 :key="tech.value"
                 class="chip"
-                :class="{ selected: params.vocal_style?.includes(tech.value) }"
-                @tap="toggleArrayValue('vocal_style', tech.value)"
+                :class="{ selected: params.vocal_style === tech.value }"
+                @tap="updateParam('vocal_style', tech.value)"
               >
                 {{ tech.label }}
               </view>
@@ -300,8 +300,8 @@
                 v-for="action in actionTypes"
                 :key="action.value"
                 class="chip"
-                :class="{ selected: params.action_types?.includes(action.value) }"
-                @tap="toggleArrayValue('action_types', action.value)"
+                :class="{ selected: params.action_types === action.value }"
+                @tap="updateParam('action_types', action.value)"
               >
                 {{ action.icon }} {{ action.label }}
               </view>
@@ -390,8 +390,8 @@
                     v-for="focus in group.options"
                     :key="focus.value"
                     class="chip"
-                    :class="{ selected: params.educational_focus?.includes(focus.value) }"
-                    @tap="toggleArrayValue('educational_focus', focus.value)"
+                    :class="{ selected: params.educational_focus === focus.value }"
+                    @tap="updateParam('educational_focus', focus.value)"
                   >
                     {{ focus.label }}
                   </view>

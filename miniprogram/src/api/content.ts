@@ -241,7 +241,7 @@ export interface GenerateNurseryRhymeParams {
   // === 主题参数 ===
   theme_topic: string
   theme_category: string
-  educational_focus?: string[]           // 教育目标数组
+  educational_focus?: string              // 教育目标（单选）
 
   // === 创作模式 ===
   creation_mode?: CreationMode           // 'preset'（预设模式）或 'smart'（智能模式）
@@ -250,7 +250,7 @@ export interface GenerateNurseryRhymeParams {
 
   // === 音乐风格 ===
   music_mood?: string                    // 音乐氛围：cheerful/gentle/playful/lullaby/energetic/mysterious/inspiring/relaxed
-  music_genre?: string[]                 // 音乐流派（支持多选）
+  music_genre?: string                   // 音乐流派（单选）
   tempo?: number                         // 节奏速度 (60-180 BPM)
   energy_level?: number                  // 能量强度 (1-10)
 
@@ -258,7 +258,7 @@ export interface GenerateNurseryRhymeParams {
   vocal_type?: string                    // 人声类型：soft_female/warm_male/child/chorus/duet/instrumental
   vocal_range?: string                   // 音域：high/mid/low
   vocal_emotion?: string                 // 情感表达：happy/tender/playful/calm/dreamy/passionate/gentle/mysterious
-  vocal_style?: string[]                 // 演唱技巧（支持多选）
+  vocal_style?: string                   // 演唱技巧（单选）
   vocal_effects?: string[]               // 声音效果（支持多选）
   vocal_regional?: string                // 地域特色：american/british/japanese/korean/chinese/latin
 
@@ -274,7 +274,7 @@ export interface GenerateNurseryRhymeParams {
   song_structure?: string                // 歌曲结构：simple/standard/full/chorus_only/progressive/narrative/call_response/rap/aaba/custom
   duration_preference?: number           // 时长偏好（秒）
   has_actions?: boolean                  // 是否包含动作指引
-  action_types?: string[]                // 动作类型（支持多选）
+  action_types?: string                  // 动作类型（单选）
 
   // === 语言文化 ===
   language?: string                      // 歌曲语言

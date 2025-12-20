@@ -177,7 +177,10 @@
           </view>
 
           <!-- 高级设置组件 -->
-          <NurseryRhymeAdvanced v-model="advancedParams" />
+          <NurseryRhymeAdvanced
+            :model-value="advancedParams"
+            @update:model-value="onAdvancedParamsUpdate"
+          />
         </view>
       </view>
 
@@ -428,6 +431,12 @@ function onMoodChange(mood: string) {
     Object.assign(advancedParams, linkage)
     console.log('[onMoodChange] 智能联动:', mood, linkage)
   }
+}
+
+// 高级参数更新处理（reactive 对象不能直接被 v-model 替换）
+function onAdvancedParamsUpdate(newValue: Partial<GenerateNurseryRhymeParams>) {
+  // 使用 Object.assign 合并更新，而不是替换整个对象
+  Object.assign(advancedParams, newValue)
 }
 
 

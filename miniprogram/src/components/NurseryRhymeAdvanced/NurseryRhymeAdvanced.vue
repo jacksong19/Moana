@@ -649,105 +649,205 @@ watch(() => props.modelValue.negative_tags, (val) => {
 </script>
 
 <style lang="scss" scoped>
+@import '@/styles/variables.scss';
+
+// ============================================
+// 高级设置组件 - 温暖童话花园风格
+// Warm Storybook Garden Advanced Settings
+// ============================================
+
 .advanced-settings {
-  margin: 24rpx 0;
-  background: rgba(255, 255, 255, 0.08);
-  border-radius: 24rpx;
+  margin: $spacing-lg 0;
+  background: $bg-card;
+  border-radius: $radius-lg;
+  border: 1rpx solid $border-light;
+  box-shadow: $shadow-card;
   overflow: hidden;
+
+  // 顶部装饰渐变线
+  &::before {
+    content: '';
+    display: block;
+    height: 4rpx;
+    background: linear-gradient(90deg, $song-primary, $song-secondary, $accent);
+    opacity: 0.6;
+  }
 }
 
+// ==========================================
+// 设置头部 - 可点击展开
+// ==========================================
 .settings-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 28rpx 32rpx;
-  background: rgba(255, 255, 255, 0.05);
+  padding: $spacing-md $spacing-lg;
+  background: linear-gradient(135deg, rgba($song-light, 0.5) 0%, rgba($bg-soft, 0.8) 100%);
+  cursor: pointer;
+  transition: background $duration-fast;
+
+  &:active {
+    background: rgba($song-light, 0.7);
+  }
 
   .header-left {
     display: flex;
     align-items: center;
-    gap: 12rpx;
+    gap: $spacing-sm;
   }
 
   .header-icon {
-    font-size: 36rpx;
+    width: 48rpx;
+    height: 48rpx;
+    background: linear-gradient(135deg, $song-primary, $song-secondary);
+    border-radius: $radius-md;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24rpx;
+    box-shadow: 0 4rpx 12rpx rgba($song-primary, 0.25);
   }
 
   .header-title {
-    font-size: 30rpx;
-    font-weight: 600;
-    color: #fff;
+    font-size: $font-md;
+    font-weight: $font-semibold;
+    color: $text-primary;
   }
 
   .header-hint {
-    font-size: 24rpx;
-    color: rgba(255, 255, 255, 0.5);
+    font-size: $font-xs;
+    color: $text-tertiary;
+    margin-left: 4rpx;
   }
 
   .header-arrow {
-    font-size: 36rpx;
-    color: rgba(255, 255, 255, 0.6);
-    transition: transform 0.3s;
-    transform: rotate(90deg);
+    width: 36rpx;
+    height: 36rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba($song-primary, 0.1);
+    border-radius: $radius-sm;
+    transition: all $duration-base $ease-bounce;
 
-    &.expanded {
+    text {
+      font-size: 28rpx;
+      color: $song-primary;
+      font-weight: $font-bold;
+      transform: rotate(90deg);
+      transition: transform $duration-base $ease-bounce;
+    }
+
+    &.expanded text {
       transform: rotate(-90deg);
     }
   }
 }
 
+// ==========================================
+// 设置面板容器
+// ==========================================
 .settings-panels {
-  padding: 16rpx;
+  padding: $spacing-md;
+  background: $bg-soft;
 }
 
+// ==========================================
+// 单个面板 - 柔和卡片风格
+// ==========================================
 .panel {
-  margin-bottom: 16rpx;
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 16rpx;
+  margin-bottom: $spacing-sm;
+  background: $bg-card;
+  border-radius: $radius-md;
+  border: 1rpx solid $border-light;
+  box-shadow: $shadow-sm;
   overflow: hidden;
+  transition: all $duration-base;
 
   &:last-child {
     margin-bottom: 0;
+  }
+
+  // 展开状态增强
+  &:has(.panel-content) {
+    box-shadow: $shadow-md;
+    border-color: rgba($song-primary, 0.15);
   }
 }
 
 .panel-header {
   display: flex;
   align-items: center;
-  padding: 24rpx;
-  gap: 12rpx;
+  padding: $spacing-md;
+  gap: $spacing-sm;
+  cursor: pointer;
+  transition: background $duration-fast;
+
+  &:active {
+    background: $bg-soft;
+  }
 
   .panel-icon {
-    font-size: 32rpx;
+    width: 40rpx;
+    height: 40rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba($song-primary, 0.1);
+    border-radius: $radius-sm;
+    font-size: 22rpx;
   }
 
   .panel-title {
     flex: 1;
-    font-size: 28rpx;
-    color: #fff;
+    font-size: $font-base;
+    font-weight: $font-medium;
+    color: $text-primary;
   }
 
   .panel-arrow {
-    font-size: 32rpx;
-    color: rgba(255, 255, 255, 0.5);
-    transition: transform 0.2s;
+    font-size: 28rpx;
+    color: $text-tertiary;
+    transition: transform $duration-fast $ease-bounce;
     transform: rotate(90deg);
 
     &.open {
       transform: rotate(-90deg);
+      color: $song-primary;
     }
   }
 }
 
 .panel-content {
-  padding: 0 24rpx 24rpx;
+  padding: 0 $spacing-md $spacing-md;
+  border-top: 1rpx solid $border-light;
+  animation: slideDown $duration-base $ease-out;
 }
 
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8rpx);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+// ==========================================
+// 字段组 - 清晰的层次结构
+// ==========================================
 .field-group {
-  margin-bottom: 24rpx;
+  margin-bottom: $spacing-lg;
+  padding-top: $spacing-md;
 
   &:last-child {
     margin-bottom: 0;
+  }
+
+  &:first-child {
+    padding-top: $spacing-sm;
   }
 }
 
@@ -755,54 +855,78 @@ watch(() => props.modelValue.negative_tags, (val) => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 8rpx;
+  margin-bottom: $spacing-xs;
 }
 
 .field-label {
-  font-size: 26rpx;
-  color: rgba(255, 255, 255, 0.9);
-  margin-bottom: 8rpx;
-  display: block;
+  font-size: $font-sm;
+  font-weight: $font-medium;
+  color: $text-primary;
+  margin-bottom: $spacing-xs;
+  display: flex;
+  align-items: center;
+  gap: 6rpx;
+
+  &::before {
+    content: '';
+    width: 6rpx;
+    height: 6rpx;
+    background: $song-primary;
+    border-radius: 50%;
+  }
 }
 
 .field-value {
-  font-size: 24rpx;
-  color: #4ECDC4;
+  font-size: $font-xs;
+  color: $song-primary;
+  font-weight: $font-medium;
+  background: rgba($song-primary, 0.1);
+  padding: 4rpx 12rpx;
+  border-radius: $radius-full;
 }
 
 .field-help {
-  font-size: 22rpx;
-  color: rgba(255, 255, 255, 0.5);
-  margin-bottom: 12rpx;
+  font-size: $font-xs;
+  color: $text-tertiary;
+  margin-bottom: $spacing-sm;
   display: block;
+  line-height: $line-height-base;
 }
 
+// ==========================================
+// Chip 标签系统 - 柔和圆润
+// ==========================================
 .chips-scroll {
   white-space: nowrap;
+  margin: 0 -#{$spacing-md};
+  padding: 0 $spacing-md;
 
   &.vertical {
     white-space: normal;
+    margin: 0;
+    padding: 0;
   }
 }
 
 .chips-row {
   display: inline-flex;
-  gap: 24rpx;
+  gap: $spacing-md;
 }
 
 .chip-group {
-  margin-bottom: 16rpx;
+  margin-bottom: $spacing-md;
 
   .group-label {
-    font-size: 22rpx;
-    color: rgba(255, 255, 255, 0.6);
-    margin-bottom: 8rpx;
+    font-size: $font-xs;
+    color: $text-tertiary;
+    margin-bottom: $spacing-xs;
     display: block;
+    font-weight: $font-medium;
   }
 
   .group-chips {
     display: inline-flex;
-    gap: 12rpx;
+    gap: $spacing-xs;
     flex-wrap: wrap;
   }
 }
@@ -814,31 +938,42 @@ watch(() => props.modelValue.negative_tags, (val) => {
 .chips-wrap {
   display: flex;
   flex-wrap: wrap;
-  gap: 12rpx;
+  gap: $spacing-xs;
 }
 
 .chip {
   display: inline-flex;
   align-items: center;
-  padding: 12rpx 20rpx;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 24rpx;
-  font-size: 24rpx;
-  color: rgba(255, 255, 255, 0.8);
-  transition: all 0.2s;
+  padding: 14rpx 24rpx;
+  background: $bg-soft;
+  border-radius: $radius-full;
+  border: 2rpx solid transparent;
+  font-size: $font-sm;
+  color: $text-secondary;
+  transition: all $duration-fast $ease-bounce;
+
+  &:active {
+    transform: scale(0.95);
+  }
 
   &.selected {
-    background: linear-gradient(135deg, #FF6B6B, #FF8E53);
-    color: #fff;
+    background: linear-gradient(135deg, rgba($song-primary, 0.15), rgba($song-secondary, 0.15));
+    border-color: $song-primary;
+    color: $song-primary;
+    font-weight: $font-medium;
+    box-shadow: 0 2rpx 8rpx rgba($song-primary, 0.2);
   }
 
   &.negative {
-    background: rgba(231, 76, 60, 0.2);
-    border: 1rpx solid rgba(231, 76, 60, 0.3);
+    background: rgba($error, 0.08);
+    border: 2rpx solid rgba($error, 0.2);
+    color: $text-secondary;
 
     &.selected {
-      background: #E74C3C;
-      border-color: #E74C3C;
+      background: rgba($error, 0.15);
+      border-color: $error;
+      color: $error;
+      font-weight: $font-medium;
     }
   }
 
@@ -847,10 +982,13 @@ watch(() => props.modelValue.negative_tags, (val) => {
   }
 }
 
+// ==========================================
+// 选项卡片 - 双列布局
+// ==========================================
 .option-row {
   display: flex;
-  gap: 16rpx;
-  flex-wrap: wrap;
+  gap: $spacing-sm;
+  flex-wrap: nowrap;
 
   &.wrap {
     flex-wrap: wrap;
@@ -859,52 +997,79 @@ watch(() => props.modelValue.negative_tags, (val) => {
 
 .option-card {
   flex: 1;
-  min-width: 140rpx;
-  padding: 20rpx;
-  background: rgba(255, 255, 255, 0.08);
-  border-radius: 16rpx;
+  min-width: 0;
+  padding: $spacing-md;
+  background: $bg-soft;
+  border-radius: $radius-md;
+  border: 2rpx solid transparent;
   text-align: center;
-  transition: all 0.2s;
+  transition: all $duration-fast $ease-bounce;
+
+  &:active {
+    transform: scale(0.97);
+  }
 
   &.small {
-    min-width: 120rpx;
-    padding: 16rpx;
+    padding: $spacing-sm $spacing-xs;
+
+    .opt-label {
+      font-size: $font-xs;
+    }
+    .opt-desc {
+      font-size: 20rpx;
+    }
   }
 
   &.selected {
-    background: linear-gradient(135deg, rgba(255, 107, 107, 0.3), rgba(255, 142, 83, 0.3));
-    border: 2rpx solid #FF6B6B;
+    background: linear-gradient(135deg, rgba($song-primary, 0.1), rgba($song-secondary, 0.1));
+    border-color: $song-primary;
+    box-shadow: 0 4rpx 16rpx rgba($song-primary, 0.15);
+
+    .opt-label {
+      color: $song-primary;
+    }
+    .opt-icon {
+      transform: scale(1.1);
+    }
   }
 
   .opt-icon {
     font-size: 36rpx;
     display: block;
-    margin-bottom: 8rpx;
+    margin-bottom: $spacing-xs;
+    transition: transform $duration-fast $ease-bounce;
   }
 
   .opt-label {
-    font-size: 24rpx;
-    color: #fff;
+    font-size: $font-sm;
+    color: $text-primary;
+    font-weight: $font-medium;
     display: block;
+    transition: color $duration-fast;
   }
 
   .opt-desc {
-    font-size: 20rpx;
-    color: rgba(255, 255, 255, 0.5);
+    font-size: $font-xs;
+    color: $text-tertiary;
     margin-top: 4rpx;
     display: block;
+    line-height: 1.3;
   }
 }
 
+// ==========================================
+// 滑块控件 - 温暖色调
+// ==========================================
 .custom-slider {
-  margin: 16rpx 0;
+  margin: $spacing-sm 0;
 }
 
 .slider-labels {
   display: flex;
   justify-content: space-between;
   font-size: 20rpx;
-  color: rgba(255, 255, 255, 0.5);
-  padding: 0 8rpx;
+  color: $text-tertiary;
+  padding: 0 4rpx;
+  margin-top: 4rpx;
 }
 </style>

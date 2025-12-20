@@ -1533,28 +1533,43 @@ onLoad((options) => {
 }
 
 // ==========================================
-// 场景预设 - 横向滚动卡片
+// 场景预设 - 魔法卡片横向滚动
 // ==========================================
 .scene-presets-section {
   margin-bottom: $spacing-lg;
-  background: $bg-card;
+  background: linear-gradient(145deg, $bg-card 0%, rgba($song-light, 0.3) 100%);
   border-radius: $radius-lg;
   padding: $spacing-md;
-  border: 1rpx solid $border-light;
+  border: 1rpx solid rgba($song-primary, 0.12);
   box-shadow: $shadow-card;
+  position: relative;
+  overflow: hidden;
+
+  // 装饰性背景图案
+  &::before {
+    content: '';
+    position: absolute;
+    top: -30rpx;
+    right: -30rpx;
+    width: 120rpx;
+    height: 120rpx;
+    background: radial-gradient(circle, rgba($accent, 0.15) 0%, transparent 70%);
+    border-radius: 50%;
+    pointer-events: none;
+  }
 }
 
 .presets-scroll {
-  width: calc(100% + 32rpx);
-  margin-left: -16rpx;
-  margin-right: -16rpx;
+  width: calc(100% + 48rpx);
+  margin-left: -24rpx;
+  margin-right: -24rpx;
 }
 
 .presets-track {
   display: flex;
   gap: $spacing-sm;
-  padding: 0 16rpx;
-  padding-right: 48rpx;
+  padding: $spacing-xs 24rpx;
+  padding-right: 64rpx;
 }
 
 .preset-card {
@@ -1562,22 +1577,47 @@ onLoad((options) => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-width: 120rpx;
-  padding: $spacing-sm $spacing-md;
-  background: $bg-soft;
-  border-radius: $radius-md;
-  border: 2rpx solid transparent;
-  transition: all $duration-fast;
+  min-width: 140rpx;
+  padding: $spacing-md $spacing-sm;
+  background: $bg-card;
+  border-radius: $radius-lg;
+  border: 2rpx solid $border-light;
+  box-shadow: $shadow-sm;
+  transition: all $duration-base $ease-bounce;
   flex-shrink: 0;
+  position: relative;
+  overflow: hidden;
+
+  // 悬浮光晕
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(circle at center, rgba($accent, 0.1) 0%, transparent 70%);
+    opacity: 0;
+    transition: opacity $duration-fast;
+  }
 
   &.selected {
-    background: rgba($accent, 0.1);
+    background: linear-gradient(145deg, rgba($accent, 0.08) 0%, rgba($accent, 0.15) 100%);
     border-color: $accent;
-    box-shadow: 0 2rpx 12rpx rgba($accent, 0.2);
+    box-shadow: 0 6rpx 20rpx rgba($accent, 0.25);
+    transform: translateY(-4rpx);
+
+    &::after {
+      opacity: 1;
+    }
+
+    .preset-icon {
+      transform: scale(1.15);
+    }
 
     .preset-name {
-      color: $accent;
-      font-weight: $font-semibold;
+      color: darken($accent, 10%);
+      font-weight: $font-bold;
     }
   }
 
@@ -1587,19 +1627,27 @@ onLoad((options) => {
 }
 
 .preset-icon {
-  font-size: 36rpx;
-  margin-bottom: 4rpx;
+  font-size: 44rpx;
+  margin-bottom: $spacing-xs;
+  transition: transform $duration-base $ease-bounce;
+  filter: drop-shadow(0 2rpx 4rpx rgba(0,0,0,0.1));
 }
 
 .preset-name {
   font-size: $font-xs;
   color: $text-secondary;
   white-space: nowrap;
+  font-weight: $font-medium;
+  transition: all $duration-fast;
 }
 
 // ==========================================
-// 人声类型 - 网格卡片
+// 人声类型 - 温暖渐变卡片
 // ==========================================
+// 人声专属色彩变量
+$vocal-primary: #8B7EC8;  // 柔和紫罗兰
+$vocal-secondary: #A896D3;
+
 .vocal-type-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -1612,30 +1660,62 @@ onLoad((options) => {
   flex-direction: column;
   align-items: center;
   padding: $spacing-md $spacing-xs;
-  background: $bg-soft;
+  padding-top: 28rpx;
+  background: $bg-card;
   border-radius: $radius-md;
-  border: 2rpx solid transparent;
-  transition: all $duration-fast;
+  border: 2rpx solid $border-light;
+  box-shadow: $shadow-sm;
+  transition: all $duration-base $ease-bounce;
+  overflow: hidden;
+
+  // 顶部装饰条
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4rpx;
+    background: linear-gradient(90deg, transparent, rgba($vocal-primary, 0.3), transparent);
+    transition: all $duration-fast;
+  }
 
   &.selected {
-    background: rgba(#9B59B6, 0.08);
-    border-color: #9B59B6;
-    box-shadow: 0 2rpx 12rpx rgba(#9B59B6, 0.15);
+    background: linear-gradient(165deg, rgba($vocal-primary, 0.06) 0%, rgba($vocal-secondary, 0.12) 100%);
+    border-color: $vocal-primary;
+    box-shadow: 0 6rpx 20rpx rgba($vocal-primary, 0.2);
+
+    &::before {
+      background: linear-gradient(90deg, $vocal-primary, $vocal-secondary);
+      height: 6rpx;
+    }
+
+    .vocal-icon {
+      transform: scale(1.1);
+    }
 
     .vocal-name {
-      color: #9B59B6;
-      font-weight: $font-semibold;
+      color: $vocal-primary;
+      font-weight: $font-bold;
     }
   }
 
   &:active {
-    transform: scale(0.95);
+    transform: scale(0.96);
   }
 }
 
 .vocal-icon {
-  font-size: 36rpx;
-  margin-bottom: 8rpx;
+  width: 56rpx;
+  height: 56rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(145deg, rgba($vocal-primary, 0.1), rgba($vocal-secondary, 0.15));
+  border-radius: 50%;
+  font-size: 28rpx;
+  margin-bottom: $spacing-xs;
+  transition: transform $duration-base $ease-bounce;
 }
 
 .vocal-info {
@@ -1647,30 +1727,38 @@ onLoad((options) => {
   font-size: $font-sm;
   color: $text-primary;
   font-weight: $font-medium;
-  margin-bottom: 2rpx;
+  margin-bottom: 4rpx;
+  transition: all $duration-fast;
 }
 
 .vocal-desc {
   display: block;
   font-size: 20rpx;
   color: $text-tertiary;
-  line-height: 1.3;
+  line-height: 1.4;
 }
 
 .vocal-check {
   position: absolute;
-  top: 6rpx;
-  right: 6rpx;
-  width: 28rpx;
-  height: 28rpx;
-  background: #9B59B6;
+  top: 8rpx;
+  right: 8rpx;
+  width: 32rpx;
+  height: 32rpx;
+  background: linear-gradient(135deg, $vocal-primary, $vocal-secondary);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 16rpx;
+  font-size: 18rpx;
   color: $text-white;
   font-weight: $font-bold;
+  box-shadow: 0 2rpx 8rpx rgba($vocal-primary, 0.4);
+  animation: popIn $duration-base $ease-bounce;
+}
+
+@keyframes popIn {
+  0% { transform: scale(0); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
 }
 
 .section-title {
@@ -1680,7 +1768,7 @@ onLoad((options) => {
 }
 
 // ==========================================
-// 音乐情绪 - 大卡片带音量条 (温暖花园主题)
+// 音乐氛围 - 活力音波卡片 (8种氛围)
 // ==========================================
 .music-mood-grid {
   display: grid;
@@ -1693,87 +1781,149 @@ onLoad((options) => {
   display: flex;
   flex-direction: column;
   background: $bg-card;
-  border-radius: $radius-md;
-  border: 1rpx solid $border-light;
+  border-radius: $radius-lg;
+  border: 2rpx solid $border-light;
   overflow: hidden;
   transition: all $duration-base $ease-bounce;
   box-shadow: $shadow-sm;
 
   &.selected {
     border-color: $song-primary;
-    box-shadow: $shadow-colored-song;
+    box-shadow: 0 8rpx 28rpx rgba($song-primary, 0.25);
+
+    .mood-visual {
+      &::after {
+        opacity: 1;
+      }
+    }
 
     .mood-bars .bar {
       animation: barBounce 0.6s ease-in-out infinite;
+      opacity: 0.9;
+    }
+
+    .mood-icon {
+      transform: scale(1.15);
+    }
+
+    .mood-name {
+      color: $song-primary;
     }
   }
 
   &:active {
-    transform: scale(0.96);
+    transform: scale(0.97);
   }
 }
 
 .mood-visual {
-  height: 100rpx;
+  height: 110rpx;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: $spacing-sm;
+  gap: $spacing-md;
   position: relative;
 
-  &.cheerful { background: linear-gradient(135deg, rgba(255, 179, 71, 0.12) 0%, rgba(255, 123, 84, 0.12) 100%); }
-  &.gentle { background: linear-gradient(135deg, rgba(127, 178, 133, 0.12) 0%, rgba(91, 164, 217, 0.12) 100%); }
-  &.playful { background: linear-gradient(135deg, rgba(127, 178, 133, 0.12) 0%, rgba(245, 166, 35, 0.12) 100%); }
-  &.lullaby { background: linear-gradient(135deg, rgba(91, 164, 217, 0.12) 0%, rgba(139, 92, 246, 0.12) 100%); }
-  &.educational { background: linear-gradient(135deg, rgba(245, 166, 35, 0.12) 0%, rgba(127, 178, 133, 0.12) 100%); }
+  // 选中光晕效果
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(circle at 30% 50%, rgba(255,255,255,0.4) 0%, transparent 60%);
+    opacity: 0;
+    transition: opacity $duration-fast;
+    pointer-events: none;
+  }
+
+  // 8种氛围的独特渐变色
+  &.cheerful {
+    background: linear-gradient(135deg, rgba(255, 179, 71, 0.18) 0%, rgba(255, 123, 84, 0.15) 100%);
+    .bar { background: #FF7B54; }
+  }
+  &.gentle {
+    background: linear-gradient(135deg, rgba(127, 178, 133, 0.18) 0%, rgba(91, 164, 217, 0.15) 100%);
+    .bar { background: #7FB285; }
+  }
+  &.playful {
+    background: linear-gradient(135deg, rgba(102, 204, 153, 0.18) 0%, rgba(245, 166, 35, 0.15) 100%);
+    .bar { background: #66CC99; }
+  }
+  &.lullaby {
+    background: linear-gradient(135deg, rgba(91, 164, 217, 0.18) 0%, rgba(139, 92, 246, 0.15) 100%);
+    .bar { background: #5BA4D9; }
+  }
+  &.educational {
+    background: linear-gradient(135deg, rgba(245, 166, 35, 0.18) 0%, rgba(127, 178, 133, 0.15) 100%);
+    .bar { background: #F5A623; }
+  }
+  &.rhythmic {
+    background: linear-gradient(135deg, rgba(255, 123, 84, 0.18) 0%, rgba(255, 99, 132, 0.15) 100%);
+    .bar { background: #FF6384; }
+  }
+  &.soothing {
+    background: linear-gradient(135deg, rgba(139, 126, 200, 0.18) 0%, rgba(168, 150, 211, 0.15) 100%);
+    .bar { background: #8B7EC8; }
+  }
+  &.festive {
+    background: linear-gradient(135deg, rgba(255, 99, 132, 0.18) 0%, rgba(245, 166, 35, 0.15) 100%);
+    .bar { background: #FF6384; }
+  }
 }
 
 .mood-icon {
-  font-size: 40rpx;
+  font-size: 44rpx;
+  transition: transform $duration-base $ease-bounce;
+  filter: drop-shadow(0 2rpx 4rpx rgba(0,0,0,0.08));
 }
 
 .mood-bars {
   display: flex;
-  gap: 4rpx;
+  gap: 5rpx;
   align-items: flex-end;
-  height: 40rpx;
+  height: 44rpx;
 }
 
 .bar {
-  width: 6rpx;
+  width: 7rpx;
   background: $song-primary;
-  border-radius: 3rpx;
-  opacity: 0.4;
+  border-radius: 4rpx;
+  opacity: 0.5;
 
-  &:nth-child(1) { height: 16rpx; animation-delay: 0s; }
-  &:nth-child(2) { height: 28rpx; animation-delay: 0.1s; }
-  &:nth-child(3) { height: 20rpx; animation-delay: 0.2s; }
-  &:nth-child(4) { height: 32rpx; animation-delay: 0.3s; }
-  &:nth-child(5) { height: 24rpx; animation-delay: 0.4s; }
+  &:nth-child(1) { height: 18rpx; animation-delay: 0s; }
+  &:nth-child(2) { height: 30rpx; animation-delay: 0.1s; }
+  &:nth-child(3) { height: 22rpx; animation-delay: 0.2s; }
+  &:nth-child(4) { height: 36rpx; animation-delay: 0.3s; }
+  &:nth-child(5) { height: 26rpx; animation-delay: 0.4s; }
 }
 
 @keyframes barBounce {
-  0%, 100% { transform: scaleY(0.6); opacity: 0.4; }
+  0%, 100% { transform: scaleY(0.5); opacity: 0.4; }
   50% { transform: scaleY(1); opacity: 1; }
 }
 
 .mood-info {
-  padding: $spacing-sm;
+  padding: $spacing-sm $spacing-xs;
   text-align: center;
+  background: linear-gradient(180deg, transparent 0%, rgba($bg-soft, 0.5) 100%);
 }
 
 .mood-name {
   display: block;
   font-size: $font-sm;
-  font-weight: $font-semibold;
+  font-weight: $font-bold;
   color: $text-primary;
   margin-bottom: 4rpx;
+  transition: color $duration-fast;
 }
 
 .mood-desc {
   display: block;
   font-size: $font-xs;
   color: $text-tertiary;
+  line-height: 1.3;
 }
 
 .mood-check {

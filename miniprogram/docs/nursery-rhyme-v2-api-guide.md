@@ -365,32 +365,30 @@ async function pollTaskStatus(taskId: string) {
 
 ---
 
-## 七、需要后端确认的问题
+## 七、后端确认结果
+
+> ✅ 已于 2025-12-21 与后端确认
 
 ### 7.1 类型确认
 
-| 参数 | 前端类型 | 问题 |
-|------|----------|------|
-| `music_genre` | string | 确认是单选还是多选？ |
-| `vocal_style` | string | 确认是单选还是多选？ |
-| `action_types` | string | 确认是单选还是多选？ |
-| `educational_focus` | string | 确认是单选还是多选？ |
+| 参数 | 前端类型 | 后端支持 | 状态 |
+|------|----------|----------|------|
+| `music_genre` | string | ✅ 单选 string | ✅ 已对齐 |
+| `vocal_style` | string | ✅ 单选 string | ✅ 已对齐 |
+| `action_types` | string | ✅ 单选 string，映射为 `has_actions` | ✅ 已对齐 |
+| `educational_focus` | string | ✅ 支持 string 或 list | ✅ 已对齐 |
 
-### 7.2 参数支持确认
+### 7.2 参数处理机制
 
-以下参数是否已在后端实现？
+| 问题 | 后端回答 |
+|------|----------|
+| 31 个参数是否都生效？ | ✅ 是，全部透传给提示词增强 |
+| Prompt 生成如何影响 Suno？ | Gemini 将参数转换为英文风格标签格式 |
 
-- [ ] `vocal_effects` - 声音效果（多选）
-- [ ] `vocal_regional` - 地域特色（单选）
-- [ ] `favorite_characters` - 喜欢的角色（多选）
-- [ ] `duration_preference` - 时长偏好
+### 7.3 待验证问题
 
-### 7.3 其他问题
-
-1. **video_url 为空**：Suno 回调是否正常？前端收到空字符串 `""`
-2. **参数上限**：31 个参数是否都生效？有无被忽略的参数？
-3. **Prompt 生成**：增强参数如何影响最终的 Suno Prompt？
-4. **lyrics 格式**：是否统一返回对象格式（包含 full_text, sections, timestamped）？
+1. **video_url 为空**：需要检查 Suno 回调日志
+2. **lyrics 格式**：确认是否统一返回对象格式
 
 ---
 

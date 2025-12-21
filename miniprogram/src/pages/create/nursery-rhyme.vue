@@ -189,7 +189,12 @@
         <text class="step-title">确认创作</text>
         <text class="step-desc">检查设置，开始生成专属儿歌</text>
 
-        <view class="confirm-card">
+        <!-- 基础信息卡片 -->
+        <view class="confirm-card confirm-basic">
+          <view class="confirm-card-header">
+            <text class="card-header-icon">🎵</text>
+            <text class="card-header-title">基础信息</text>
+          </view>
           <!-- 智能创作模式显示用户描述 -->
           <view v-if="isSmartMode" class="confirm-item smart-prompt-item">
             <text class="confirm-label">创作描述</text>
@@ -198,19 +203,39 @@
           <!-- 普通模式显示主题 -->
           <view v-else class="confirm-item">
             <text class="confirm-label">儿歌主题</text>
-            <text class="confirm-value">{{ selectedTheme?.name }}</text>
+            <text class="confirm-value theme-value">{{ selectedTheme?.name }}</text>
           </view>
           <view class="confirm-item">
             <text class="confirm-label">主人公</text>
             <text class="confirm-value">{{ childName }}</text>
           </view>
           <view class="confirm-item">
-            <text class="confirm-label">音乐风格</text>
-            <text class="confirm-value">{{ currentStyleName }}</text>
+            <text class="confirm-label">音乐氛围</text>
+            <text class="confirm-value highlight-value">{{ currentStyleName }}</text>
           </view>
           <view class="confirm-item">
             <text class="confirm-label">人声类型</text>
-            <text class="confirm-value">{{ currentVocalTypeName }}</text>
+            <text class="confirm-value highlight-value">{{ currentVocalTypeName }}</text>
+          </view>
+        </view>
+
+        <!-- 高级设置摘要（仅当有设置时显示） -->
+        <view v-if="confirmSummary.length > 0" class="confirm-card confirm-advanced">
+          <view class="confirm-card-header">
+            <text class="card-header-icon">⚙️</text>
+            <text class="card-header-title">创作设置</text>
+            <text class="card-header-count">{{ confirmSummary.length }}项</text>
+          </view>
+          <view class="confirm-tags">
+            <view
+              v-for="(item, index) in confirmSummary"
+              :key="index"
+              class="confirm-tag"
+            >
+              <text class="tag-icon">{{ item.icon }}</text>
+              <text class="tag-label">{{ item.label }}</text>
+              <text class="tag-value">{{ item.value }}</text>
+            </view>
           </view>
         </view>
 
@@ -268,8 +293,18 @@ import {
   SCENE_PRESETS,
   MUSIC_MOODS,
   VOCAL_TYPES,
+  MUSIC_GENRES,
+  VOCAL_RANGES,
+  VOCAL_EMOTIONS,
+  VOCAL_TECHNIQUES,
+  SONG_STRUCTURES,
+  ACTION_TYPES,
+  LANGUAGES,
+  EDUCATIONAL_FOCUS,
   getScenePresetParams,
   getMoodLinkageParams,
+  getTempoHint,
+  getEnergyHint,
   DEFAULT_PARAMS
 } from '@/config/nurseryRhymeConfig'
 import type { ScenePreset, NurseryRhymeFullParams } from '@/config/nurseryRhymeConfig'
@@ -399,6 +434,90 @@ const currentStyleName = computed(() => {
 
 const currentVocalTypeName = computed(() => {
   return vocalTypes.find(v => v.value === selectedVocalType.value)?.label || ''
+})
+
+// 确认页显示的参数摘要
+const confirmSummary = computed(() => {
+  const summary: { label: string; value: string; icon?: string }[] = []
+
+  // 场景预设
+  if (selectedScenePreset.value) {
+    const preset = scenePresets.find(p => p.id === selectedScenePreset.value)
+    if (preset) {
+      summary.push({ label: '场景预设', value: preset.name, icon: preset.icon })
+    }
+  }
+
+  // 音乐流派
+  if (advancedParams.music_genre) {
+    const allGenres = MUSIC_GENRES.flatMap(g => g.options)
+    const genre = allGenres.find(g => g.value === advancedParams.music_genre)
+    if (genre) summary.push({ label: '音乐流派', value: genre.label, icon: '🎵' })
+  }
+
+  // 节奏速度
+  if (advancedParams.tempo && advancedParams.tempo !== 100) {
+    summary.push({
+      label: '节奏速度',
+      value: `${advancedParams.tempo} BPM · ${getTempoHint(advancedParams.tempo)}`,
+      icon: '⏱️'
+    })
+  }
+
+  // 能量强度
+  if (advancedParams.energy_level && advancedParams.energy_level !== 5) {
+    summary.push({
+      label: '能量强度',
+      value: getEnergyHint(advancedParams.energy_level),
+      icon: '⚡'
+    })
+  }
+
+  // 音域
+  if (advancedParams.vocal_range) {
+    const range = VOCAL_RANGES.find(r => r.value === advancedParams.vocal_range)
+    if (range) summary.push({ label: '音域', value: range.label, icon: '🎤' })
+  }
+
+  // 情感表达
+  if (advancedParams.vocal_emotion) {
+    const emotion = VOCAL_EMOTIONS.find(e => e.value === advancedParams.vocal_emotion)
+    if (emotion) summary.push({ label: '情感表达', value: emotion.label, icon: '💫' })
+  }
+
+  // 演唱技巧
+  if (advancedParams.vocal_style) {
+    const tech = VOCAL_TECHNIQUES.find(t => t.value === advancedParams.vocal_style)
+    if (tech) summary.push({ label: '演唱技巧', value: tech.label, icon: '🎶' })
+  }
+
+  // 歌曲结构
+  if (advancedParams.song_structure) {
+    const struct = SONG_STRUCTURES.find(s => s.value === advancedParams.song_structure)
+    if (struct) summary.push({ label: '歌曲结构', value: `${struct.label} (${struct.description})`, icon: '🎼' })
+  }
+
+  // 动作指引
+  if (advancedParams.action_types) {
+    const action = ACTION_TYPES.find(a => a.value === advancedParams.action_types)
+    if (action) summary.push({ label: '动作指引', value: action.label, icon: action.icon })
+  }
+
+  // 语言
+  if (advancedParams.language && advancedParams.language !== 'zh') {
+    const allLangs = LANGUAGES.flatMap(g => g.options)
+    const lang = allLangs.find(l => l.value === advancedParams.language)
+    if (lang) summary.push({ label: '歌曲语言', value: lang.label, icon: '🌍' })
+  }
+
+  // 教育目标
+  if (advancedParams.educational_focus) {
+    const allFocus = EDUCATIONAL_FOCUS.flatMap(g => g.options)
+    const focus = allFocus.find(f => f.value === advancedParams.educational_focus)
+    if (focus) summary.push({ label: '教育目标', value: focus.label, icon: '📚' })
+  }
+
+  return summary
 })
 
 // 选择场景预设
@@ -2164,6 +2283,105 @@ $vocal-secondary: #A896D3;
 .tip-text {
   font-size: $font-sm;
   color: $song-primary;
+}
+
+// ==========================================
+// 确认页增强样式 - 前端设计技能优化
+// ==========================================
+.confirm-card-header {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  padding-bottom: $spacing-sm;
+  margin-bottom: $spacing-sm;
+  border-bottom: 1rpx solid $border-light;
+}
+
+.card-header-icon {
+  width: 40rpx;
+  height: 40rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, rgba($song-primary, 0.15), rgba($song-secondary, 0.1));
+  border-radius: $radius-sm;
+  font-size: 22rpx;
+}
+
+.card-header-title {
+  flex: 1;
+  font-size: $font-md;
+  font-weight: $font-semibold;
+  color: $text-primary;
+}
+
+.card-header-count {
+  font-size: $font-xs;
+  color: $song-primary;
+  background: rgba($song-primary, 0.1);
+  padding: 4rpx 12rpx;
+  border-radius: $radius-full;
+}
+
+.confirm-basic {
+  border-left: 4rpx solid $song-primary;
+}
+
+.confirm-advanced {
+  border-left: 4rpx solid $accent;
+  margin-top: $spacing-md;
+}
+
+.confirm-value {
+  &.theme-value {
+    color: $song-primary;
+    font-weight: $font-semibold;
+  }
+
+  &.highlight-value {
+    background: linear-gradient(135deg, rgba($song-primary, 0.1), rgba($song-secondary, 0.08));
+    padding: 4rpx 12rpx;
+    border-radius: $radius-sm;
+    color: $song-primary;
+  }
+}
+
+.confirm-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-xs;
+}
+
+.confirm-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6rpx;
+  padding: 10rpx 16rpx;
+  background: linear-gradient(135deg, $bg-soft 0%, rgba($accent, 0.05) 100%);
+  border-radius: $radius-md;
+  border: 1rpx solid rgba($accent, 0.15);
+  flex-shrink: 0;
+  max-width: 100%;
+
+  .tag-icon {
+    font-size: 20rpx;
+    flex-shrink: 0;
+  }
+
+  .tag-label {
+    font-size: $font-xs;
+    color: $text-tertiary;
+    flex-shrink: 0;
+  }
+
+  .tag-value {
+    font-size: $font-xs;
+    font-weight: $font-medium;
+    color: $text-primary;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 }
 
 // 底部按钮 (温暖花园主题)

@@ -278,16 +278,16 @@
           <!-- 结构类型 -->
           <view class="field-group">
             <text class="field-label">结构类型</text>
-            <view class="option-row wrap">
+            <view class="structure-grid">
               <view
                 v-for="structure in songStructures"
                 :key="structure.value"
-                class="option-card small"
+                class="structure-card"
                 :class="{ selected: params.song_structure === structure.value }"
                 @tap="updateParam('song_structure', structure.value)"
               >
-                <text class="opt-label">{{ structure.label }}</text>
-                <text class="opt-desc">{{ structure.description }}</text>
+                <text class="structure-pattern">{{ structure.description }}</text>
+                <text class="structure-name">{{ structure.label }}</text>
               </view>
             </view>
           </view>
@@ -295,15 +295,16 @@
           <!-- 动作指引 -->
           <view class="field-group">
             <text class="field-label">动作指引</text>
-            <view class="chips-wrap">
+            <view class="action-grid">
               <view
                 v-for="action in actionTypes"
                 :key="action.value"
-                class="chip"
+                class="action-card"
                 :class="{ selected: params.action_types === action.value }"
                 @tap="updateParam('action_types', action.value)"
               >
-                {{ action.icon }} {{ action.label }}
+                <text class="action-icon">{{ action.icon }}</text>
+                <text class="action-label">{{ action.label }}</text>
               </view>
             </view>
           </view>
@@ -1071,5 +1072,121 @@ watch(() => props.modelValue.negative_tags, (val) => {
   color: $text-tertiary;
   padding: 0 4rpx;
   margin-top: 4rpx;
+}
+
+// ==========================================
+// 歌曲结构 - 专用网格布局
+// ==========================================
+.structure-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-sm;
+  margin-top: $spacing-xs;
+}
+
+.structure-card {
+  // 固定宽度：(容器宽度 - 4个间距) / 5 ≈ 每行5个
+  // 但考虑到描述文字较长，使用2列布局更合适
+  flex: 0 0 calc((100% - #{$spacing-sm}) / 2);
+  min-height: 80rpx;
+  padding: $spacing-sm $spacing-md;
+  background: $bg-soft;
+  border-radius: $radius-md;
+  border: 2rpx solid transparent;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4rpx;
+  transition: all $duration-fast $ease-bounce;
+  box-sizing: border-box;
+
+  &:active {
+    transform: scale(0.97);
+  }
+
+  &.selected {
+    background: linear-gradient(135deg, rgba($song-primary, 0.12), rgba($song-secondary, 0.08));
+    border-color: $song-primary;
+    box-shadow: 0 4rpx 12rpx rgba($song-primary, 0.15);
+
+    .structure-pattern {
+      color: $song-primary;
+    }
+
+    .structure-name {
+      color: $song-primary;
+    }
+  }
+
+  .structure-pattern {
+    font-size: $font-sm;
+    font-weight: $font-semibold;
+    color: $text-primary;
+    font-family: 'SF Mono', 'Monaco', 'Menlo', monospace;
+    letter-spacing: 1rpx;
+    transition: color $duration-fast;
+  }
+
+  .structure-name {
+    font-size: $font-xs;
+    color: $text-tertiary;
+    transition: color $duration-fast;
+  }
+}
+
+// ==========================================
+// 动作指引 - 紧凑图标网格
+// ==========================================
+.action-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-sm;
+  margin-top: $spacing-xs;
+}
+
+.action-card {
+  // 每行4个
+  flex: 0 0 calc((100% - #{$spacing-sm} * 3) / 4);
+  padding: $spacing-sm $spacing-xs;
+  background: $bg-soft;
+  border-radius: $radius-md;
+  border: 2rpx solid transparent;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4rpx;
+  transition: all $duration-fast $ease-bounce;
+  box-sizing: border-box;
+
+  &:active {
+    transform: scale(0.95);
+  }
+
+  &.selected {
+    background: linear-gradient(135deg, rgba($song-primary, 0.12), rgba($song-secondary, 0.08));
+    border-color: $song-primary;
+    box-shadow: 0 3rpx 10rpx rgba($song-primary, 0.15);
+
+    .action-icon {
+      transform: scale(1.15);
+    }
+
+    .action-label {
+      color: $song-primary;
+      font-weight: $font-medium;
+    }
+  }
+
+  .action-icon {
+    font-size: 32rpx;
+    transition: transform $duration-fast $ease-bounce;
+  }
+
+  .action-label {
+    font-size: $font-xs;
+    color: $text-secondary;
+    text-align: center;
+    transition: all $duration-fast;
+  }
 }
 </style>

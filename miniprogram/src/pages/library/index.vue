@@ -211,11 +211,11 @@
         </view>
 
         <scroll-view v-else-if="currentAssetDetails" class="asset-modal-content" scroll-y>
-          <view class="overview-card">
+          <view class="overview-card" :class="{ 'nursery-rhyme': isNurseryRhyme() }">
             <view class="overview-main">
-              <view class="overview-avatar">👶</view>
+              <view class="overview-avatar">{{ isNurseryRhyme() ? '🎵' : '👶' }}</view>
               <view class="overview-info">
-                <text class="overview-name">{{ currentAssetDetails.user_inputs?.child_name || '宝贝' }}的绘本</text>
+                <text class="overview-name">{{ currentAssetDetails.user_inputs?.child_name || '宝贝' }}的{{ isNurseryRhyme() ? '儿歌' : '绘本' }}</text>
                 <text class="overview-meta">{{ currentAssetDetails.user_inputs?.creation_mode === 'smart' ? '✨ 智能创作' : '📚 预设主题' }} · {{ currentAssetDetails.total_count }}个素材</text>
               </view>
             </view>
@@ -252,7 +252,8 @@
             <text class="prompt-content">{{ currentAssetDetails.user_inputs.custom_prompt }}</text>
           </view>
 
-          <view class="config-section">
+          <!-- 绘本配置区块 -->
+          <view v-if="!isNurseryRhyme()" class="config-section">
             <view class="config-section-header">
               <text class="config-section-icon">⚙️</text>
               <text class="config-section-title">创作配置</text>
@@ -307,12 +308,138 @@
             </view>
           </view>
 
-          <view class="models-card">
+          <!-- 儿歌提示词增强区块 -->
+          <view v-if="isNurseryRhyme() && getNurseryRhymePromptEnhancement()" class="prompt-enhance-card">
+            <view class="prompt-enhance-header">
+              <text class="prompt-enhance-icon">✨</text>
+              <text class="prompt-enhance-title">提示词增强</text>
+              <text class="prompt-enhance-model">{{ getNurseryRhymePromptEnhancement()?.model || '' }}</text>
+            </view>
+            <view class="prompt-compare">
+              <view class="prompt-item original">
+                <text class="prompt-item-label">💭 用户创意</text>
+                <text class="prompt-item-content">{{ getNurseryRhymePromptEnhancement()?.original || '-' }}</text>
+              </view>
+              <view class="prompt-arrow">→</view>
+              <view class="prompt-item enhanced">
+                <text class="prompt-item-label">🚀 增强后</text>
+                <text class="prompt-item-content">{{ getNurseryRhymePromptEnhancement()?.enhanced || '-' }}</text>
+              </view>
+            </view>
+          </view>
+
+          <!-- 儿歌音乐参数区块 -->
+          <view v-if="isNurseryRhyme() && getNurseryRhymeMusicConfig()" class="music-config-section">
+            <view class="music-config-header">
+              <text class="music-config-icon">🎵</text>
+              <text class="music-config-title">音乐生成参数</text>
+            </view>
+            <view class="music-config-content">
+              <!-- 基础信息行 -->
+              <view class="music-info-row">
+                <view v-if="getNurseryRhymeMusicConfig()?.music_mood" class="music-info-item">
+                  <text class="info-label">风格</text>
+                  <text class="info-value">{{ getMusicLabel('music_mood', getNurseryRhymeMusicConfig()?.music_mood || '') }}</text>
+                </view>
+                <view v-if="getNurseryRhymeMusicConfig()?.music_genre" class="music-info-item">
+                  <text class="info-label">流派</text>
+                  <text class="info-value">{{ getMusicLabel('music_genre', getNurseryRhymeMusicConfig()?.music_genre || '') }}</text>
+                </view>
+                <view v-if="getNurseryRhymeMusicConfig()?.tempo" class="music-info-item">
+                  <text class="info-label">节奏</text>
+                  <text class="info-value">{{ getNurseryRhymeMusicConfig()?.tempo }} BPM</text>
+                </view>
+                <view v-if="getNurseryRhymeMusicConfig()?.energy_level" class="music-info-item">
+                  <text class="info-label">能量</text>
+                  <text class="info-value">{{ getNurseryRhymeMusicConfig()?.energy_level }}/10</text>
+                </view>
+              </view>
+
+              <!-- 人声设置 -->
+              <view class="music-group">
+                <view class="music-group-label">
+                  <text class="group-icon">🎤</text>
+                  <text class="group-text">人声</text>
+                </view>
+                <view class="music-tags">
+                  <view v-if="getNurseryRhymeMusicConfig()?.vocal_type" class="music-tag vocal">
+                    <text class="tag-label">类型</text>
+                    <text class="tag-value">{{ getMusicLabel('vocal_type', getNurseryRhymeMusicConfig()?.vocal_type || '') }}</text>
+                  </view>
+                  <view v-if="getNurseryRhymeMusicConfig()?.vocal_emotion" class="music-tag vocal">
+                    <text class="tag-label">情感</text>
+                    <text class="tag-value">{{ getMusicLabel('vocal_emotion', getNurseryRhymeMusicConfig()?.vocal_emotion || '') }}</text>
+                  </view>
+                  <view v-if="getNurseryRhymeMusicConfig()?.vocal_style" class="music-tag vocal">
+                    <text class="tag-label">风格</text>
+                    <text class="tag-value">{{ getMusicLabel('vocal_style', getNurseryRhymeMusicConfig()?.vocal_style || '') }}</text>
+                  </view>
+                </view>
+              </view>
+
+              <!-- 乐器与音效 -->
+              <view v-if="(getNurseryRhymeMusicConfig()?.instruments?.length || 0) > 0 || (getNurseryRhymeMusicConfig()?.sound_effects?.length || 0) > 0" class="music-group">
+                <view class="music-group-label">
+                  <text class="group-icon">🎹</text>
+                  <text class="group-text">乐器&音效</text>
+                </view>
+                <view class="music-tags">
+                  <view v-if="(getNurseryRhymeMusicConfig()?.instruments?.length || 0) > 0" class="music-tag instrument">
+                    <text class="tag-label">乐器</text>
+                    <text class="tag-value">{{ formatArrayLabels(getNurseryRhymeMusicConfig()?.instruments, getInstrumentLabel) }}</text>
+                  </view>
+                  <view v-if="(getNurseryRhymeMusicConfig()?.sound_effects?.length || 0) > 0" class="music-tag effect">
+                    <text class="tag-label">音效</text>
+                    <text class="tag-value">{{ formatArrayLabels(getNurseryRhymeMusicConfig()?.sound_effects, getSoundEffectLabel) }}</text>
+                  </view>
+                </view>
+              </view>
+
+              <!-- 其他设置 -->
+              <view class="music-group">
+                <view class="music-group-label">
+                  <text class="group-icon">🌐</text>
+                  <text class="group-text">其他</text>
+                </view>
+                <view class="music-tags">
+                  <view v-if="getNurseryRhymeMusicConfig()?.language" class="music-tag other">
+                    <text class="tag-label">语言</text>
+                    <text class="tag-value">{{ getMusicLabel('language', getNurseryRhymeMusicConfig()?.language || '') }}</text>
+                  </view>
+                  <view v-if="getNurseryRhymeMusicConfig()?.song_structure" class="music-tag other">
+                    <text class="tag-label">结构</text>
+                    <text class="tag-value">{{ getMusicLabel('song_structure', getNurseryRhymeMusicConfig()?.song_structure || '') }}</text>
+                  </view>
+                  <view v-if="getNurseryRhymeMusicConfig()?.cultural_style" class="music-tag other">
+                    <text class="tag-label">文化</text>
+                    <text class="tag-value">{{ getMusicLabel('cultural_style', getNurseryRhymeMusicConfig()?.cultural_style || '') }}</text>
+                  </view>
+                </view>
+              </view>
+            </view>
+          </view>
+
+          <!-- 儿歌歌词区块 -->
+          <view v-if="isNurseryRhyme() && getNurseryRhymeLyricsConfig()" class="lyrics-card">
+            <view class="lyrics-header">
+              <text class="lyrics-icon">📝</text>
+              <text class="lyrics-title">歌词</text>
+              <view v-if="getNurseryRhymeLyricsConfig()?.has_timestamps" class="lyrics-badge">
+                <text>⏱ 带时间戳</text>
+              </view>
+            </view>
+            <scroll-view class="lyrics-content" scroll-y>
+              <text class="lyrics-text">{{ getNurseryRhymeLyricsConfig()?.full_text || '暂无歌词' }}</text>
+            </scroll-view>
+          </view>
+
+          <view class="models-card" :class="{ 'nursery-rhyme': isNurseryRhyme() }">
             <view class="models-header">
               <text class="models-icon">🤖</text>
               <text class="models-title">AI 模型</text>
             </view>
-            <view class="models-list">
+            <!-- 绘本模型 -->
+            <view v-if="!isNurseryRhyme()" class="models-list">
               <view class="model-item">
                 <view class="model-dot story"></view>
                 <text class="model-label">故事</text>
@@ -327,6 +454,19 @@
                 <view class="model-dot audio"></view>
                 <text class="model-label">语音</text>
                 <text class="model-value">{{ currentAssetDetails.generation_config?.audio?.model !== 'unknown' ? currentAssetDetails.generation_config?.audio?.model : '-' }}</text>
+              </view>
+            </view>
+            <!-- 儿歌模型 -->
+            <view v-else class="models-list">
+              <view class="model-item">
+                <view class="model-dot prompt"></view>
+                <text class="model-label">提示词</text>
+                <text class="model-value">{{ currentAssetDetails.generated_by?.prompt_model || '-' }}</text>
+              </view>
+              <view class="model-item">
+                <view class="model-dot music"></view>
+                <text class="model-label">音乐</text>
+                <text class="model-value">{{ currentAssetDetails.generated_by?.music_model || getNurseryRhymeMusicConfig()?.model || '-' }}</text>
               </view>
             </view>
           </view>
@@ -365,7 +505,8 @@
               <text class="assets-title">素材详情</text>
               <text class="assets-count">{{ currentAssetDetails.assets.length }}项</text>
             </view>
-            <view class="assets-list">
+            <!-- 绘本素材列表 -->
+            <view v-if="!isNurseryRhyme()" class="assets-list">
               <view
                 v-for="(asset, index) in currentAssetDetails.assets"
                 :key="index"
@@ -388,6 +529,36 @@
                   <view v-if="asset.duration" class="audio-duration">
                     <text class="duration-icon">⏱</text>
                     <text class="duration-val">{{ asset.duration.toFixed(1) }}s</text>
+                  </view>
+                </view>
+              </view>
+            </view>
+            <!-- 儿歌素材列表 -->
+            <view v-else class="assets-list nursery-rhyme">
+              <view
+                v-for="(asset, index) in currentAssetDetails.assets"
+                :key="index"
+                class="asset-card"
+                :class="asset.type"
+              >
+                <view class="asset-badge" :class="asset.type">
+                  <text class="badge-icon">{{ getAssetTypeIcon(asset.type) }}</text>
+                  <text class="badge-text">{{ getAssetTypeLabel(asset.type) }}</text>
+                </view>
+                <view class="asset-info">
+                  <view v-if="asset.duration" class="asset-duration">
+                    <text class="duration-icon">⏱</text>
+                    <text class="duration-val">{{ formatDuration(asset.duration) }}</text>
+                  </view>
+                  <view v-if="asset.track_num" class="asset-track">
+                    <text class="track-label">音轨</text>
+                    <text class="track-num">#{{ asset.track_num }}</text>
+                  </view>
+                  <view v-if="asset.format" class="asset-format">
+                    <text>{{ asset.format.toUpperCase() }}</text>
+                  </view>
+                  <view v-if="asset.source" class="asset-source">
+                    <text>{{ asset.source }}</text>
                   </view>
                 </view>
               </view>
@@ -437,7 +608,7 @@
 import { ref, computed, watch } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { useContentStore } from '@/stores/content'
-import { getContentDetail, getAssetDetails, type PictureBook, type AssetDetailsResponse } from '@/api/content'
+import { getContentDetail, getAssetDetails, type PictureBook, type AssetDetailsResponse, type NurseryRhymeGenerationConfig, type MusicGenerationConfig } from '@/api/content'
 import SkeletonCard from '@/components/SkeletonCard/SkeletonCard.vue'
 
 const contentStore = useContentStore()
@@ -739,6 +910,117 @@ const VOICE_LABELS: Record<string, string> = {
   Puck: '帕克 · 调皮童声'
 }
 
+// 儿歌音乐参数标签映射
+const MUSIC_LABELS: Record<string, Record<string, string>> = {
+  music_mood: {
+    cheerful: '欢快活泼',
+    gentle: '温柔舒缓',
+    playful: '调皮有趣',
+    lullaby: '摇篮曲',
+    educational: '教育启蒙',
+    energetic: '活力充沛',
+    mysterious: '神秘探索',
+    inspiring: '励志向上',
+    relaxed: '轻松惬意'
+  },
+  music_genre: {
+    pop: '流行',
+    rock: '摇滚',
+    jazz: '爵士',
+    classical: '古典',
+    folk: '民谣',
+    electronic: '电子',
+    hiphop: '嘻哈',
+    country: '乡村',
+    reggae: '雷鬼'
+  },
+  vocal_type: {
+    soft_female: '柔和女声',
+    warm_male: '温暖男声',
+    child: '童声',
+    child_voice: '童声',
+    chorus: '合唱',
+    duet: '二重唱',
+    instrumental: '纯音乐'
+  },
+  vocal_emotion: {
+    happy: '快乐',
+    tender: '温柔',
+    playful: '调皮',
+    calm: '平静',
+    dreamy: '梦幻',
+    passionate: '热情',
+    gentle: '温和',
+    mysterious: '神秘'
+  },
+  vocal_style: {
+    clear: '清晰',
+    breathy: '气声',
+    powerful: '有力',
+    soft: '柔和'
+  },
+  song_structure: {
+    simple: '简单',
+    standard: '标准',
+    full: '完整',
+    chorus_only: '仅副歌',
+    progressive: '渐进式',
+    narrative: '叙事型',
+    call_response: '呼应式',
+    rap: '说唱',
+    aaba: 'AABA',
+    custom: '自定义'
+  },
+  language: {
+    chinese: '中文',
+    english: '英文',
+    japanese: '日语',
+    korean: '韩语',
+    spanish: '西班牙语',
+    french: '法语'
+  },
+  cultural_style: {
+    chinese: '中式',
+    western: '西式',
+    japanese: '日式',
+    korean: '韩式',
+    latin: '拉丁',
+    african: '非洲'
+  }
+}
+
+// 乐器标签映射
+const INSTRUMENT_LABELS: Record<string, string> = {
+  piano: '钢琴',
+  guitar: '吉他',
+  ukulele: '尤克里里',
+  xylophone: '木琴',
+  drums: '鼓',
+  violin: '小提琴',
+  flute: '长笛',
+  saxophone: '萨克斯',
+  trumpet: '小号',
+  harmonica: '口琴',
+  accordion: '手风琴',
+  bells: '铃铛',
+  maracas: '沙锤',
+  tambourine: '铃鼓'
+}
+
+// 音效标签映射
+const SOUND_EFFECT_LABELS: Record<string, string> = {
+  nature: '自然声',
+  animal: '动物声',
+  clap: '拍手',
+  laugh: '笑声',
+  cheer: '欢呼',
+  whistle: '口哨',
+  bell: '铃声',
+  water: '水声',
+  bird: '鸟鸣',
+  rain: '雨声'
+}
+
 function getThemeCategoryEmoji(category: string): string {
   return THEME_CATEGORY_EMOJI[category] || '📚'
 }
@@ -749,6 +1031,85 @@ function getThemeCategoryLabel(category: string): string {
 
 function getVoiceLabel(voiceId: string): string {
   return VOICE_LABELS[voiceId] || voiceId
+}
+
+// 获取音乐参数标签
+function getMusicLabel(key: string, value: string): string {
+  return MUSIC_LABELS[key]?.[value] || value
+}
+
+// 获取乐器标签
+function getInstrumentLabel(instrument: string): string {
+  return INSTRUMENT_LABELS[instrument] || instrument
+}
+
+// 获取音效标签
+function getSoundEffectLabel(effect: string): string {
+  return SOUND_EFFECT_LABELS[effect] || effect
+}
+
+// 判断是否为儿歌类型
+function isNurseryRhyme(): boolean {
+  return currentAssetDetails.value?.content_type === 'nursery_rhyme'
+}
+
+// 获取儿歌音乐配置
+function getNurseryRhymeMusicConfig(): MusicGenerationConfig | null {
+  if (!isNurseryRhyme() || !currentAssetDetails.value) return null
+  const config = currentAssetDetails.value.generation_config as NurseryRhymeGenerationConfig
+  return config?.music || null
+}
+
+// 获取儿歌歌词配置
+function getNurseryRhymeLyricsConfig() {
+  if (!isNurseryRhyme() || !currentAssetDetails.value) return null
+  const config = currentAssetDetails.value.generation_config as NurseryRhymeGenerationConfig
+  return config?.lyrics || null
+}
+
+// 获取儿歌提示词增强
+function getNurseryRhymePromptEnhancement() {
+  if (!isNurseryRhyme() || !currentAssetDetails.value) return null
+  return currentAssetDetails.value.enhancement_params?.prompt_enhancement || null
+}
+
+// 格式化数组为显示文本
+function formatArrayLabels(arr: string[] | undefined, labelFn: (s: string) => string): string {
+  if (!arr || arr.length === 0) return '-'
+  return arr.map(labelFn).join('、')
+}
+
+// 格式化时长
+function formatDuration(seconds: number): string {
+  const mins = Math.floor(seconds / 60)
+  const secs = Math.floor(seconds % 60)
+  return `${mins}:${secs.toString().padStart(2, '0')}`
+}
+
+// 获取素材类型图标
+function getAssetTypeIcon(type: string): string {
+  const icons: Record<string, string> = {
+    image: '🖼',
+    audio: '🔊',
+    cover_image: '🎨',
+    suno_cover: '🎵',
+    video: '🎬',
+    audio_track: '🎧'
+  }
+  return icons[type] || '📄'
+}
+
+// 获取素材类型标签
+function getAssetTypeLabel(type: string): string {
+  const labels: Record<string, string> = {
+    image: '图片',
+    audio: '音频',
+    cover_image: '封面',
+    suno_cover: 'Suno封面',
+    video: '视频',
+    audio_track: '音轨'
+  }
+  return labels[type] || type
 }
 
 function confirmDelete(item: PictureBook) {
@@ -1934,6 +2295,8 @@ onShow(() => {
   &.story { background: #00B894; }
   &.image { background: #74B9FF; }
   &.audio { background: #A29BFE; }
+  &.prompt { background: #FF9F43; }
+  &.music { background: #00CEC9; }
 }
 
 .model-label {
@@ -2245,6 +2608,349 @@ onShow(() => {
     box-shadow: 0 6rpx 20rpx rgba(225, 112, 85, 0.35);
     &:active { transform: scale(0.97); }
     &.loading { opacity: 0.7; pointer-events: none; }
+  }
+}
+
+// ============================================
+// 儿歌专用样式
+// ============================================
+
+// 概览卡片 - 儿歌配色
+.overview-card.nursery-rhyme {
+  background: linear-gradient(135deg, #E8F8F5 0%, #D5F5E3 50%, #ABEBC6 100%);
+  box-shadow: 0 4rpx 20rpx rgba(46, 204, 113, 0.15);
+}
+
+// 模型卡片 - 儿歌配色
+.models-card.nursery-rhyme {
+  background: linear-gradient(135deg, #E8F8F5 0%, #D4EFDF 100%);
+}
+
+// 提示词增强卡片
+.prompt-enhance-card {
+  background: linear-gradient(135deg, #FFF9E6 0%, #FFF3CD 100%);
+  border-radius: 24rpx;
+  padding: 24rpx;
+  margin-bottom: 20rpx;
+  box-shadow: 0 2rpx 12rpx rgba(255, 193, 7, 0.1);
+}
+
+.prompt-enhance-header {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+  margin-bottom: 20rpx;
+}
+
+.prompt-enhance-icon { font-size: 32rpx; }
+
+.prompt-enhance-title {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #2D3436;
+}
+
+.prompt-enhance-model {
+  margin-left: auto;
+  font-size: 20rpx;
+  color: #9B9B9B;
+  padding: 4rpx 12rpx;
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: 8rpx;
+}
+
+.prompt-compare {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.prompt-item {
+  padding: 16rpx;
+  border-radius: 16rpx;
+
+  &.original {
+    background: rgba(255, 255, 255, 0.7);
+  }
+
+  &.enhanced {
+    background: linear-gradient(135deg, rgba(46, 204, 113, 0.1) 0%, rgba(39, 174, 96, 0.15) 100%);
+  }
+}
+
+.prompt-item-label {
+  display: block;
+  font-size: 22rpx;
+  color: #636E72;
+  margin-bottom: 8rpx;
+}
+
+.prompt-item-content {
+  font-size: 26rpx;
+  color: #2D3436;
+  line-height: 1.6;
+}
+
+.prompt-arrow {
+  text-align: center;
+  font-size: 28rpx;
+  color: #00B894;
+}
+
+// 音乐配置区块
+.music-config-section {
+  background: white;
+  border-radius: 24rpx;
+  padding: 24rpx;
+  margin-bottom: 20rpx;
+  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
+  border: 2rpx solid rgba(46, 204, 113, 0.2);
+}
+
+.music-config-header {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+  margin-bottom: 20rpx;
+}
+
+.music-config-icon { font-size: 32rpx; }
+
+.music-config-title {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #2D3436;
+}
+
+.music-config-content {
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+}
+
+.music-info-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+}
+
+.music-info-item {
+  flex: 1;
+  min-width: 140rpx;
+  padding: 14rpx 18rpx;
+  background: linear-gradient(135deg, #E8F8F5 0%, #D5F5E3 100%);
+  border-radius: 16rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+}
+
+.info-label {
+  font-size: 20rpx;
+  color: #636E72;
+}
+
+.info-value {
+  font-size: 26rpx;
+  font-weight: 600;
+  color: #00B894;
+}
+
+.music-group {
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
+}
+
+.music-group-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6rpx;
+  padding: 6rpx 14rpx;
+  background: #F8F9FA;
+  border-radius: 10rpx;
+  align-self: flex-start;
+}
+
+.music-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10rpx;
+}
+
+.music-tag {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  padding: 12rpx 16rpx;
+  border-radius: 16rpx;
+  background: #F5F5F5;
+
+  &.vocal { background: linear-gradient(135deg, rgba(155, 89, 182, 0.1) 0%, rgba(142, 68, 173, 0.08) 100%); }
+  &.instrument { background: linear-gradient(135deg, rgba(52, 152, 219, 0.1) 0%, rgba(41, 128, 185, 0.08) 100%); }
+  &.effect { background: linear-gradient(135deg, rgba(231, 76, 60, 0.1) 0%, rgba(192, 57, 43, 0.08) 100%); }
+  &.other { background: linear-gradient(135deg, rgba(149, 165, 166, 0.15) 0%, rgba(127, 140, 141, 0.1) 100%); }
+
+  .tag-label {
+    font-size: 22rpx;
+    color: #9B9B9B;
+    flex-shrink: 0;
+  }
+
+  .tag-value {
+    font-size: 24rpx;
+    font-weight: 600;
+    color: #2D3436;
+  }
+}
+
+// 歌词卡片
+.lyrics-card {
+  background: white;
+  border-radius: 24rpx;
+  padding: 24rpx;
+  margin-bottom: 20rpx;
+  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
+}
+
+.lyrics-header {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+  margin-bottom: 16rpx;
+}
+
+.lyrics-icon { font-size: 28rpx; }
+
+.lyrics-title {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #2D3436;
+}
+
+.lyrics-badge {
+  margin-left: auto;
+  padding: 4rpx 12rpx;
+  background: linear-gradient(135deg, #00B894 0%, #00CEC9 100%);
+  border-radius: 8rpx;
+
+  text {
+    font-size: 20rpx;
+    color: white;
+    font-weight: 500;
+  }
+}
+
+.lyrics-content {
+  max-height: 400rpx;
+  padding: 16rpx;
+  background: #FAFAFA;
+  border-radius: 16rpx;
+}
+
+.lyrics-text {
+  font-size: 26rpx;
+  color: #2D3436;
+  line-height: 1.8;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+// 儿歌素材列表
+.assets-list.nursery-rhyme {
+  .asset-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16rpx 18rpx;
+    border-left-width: 6rpx;
+    border-left-style: solid;
+
+    &.cover_image { border-left-color: #FF9F43; }
+    &.suno_cover { border-left-color: #E17055; }
+    &.audio { border-left-color: #00B894; }
+    &.video { border-left-color: #6C5CE7; }
+    &.audio_track { border-left-color: #00CEC9; }
+  }
+
+  .asset-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6rpx;
+    padding: 8rpx 14rpx;
+    border-radius: 12rpx;
+    margin-bottom: 0;
+
+    &.cover_image { background: rgba(255, 159, 67, 0.15); }
+    &.suno_cover { background: rgba(225, 112, 85, 0.15); }
+    &.audio { background: rgba(0, 184, 148, 0.15); }
+    &.video { background: rgba(108, 92, 231, 0.15); }
+    &.audio_track { background: rgba(0, 206, 201, 0.15); }
+  }
+
+  .asset-info {
+    display: flex;
+    align-items: center;
+    gap: 12rpx;
+  }
+
+  .asset-duration {
+    display: flex;
+    align-items: center;
+    gap: 4rpx;
+    padding: 6rpx 12rpx;
+    background: rgba(0, 184, 148, 0.1);
+    border-radius: 10rpx;
+
+    .duration-icon { font-size: 18rpx; }
+    .duration-val {
+      font-size: 22rpx;
+      font-weight: 600;
+      color: #00B894;
+    }
+  }
+
+  .asset-track {
+    display: flex;
+    align-items: center;
+    gap: 4rpx;
+    padding: 6rpx 12rpx;
+    background: rgba(0, 206, 201, 0.1);
+    border-radius: 10rpx;
+
+    .track-label {
+      font-size: 20rpx;
+      color: #636E72;
+    }
+    .track-num {
+      font-size: 22rpx;
+      font-weight: 600;
+      color: #00CEC9;
+    }
+  }
+
+  .asset-format {
+    padding: 4rpx 10rpx;
+    background: #F0F0F0;
+    border-radius: 8rpx;
+
+    text {
+      font-size: 18rpx;
+      color: #636E72;
+      font-weight: 500;
+    }
+  }
+
+  .asset-source {
+    padding: 4rpx 10rpx;
+    background: rgba(255, 159, 67, 0.1);
+    border-radius: 8rpx;
+
+    text {
+      font-size: 18rpx;
+      color: #FF9F43;
+      font-weight: 500;
+    }
   }
 }
 </style>

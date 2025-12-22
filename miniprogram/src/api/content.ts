@@ -969,15 +969,198 @@ export interface AudioAsset {
 // 素材类型
 export type AssetDetail = ImageAsset | AudioAsset
 
-// 素材参数响应
-export interface AssetDetailsResponse {
+// ========== 儿歌素材参数类型 ==========
+
+// 提示词增强配置（儿歌专用）
+export interface PromptEnhancementConfig {
+  model: string
+  user_prompt: string
+  enhanced_prompt: string
+}
+
+// 音乐生成配置（儿歌专用）
+export interface MusicGenerationConfig {
+  model: string
+  generation_mode?: string
+  music_mood?: string
+  music_genre?: string
+  tempo?: number | string
+  energy_level?: number | string
+  vocal_type?: string
+  vocal_range?: string
+  vocal_emotion?: string
+  vocal_style?: string
+  vocal_effects?: string[]
+  vocal_regional?: string
+  instruments?: string[]
+  sound_effects?: string[]
+  lyric_complexity?: number | string
+  repetition_level?: number | string
+  song_structure?: string
+  duration_preference?: number | string
+  action_types?: string[]
+  language?: string
+  cultural_style?: string
+  style_weight?: number | string
+  creativity?: number | string
+  negative_tags?: string[]
+  style_description?: string
+}
+
+// 歌词配置（儿歌专用）
+export interface LyricsGenerationConfig {
+  full_text: string
+  prompt_used?: string
+  has_timestamps: boolean
+}
+
+// 儿歌生成配置
+export interface NurseryRhymeGenerationConfig {
+  prompt_enhancement?: PromptEnhancementConfig
+  music?: MusicGenerationConfig
+  lyrics?: LyricsGenerationConfig
+}
+
+// 儿歌素材类型
+export interface CoverImageAsset {
+  type: 'cover_image'
+  url: string
+  source?: string  // 'suno'
+}
+
+export interface SunoCoverAsset {
+  type: 'suno_cover'
+  url: string
+}
+
+export interface NurseryRhymeAudioAsset {
+  type: 'audio'
+  url: string
+  duration: number
+  format?: string
+}
+
+export interface NurseryRhymeVideoAsset {
+  type: 'video'
+  url: string
+  duration: number
+}
+
+export interface AudioTrackAsset {
+  type: 'audio_track'
+  track_num: number
+  url: string
+  duration: number
+  cover_url?: string
+}
+
+export type NurseryRhymeAsset = CoverImageAsset | SunoCoverAsset | NurseryRhymeAudioAsset | NurseryRhymeVideoAsset | AudioTrackAsset
+
+// 儿歌生成模型信息
+export interface NurseryRhymeGeneratedByInfo {
+  prompt_model?: string
+  music_model?: string
+}
+
+// 用户选择参数（儿歌专用）
+export interface NurseryRhymeUserSelections {
+  creation_mode?: string
+  theme_category?: string
+  theme_topic?: string
+  age_months?: number
+  music_mood?: string
+  music_genre?: string
+  tempo?: number
+  energy_level?: number
+  vocal_type?: string
+  vocal_range?: string
+  vocal_emotion?: string
+  vocal_style?: string
+  vocal_effects?: string[]
+  vocal_regional?: string
+  instruments?: string[]
+  sound_effects?: string[]
+  lyric_complexity?: number
+  repetition_level?: number
+  song_structure?: string
+  duration_preference?: number
+  action_types?: string[]
+  language?: string
+  cultural_style?: string
+  educational_focus?: string
+  favorite_characters?: string[]
+  favorite_colors?: string[]
+  style_weight?: number
+  creativity?: number
+  negative_tags?: string[]
+  style_description?: string
+}
+
+// 儿歌用户输入
+export interface NurseryRhymeUserInputsInfo {
+  child_name: string
+  age_months: number | null
+  favorite_characters?: string[]
+  voice_id?: string | null
+  creation_mode: 'preset' | 'smart'
+  custom_prompt?: string | null
+  theme_category: string
+  theme_topic: string
+  user_selections?: NurseryRhymeUserSelections
+}
+
+// 儿歌增强参数
+export interface NurseryRhymeEnhancementParams {
+  story_enhancement?: null
+  visual_enhancement?: null
+  prompt_enhancement?: {
+    original: string
+    enhanced: string
+    model: string
+  }
+}
+
+// 儿歌素材参数响应
+export interface NurseryRhymeAssetDetailsResponse {
   content_id: string
-  content_type: 'picture_book' | 'nursery_rhyme' | 'video'
+  content_type: 'nursery_rhyme'
+  generated_by: NurseryRhymeGeneratedByInfo
+  user_inputs: NurseryRhymeUserInputsInfo
+  enhancement_params: NurseryRhymeEnhancementParams
+  generation_config: NurseryRhymeGenerationConfig
+  assets: NurseryRhymeAsset[]
+  total_count: number
+}
+
+// ========== 绘本素材参数类型（原有）==========
+
+// 绘本生成配置
+export interface PictureBookGenerationConfig {
+  image: ImageGenerationConfig
+  audio: AudioGenerationConfig
+}
+
+// 绘本素材参数响应
+export interface PictureBookAssetDetailsResponse {
+  content_id: string
+  content_type: 'picture_book'
   generated_by: GeneratedByInfo
   user_inputs: UserInputsInfo
   enhancement_params: EnhancementParams
-  generation_config: GenerationConfig  // 新增：通用生成配置
+  generation_config: PictureBookGenerationConfig
   assets: AssetDetail[]
+  total_count: number
+}
+
+// 素材参数响应（联合类型，兼容两种内容类型）
+export interface AssetDetailsResponse {
+  content_id: string
+  content_type: 'picture_book' | 'nursery_rhyme' | 'video'
+  generated_by: GeneratedByInfo | NurseryRhymeGeneratedByInfo
+  user_inputs: UserInputsInfo | NurseryRhymeUserInputsInfo
+  enhancement_params: EnhancementParams | NurseryRhymeEnhancementParams
+  generation_config: PictureBookGenerationConfig | NurseryRhymeGenerationConfig  // 根据 content_type 不同结构
+  assets: (AssetDetail | NurseryRhymeAsset)[]
   total_count: number
 }
 

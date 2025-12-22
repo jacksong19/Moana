@@ -52,6 +52,10 @@
               <text>▶</text>
             </view>
           </view>
+          <!-- 视频标题栏 -->
+          <view class="video-title-bar">
+            <text class="video-title-text">{{ song?.title || '儿歌' }}</text>
+          </view>
           <!-- 切换到唱片模式按钮 -->
           <view class="mode-switch" @tap="useVideoMode = false">
             <text>🎵</text>
@@ -97,7 +101,7 @@
         </view>
       </view>
 
-      <!-- 歌词区域 - 使用 scroll-top 精确居中滚动 -->
+      <!-- 歌词区域 - 使用 scroll-top 精确居中 -->
       <scroll-view
         class="lyrics-scroll"
         scroll-y
@@ -106,20 +110,28 @@
         :enhanced="true"
         :show-scrollbar="false"
       >
-        <!-- 顶部占位，高度=容器高度一半，确保第一句能居中 -->
+        <!-- 顶部占位，确保第一句能居中 -->
         <view class="lyrics-padding-top" :style="{ height: lyricsPaddingHeight + 'px' }"></view>
-        <view
-          v-for="(line, index) in lyricsLines"
-          :key="index"
-          class="lyrics-line"
-          :class="{
-            active: index === currentLyricIndex,
-            passed: index < currentLyricIndex
-          }"
-        >
-          <text>{{ line }}</text>
-        </view>
-        <!-- 底部占位，高度=容器高度一半，确保最后一句能居中 -->
+        <template v-for="(line, index) in lyricsLines" :key="index">
+          <!-- 段落分隔符：结构标记行前添加分隔 -->
+          <view v-if="isStructureTag(line) && index > 0" class="lyrics-divider">
+            <view class="divider-dot"></view>
+            <view class="divider-line"></view>
+            <view class="divider-dot"></view>
+          </view>
+          <view
+            :id="'lyric-' + index"
+            class="lyrics-line"
+            :class="{
+              active: index === currentLyricIndex,
+              passed: index < currentLyricIndex,
+              'structure-tag': isStructureTag(line)
+            }"
+          >
+            <text>{{ line }}</text>
+          </view>
+        </template>
+        <!-- 底部占位，确保最后一句能居中 -->
         <view class="lyrics-padding-bottom" :style="{ height: lyricsPaddingHeight + 'px' }"></view>
         <view v-if="lyricsLines.length === 0" class="no-lyrics-state">
           <view class="no-lyrics-icon">📝</view>
@@ -131,47 +143,71 @@
 
     <!-- 底部控制区 -->
     <view class="control-panel">
-      <!-- 进度条 -->
+      <!-- 进度条 - 支持点击和拖拽 -->
       <view class="progress-section">
-        <text class="time-label">{{ formatTime(currentTime) }}</text>
-        <view class="progress-track" @tap="onProgressTap">
+        <text class="time-label">{{ formatTime(isDragging ? (dragProgress / 100 * duration) : currentTime) }}</text>
+        <view
+          class="progress-track"
+          :class="{ dragging: isDragging }"
+          @tap="onProgressTap"
+          @touchstart="onProgressTouchStart"
+          @touchmove="onProgressTouchMove"
+          @touchend="onProgressTouchEnd"
+          @touchcancel="onProgressTouchEnd"
+        >
           <view class="progress-fill" :style="{ width: progressPercent + '%' }">
             <view class="progress-glow"></view>
           </view>
-          <view class="progress-thumb" :style="{ left: progressPercent + '%' }"></view>
+          <view class="progress-thumb" :class="{ active: isDragging }" :style="{ left: progressPercent + '%' }"></view>
         </view>
         <text class="time-label">{{ formatTime(duration) }}</text>
       </view>
 
-      <!-- 控制按钮 -->
+      <!-- 控制按钮 - 梦幻玻璃风格 -->
       <view class="control-buttons">
-        <view class="ctrl-btn" @tap="handleReplay">
-          <view class="btn-icon">🔄</view>
+        <!-- 重播按钮 -->
+        <view class="ctrl-btn glass-btn" @tap="handleReplay">
+          <view class="icon-replay">
+            <view class="replay-arrow"></view>
+          </view>
         </view>
 
+        <!-- 播放/暂停按钮 -->
         <view class="play-btn-wrapper" @tap="togglePlay">
           <view class="play-btn" :class="{ playing: isPlaying }">
             <view v-if="audioBuffering" class="loading-spinner"></view>
-            <text v-else class="play-icon">{{ isPlaying ? '❚❚' : '▶' }}</text>
+            <view v-else-if="isPlaying" class="icon-pause">
+              <view class="pause-bar"></view>
+              <view class="pause-bar"></view>
+            </view>
+            <view v-else class="icon-play"></view>
           </view>
           <!-- 涟漪效果 -->
           <view v-if="isPlaying" class="ripple ripple-1"></view>
           <view v-if="isPlaying" class="ripple ripple-2"></view>
         </view>
 
-        <!-- 切换版本按钮（Suno 返回 2 首时显示） -->
-        <view v-if="hasMultipleTracks" class="ctrl-btn switch-btn" @tap="switchTrack">
-          <view class="btn-icon">🔀</view>
-          <text class="track-indicator">{{ currentTrackIndex + 1 }}/{{ allTracks.length }}</text>
+        <!-- 切换版本/分享按钮 -->
+        <view v-if="hasMultipleTracks" class="ctrl-btn glass-btn" @tap="switchTrack">
+          <view class="icon-switch">
+            <view class="switch-arrow switch-arrow-1"></view>
+            <view class="switch-arrow switch-arrow-2"></view>
+          </view>
+          <text class="track-badge">{{ currentTrackIndex + 1 }}/{{ allTracks.length }}</text>
         </view>
-        <button v-else class="ctrl-btn share-btn" open-type="share">
-          <view class="btn-icon">📤</view>
+        <button v-else class="ctrl-btn glass-btn share-btn" open-type="share">
+          <view class="icon-share">
+            <view class="share-arrow"></view>
+            <view class="share-dot"></view>
+            <view class="share-dot"></view>
+            <view class="share-dot"></view>
+          </view>
         </button>
       </view>
 
       <!-- 版本切换提示 -->
       <view v-if="hasMultipleTracks" class="track-hint">
-        <text>当前播放版本 {{ currentTrackIndex + 1 }}，点击 🔀 切换</text>
+        <text>当前播放版本 {{ currentTrackIndex + 1 }}，点击切换按钮试听其他版本</text>
       </view>
 
       <!-- 风格标签 -->
@@ -207,6 +243,10 @@ const statusBarHeight = ref(20)
 const coverLoaded = ref(false)
 const audioBuffering = ref(false)
 
+// 进度条拖拽状态
+const isDragging = ref(false)
+const dragProgress = ref(0)  // 拖拽时的进度百分比
+
 // 多歌曲版本支持（Suno 每次返回 2 首）
 const currentTrackIndex = ref(0)
 const allTracks = computed(() => song.value?.all_tracks || [])
@@ -227,12 +267,38 @@ const lyricsData = ref<LyricLine[]>([])  // 带时间戳的歌词
 const lyricsLines = ref<string[]>([])     // 纯文本歌词（用于显示）
 const currentLyricIndex = ref(0)
 
-// 歌词滚动相关常量（单位：rpx）
-const LYRIC_LINE_HEIGHT_RPX = 72  // 每行歌词固定高度
-const LYRICS_CONTAINER_HEIGHT_RPX = 400  // 歌词容器大约高度（用于计算占位）
-
-// 歌词滚动位置（使用 scroll-top 精确居中）
+// 歌词滚动位置 - 使用动态查询实现精确居中
 const lyricsScrollTop = ref(0)
+
+// 动态更新歌词滚动位置（查询实际元素位置）
+function updateLyricsScroll() {
+  if (lyricsLines.value.length === 0 || currentLyricIndex.value < 0) return
+
+  const lyricId = `#lyric-${currentLyricIndex.value}`
+
+  uni.createSelectorQuery()
+    .select('.lyrics-scroll')
+    .boundingClientRect()
+    .select(lyricId)
+    .boundingClientRect()
+    .exec((res: any) => {
+      if (!res || !res[0] || !res[1]) return
+
+      const container = res[0]
+      const lyricEl = res[1]
+
+      if (!container || !lyricEl) return
+
+      // 计算让歌词居中需要的滚动位置
+      // 当前滚动位置 + 歌词元素相对于容器的偏移 - 容器高度的一半 + 歌词高度的一半
+      const lyricOffsetInContainer = lyricEl.top - container.top
+      const targetScroll = lyricsScrollTop.value + lyricOffsetInContainer - (container.height / 2) + (lyricEl.height / 2)
+
+      lyricsScrollTop.value = Math.max(0, targetScroll)
+    })
+}
+
+// 歌词滚动相关
 const lyricsContainerHeight = ref(0)  // 实际容器高度（px）
 const rpxToPxRatio = ref(0.5)  // rpx 转 px 的比例
 
@@ -242,35 +308,9 @@ const lyricsPaddingHeight = computed(() => {
   if (lyricsContainerHeight.value === 0) {
     return 150  // 默认 150px
   }
-  // 占位高度 = 容器高度的一半 - 半行高度（让歌词中心对齐容器中心）
-  const lineHeight = LYRIC_LINE_HEIGHT_RPX * rpxToPxRatio.value
-  return Math.max(100, lyricsContainerHeight.value / 2 - lineHeight / 2)
+  // 占位高度 = 容器高度的一半（让歌词能滚动到中间）
+  return Math.max(120, lyricsContainerHeight.value / 2 - 20)
 })
-
-// 计算歌词滚动位置，使当前歌词居中
-function updateLyricsScrollPosition(index: number) {
-  if (lyricsContainerHeight.value === 0) return
-
-  const lineHeight = LYRIC_LINE_HEIGHT_RPX * rpxToPxRatio.value
-  // 占位高度 = 容器高度的一半，这样第一句歌词可以滚动到中间
-  const paddingTop = lyricsContainerHeight.value / 2
-
-  // 计算目标滚动位置，使当前歌词行的中心与容器中心对齐
-  // scrollTop = 占位高度 + 索引*行高 + 行高/2 - 容器高度/2
-  //           = 索引*行高 + 行高/2 (因为 占位高度 = 容器高度/2)
-  const targetScrollTop = index * lineHeight
-
-  // 确保值变化以触发滚动（微信小程序的 scroll-top 有时需要值变化才触发）
-  if (Math.abs(lyricsScrollTop.value - targetScrollTop) < 1) {
-    // 值相同时，先设为略不同的值再设回来
-    lyricsScrollTop.value = targetScrollTop + 0.5
-    setTimeout(() => {
-      lyricsScrollTop.value = targetScrollTop
-    }, 10)
-  } else {
-    lyricsScrollTop.value = targetScrollTop
-  }
-}
 
 // 音频实例
 let audioContext: UniApp.InnerAudioContext | null = null
@@ -314,6 +354,8 @@ function getNoteStyle(i: number) {
 
 // 计算属性
 const progressPercent = computed(() => {
+  // 拖拽时使用拖拽进度
+  if (isDragging.value) return dragProgress.value
   if (duration.value === 0) return 0
   return (currentTime.value / duration.value) * 100
 })
@@ -408,6 +450,13 @@ const structureMap: Record<string, string> = {
   'interlude': '【间奏】'
 }
 
+// 检测是否为结构标记行（用于添加段落分隔）
+function isStructureTag(line: string): boolean {
+  if (!line) return false
+  // 检测中文结构标记：【主歌】【副歌】【桥段】等
+  return /^【.+】$/.test(line.trim())
+}
+
 // 替换歌词中的英文结构标记为中文
 function replaceStructureTags(line: string): string {
   let result = line
@@ -450,19 +499,82 @@ function parseLyrics(lyrics: any, totalDuration: number): { lines: string[], dat
     const data: LyricLine[] = []
     let currentLine = ''
     let lineStartTime = -1
+    let lastWord = ''
 
     for (const item of lyrics.timestamped) {
-      const word = item.word || ''
+      let word = item.word || ''
       const startTime = item.start_s || 0
 
-      // 检测是否是新行（基于时间间隔或标点）
-      const isNewLine = currentLine && (
+      // 预处理：检测英文结构标记并转换（如 [Verse] -> 【主歌】）
+      // 同时在标记前后添加分隔符以便后续分割
+      word = word.replace(/\[(Verse|Chorus|Bridge|Intro|Outro|Pre-?Chorus|Hook|Refrain|Interlude)(?:\s*\d*)?\]/gi, (match, tag) => {
+        const key = tag.toLowerCase().trim().replace(/\s+/g, '-')
+        const cnTag = structureMap[key] || structureMap[key.replace(/-/g, ' ')] || ''
+        return cnTag ? `\n${cnTag}\n` : ''
+      })
+
+      // 如果词中包含换行符（结构标记分隔），拆分处理
+      if (word.includes('\n')) {
+        const parts = word.split('\n').filter(p => p.trim())
+        for (const part of parts) {
+          // 递归处理每个部分
+          if (/^【.+】$/.test(part.trim())) {
+            // 结构标记单独成行
+            if (currentLine.trim()) {
+              lines.push(currentLine.trim())
+              data.push({ time: lineStartTime, text: currentLine.trim() })
+              currentLine = ''
+              lineStartTime = -1
+            }
+            lines.push(part.trim())
+            data.push({ time: startTime, text: part.trim() })
+          } else {
+            currentLine += part
+            if (lineStartTime < 0) lineStartTime = startTime
+            lastWord = part
+          }
+        }
+        continue
+      }
+
+      // 检测中文结构标记（如【主歌】【副歌】）
+      const structureMatch = word.match(/【[^】]+】/)
+      if (structureMatch) {
+        // 先保存当前行
+        if (currentLine.trim()) {
+          const processed = replaceStructureTags(currentLine)
+          if (processed) {
+            lines.push(processed)
+            data.push({ time: lineStartTime, text: processed })
+          }
+          currentLine = ''
+          lineStartTime = -1
+        }
+        // 结构标记单独成行
+        lines.push(structureMatch[0])
+        data.push({ time: startTime, text: structureMatch[0] })
+        // 处理标记后的剩余文字
+        const remaining = word.replace(structureMatch[0], '').trim()
+        if (remaining) {
+          currentLine = remaining
+          lineStartTime = startTime
+        }
+        lastWord = word
+        continue
+      }
+
+      // 检测是否需要换行
+      const shouldBreak = currentLine && (
         word === '\n' ||
         /^[。！？\n]$/.test(word) ||
-        (lineStartTime >= 0 && startTime - lineStartTime > 4) // 超过4秒认为是新行
+        (lineStartTime >= 0 && startTime - lineStartTime > 3.5) || // 时间间隔超过3.5秒
+        // 检测大写字母开头（新句子）：上一个词以小写结尾，当前词以大写开头
+        (/[a-z]$/.test(lastWord) && /^[A-Z]/.test(word)) ||
+        // 检测中文句子结束后的新句子
+        (/[。！？]$/.test(currentLine))
       )
 
-      if (isNewLine && currentLine.trim()) {
+      if (shouldBreak && currentLine.trim()) {
         const processed = replaceStructureTags(currentLine)
         if (processed) {
           lines.push(processed)
@@ -476,12 +588,13 @@ function parseLyrics(lyrics: any, totalDuration: number): { lines: string[], dat
         if (lineStartTime < 0) {
           lineStartTime = startTime
         }
-        // 清理词中可能包含的换行符，避免歌词重叠显示
+        // 清理词中可能包含的换行符
         currentLine += word.replace(/[\n\r]/g, '')
+        lastWord = word
       }
 
-      // 句末标点后换行
-      if (/[。！？，、]$/.test(currentLine) && currentLine.length > 8) {
+      // 句末标点后换行（中文）
+      if (/[。！？]$/.test(currentLine)) {
         const processed = replaceStructureTags(currentLine)
         if (processed) {
           lines.push(processed)
@@ -582,7 +695,7 @@ function parseLyrics(lyrics: any, totalDuration: number): { lines: string[], dat
 
 // 根据播放时间更新当前歌词
 // 歌词提前量（秒）：补偿 onTimeUpdate 回调延迟 + 滚动动画时间
-const LYRICS_OFFSET = 0.5
+const LYRICS_OFFSET = 0.4
 
 function updateCurrentLyric() {
   if (lyricsLines.value.length === 0) return
@@ -602,11 +715,11 @@ function updateCurrentLyric() {
       }
     }
 
-    // 更新当前歌词索引并滚动
+    // 更新当前歌词索引并滚动到居中位置
     if (newIndex !== currentLyricIndex.value) {
       currentLyricIndex.value = newIndex
-      updateLyricsScrollPosition(newIndex)
-      console.log('[歌词] 切换到第', newIndex + 1, '句:', data[newIndex]?.text?.substring(0, 10))
+      // 延迟执行滚动，确保 DOM 已更新
+      setTimeout(() => updateLyricsScroll(), 50)
     }
     return
   }
@@ -621,7 +734,7 @@ function updateCurrentLyric() {
 
   if (newIndex !== currentLyricIndex.value && newIndex >= 0) {
     currentLyricIndex.value = newIndex
-    updateLyricsScrollPosition(newIndex)
+    setTimeout(() => updateLyricsScroll(), 50)
   }
 }
 
@@ -682,12 +795,16 @@ function togglePlay() {
   if (!audioContext) return
 
   if (isPlaying.value) {
+    // 立即更新状态（不等待回调），提供即时反馈
+    isPlaying.value = false
     audioContext.pause()
     // 同步暂停视频
     if (videoContext.value && hasVideo.value && useVideoMode.value) {
       videoContext.value.pause()
     }
   } else {
+    // 立即更新状态（不等待回调），提供即时反馈
+    isPlaying.value = true
     audioContext.play()
     // 同步播放视频（静音，音频来自 audioContext）
     if (videoContext.value && hasVideo.value && useVideoMode.value) {
@@ -721,7 +838,9 @@ function handleReplay() {
   if (!audioContext) return
   audioContext.seek(0)
   currentLyricIndex.value = 0
-  // watch 会自动调用 centerCurrentLyric()
+  currentTime.value = 0
+  // 立即更新播放状态
+  isPlaying.value = true
   audioContext.play()
 
   // 同步重播视频
@@ -776,20 +895,64 @@ function switchTrack() {
   }
 }
 
+// 进度条轨道边界缓存（避免频繁查询）
+let progressTrackRect: { left: number; width: number } | null = null
+
 function onProgressTap(e: any) {
-  if (!audioContext || duration.value === 0) return
+  if (!audioContext || duration.value === 0 || isDragging.value) return
 
   const touch = e.touches?.[0] || e.changedTouches?.[0] || e.detail
   if (!touch) return
 
-  const query = uni.createSelectorQuery()
-  query.select('.progress-track').boundingClientRect((rect: any) => {
+  uni.createSelectorQuery().select('.progress-track').boundingClientRect((rect: any) => {
     if (!rect) return
     const x = (touch.clientX || touch.pageX) - rect.left
     const percent = Math.max(0, Math.min(1, x / rect.width))
     const seekTime = percent * duration.value
     audioContext?.seek(seekTime)
+    currentTime.value = seekTime
   }).exec()
+}
+
+// 进度条拖拽开始
+function onProgressTouchStart(e: any) {
+  if (!audioContext || duration.value === 0) return
+  const touch = e.touches?.[0]
+  if (!touch) return
+
+  uni.createSelectorQuery().select('.progress-track').boundingClientRect((rect: any) => {
+    if (!rect) return
+    progressTrackRect = { left: rect.left, width: rect.width }
+    isDragging.value = true
+    const x = touch.clientX - rect.left
+    dragProgress.value = Math.max(0, Math.min(100, (x / rect.width) * 100))
+  }).exec()
+}
+
+// 进度条拖拽移动
+function onProgressTouchMove(e: any) {
+  if (!isDragging.value || !progressTrackRect) return
+  const touch = e.touches?.[0]
+  if (!touch) return
+  const x = touch.clientX - progressTrackRect.left
+  dragProgress.value = Math.max(0, Math.min(100, (x / progressTrackRect.width) * 100))
+}
+
+// 进度条拖拽结束
+function onProgressTouchEnd() {
+  if (!isDragging.value || !audioContext) {
+    isDragging.value = false
+    progressTrackRect = null
+    return
+  }
+  const seekTime = (dragProgress.value / 100) * duration.value
+  audioContext.seek(seekTime)
+  currentTime.value = seekTime
+  if (videoContext.value && hasVideo.value && useVideoMode.value) {
+    videoContext.value.seek(seekTime)
+  }
+  isDragging.value = false
+  progressTrackRect = null
 }
 
 function handleClose() {
@@ -955,18 +1118,15 @@ onMounted(() => {
     loadContent()
   }
 
-  // 获取歌词容器的实际高度
+  // 获取歌词容器的实际高度（用于计算占位高度）
   setTimeout(() => {
-    const query = uni.createSelectorQuery()
-    query.select('.lyrics-scroll').boundingClientRect((rect: any) => {
+    uni.createSelectorQuery().select('.lyrics-scroll').boundingClientRect((rect: any) => {
       if (rect && rect.height > 0) {
         lyricsContainerHeight.value = rect.height
-        console.log('[歌词滚动] 容器高度:', rect.height, 'px')
-        // 初始化滚动位置
-        updateLyricsScrollPosition(currentLyricIndex.value)
+        console.log('[歌词] 容器高度:', rect.height, 'px')
       }
     }).exec()
-  }, 300)  // 等待 DOM 渲染完成
+  }, 300)
 })
 
 onUnmounted(() => {
@@ -1193,6 +1353,37 @@ $dream-gold: #FFD700;
     color: #fff;
     margin-left: 6rpx;
   }
+}
+
+// 视频标题栏
+.video-title-bar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 24rpx 16rpx 16rpx;
+  background: linear-gradient(to top,
+    rgba(0, 0, 0, 0.7) 0%,
+    rgba(0, 0, 0, 0.4) 60%,
+    transparent 100%
+  );
+  z-index: 3;
+}
+
+.video-title-text {
+  display: block;
+  font-size: 26rpx;
+  color: rgba(255, 255, 255, 0.95);
+  font-weight: $font-medium;
+  text-align: center;
+  line-height: 1.4;
+  // 最多显示2行
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  text-shadow: 0 1rpx 4rpx rgba(0, 0, 0, 0.5);
 }
 
 .mode-switch {
@@ -1473,6 +1664,53 @@ $dream-gold: #FFD700;
   }
 }
 
+// 段落分隔符样式
+.lyrics-divider {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16rpx;
+  height: 48rpx;
+  margin: 8rpx 0;
+  opacity: 0.5;
+}
+
+.divider-dot {
+  width: 6rpx;
+  height: 6rpx;
+  background: linear-gradient(135deg, $dream-purple, $dream-pink);
+  border-radius: 50%;
+}
+
+.divider-line {
+  width: 80rpx;
+  height: 2rpx;
+  background: linear-gradient(90deg,
+    transparent,
+    rgba($dream-purple, 0.6) 20%,
+    rgba($dream-pink, 0.6) 80%,
+    transparent
+  );
+}
+
+// 结构标记样式（【主歌】【副歌】等）
+.lyrics-line.structure-tag {
+  margin-top: 8rpx;
+
+  text {
+    font-size: 24rpx !important;
+    color: rgba($dream-pink, 0.7) !important;
+    font-weight: $font-medium;
+    letter-spacing: 4rpx;
+    text-shadow: none !important;
+  }
+
+  &.active text {
+    color: $dream-pink !important;
+    text-shadow: 0 0 16rpx rgba($dream-pink, 0.5) !important;
+  }
+}
+
 .no-lyrics-state {
   display: flex;
   flex-direction: column;
@@ -1536,86 +1774,404 @@ $dream-gold: #FFD700;
   }
 }
 
+// 进度条 - 梦幻流光效果
 .progress-track {
   flex: 1;
-  height: 8rpx;
-  background: rgba(255, 255, 255, 0.15);
+  height: 14rpx;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.08) 0%,
+    rgba(255, 255, 255, 0.15) 50%,
+    rgba(255, 255, 255, 0.08) 100%
+  );
   border-radius: $radius-full;
   position: relative;
+  // 增大触摸区域
+  padding: 20rpx 0;
+  margin: -20rpx 0;
+  background-clip: content-box;
+  transition: all 0.25s ease;
+  // 多层内阴影营造凹陷感
+  box-shadow:
+    inset 0 3rpx 6rpx rgba(0, 0, 0, 0.4),
+    inset 0 -1rpx 2rpx rgba(255, 255, 255, 0.1),
+    0 1rpx 0 rgba(255, 255, 255, 0.05);
+  // 精致边框
+  border: 1rpx solid rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+
+  // 轨道内流光粒子
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba($dream-purple, 0.1) 25%,
+      rgba($dream-pink, 0.1) 50%,
+      rgba($dream-blue, 0.1) 75%,
+      transparent 100%
+    );
+    background-size: 200% 100%;
+    animation: track-shimmer 4s ease-in-out infinite;
+    border-radius: $radius-full;
+  }
+
+  &.dragging {
+    height: 18rpx;
+    box-shadow:
+      inset 0 4rpx 8rpx rgba(0, 0, 0, 0.5),
+      0 0 20rpx rgba($dream-purple, 0.3),
+      0 0 0 2rpx rgba($dream-pink, 0.2);
+  }
+}
+
+@keyframes track-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
 }
 
 .progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, $dream-purple, $dream-pink);
+  // 更丰富的彩虹渐变
+  background: linear-gradient(
+    90deg,
+    $dream-purple 0%,
+    lighten($dream-purple, 8%) 15%,
+    $dream-blue 30%,
+    lighten($dream-blue, 5%) 45%,
+    $dream-pink 60%,
+    lighten($dream-pink, 8%) 75%,
+    $dream-purple 90%,
+    lighten($dream-purple, 5%) 100%
+  );
+  background-size: 300% 100%;
   border-radius: $radius-full;
   position: relative;
-  transition: width 0.15s linear;
+  transition: width 0.1s linear;
+  // 流光动画
+  animation: progress-flow 3s ease-in-out infinite;
+  // 多层发光效果
+  box-shadow:
+    0 0 10rpx rgba($dream-purple, 0.7),
+    0 0 20rpx rgba($dream-pink, 0.5),
+    0 0 30rpx rgba($dream-blue, 0.3),
+    inset 0 1rpx 2rpx rgba(255, 255, 255, 0.4);
+
+  // 顶部高光条
+  &::before {
+    content: '';
+    position: absolute;
+    top: 2rpx;
+    left: 8rpx;
+    right: 8rpx;
+    height: 4rpx;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.5) 20%,
+      rgba(255, 255, 255, 0.7) 50%,
+      rgba(255, 255, 255, 0.5) 80%,
+      transparent 100%
+    );
+    border-radius: $radius-full;
+  }
+}
+
+@keyframes progress-flow {
+  0%, 100% { background-position: 0% 0; }
+  50% { background-position: 100% 0; }
 }
 
 .progress-glow {
   position: absolute;
-  right: 0;
-  top: 0;
-  bottom: 0;
-  width: 40rpx;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.6));
+  right: -4rpx;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 32rpx;
+  height: 32rpx;
+  // 多层光晕
+  background:
+    radial-gradient(circle, rgba(255, 255, 255, 1) 0%, transparent 40%),
+    radial-gradient(circle, rgba($dream-pink, 0.8) 0%, transparent 60%),
+    radial-gradient(circle, rgba($dream-purple, 0.6) 0%, transparent 80%);
+  border-radius: 50%;
   animation: glow-pulse 1.5s ease-in-out infinite;
+  // 增强可见性
+  filter: blur(1rpx);
 }
 
 @keyframes glow-pulse {
-  0%, 100% { opacity: 0.5; }
-  50% { opacity: 1; }
+  0%, 100% {
+    opacity: 0.8;
+    transform: translateY(-50%) scale(1);
+    box-shadow: 0 0 12rpx rgba($dream-pink, 0.8);
+  }
+  50% {
+    opacity: 1;
+    transform: translateY(-50%) scale(1.3);
+    box-shadow: 0 0 24rpx rgba($dream-pink, 1);
+  }
 }
 
 .progress-thumb {
   position: absolute;
   top: 50%;
-  width: 20rpx;
-  height: 20rpx;
-  background: #fff;
+  width: 32rpx;
+  height: 32rpx;
+  // 宝石质感
+  background:
+    radial-gradient(ellipse 80% 50% at 30% 20%, rgba(255, 255, 255, 0.9) 0%, transparent 50%),
+    linear-gradient(135deg, #fff 0%, #e8e0ff 50%, #ffd6e7 100%);
   border-radius: 50%;
   transform: translate(-50%, -50%);
-  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.4), 0 0 12rpx $dream-purple;
+  box-shadow:
+    0 3rpx 12rpx rgba(0, 0, 0, 0.4),
+    0 0 20rpx rgba($dream-purple, 0.6),
+    0 0 32rpx rgba($dream-pink, 0.4),
+    inset 0 2rpx 4rpx rgba(255, 255, 255, 0.9),
+    inset 0 -2rpx 4rpx rgba(0, 0, 0, 0.1);
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  border: 2rpx solid rgba(255, 255, 255, 0.95);
+
+  // 内部高光
+  &::before {
+    content: '';
+    position: absolute;
+    top: 4rpx;
+    left: 6rpx;
+    width: 12rpx;
+    height: 8rpx;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.9) 0%, transparent 100%);
+    border-radius: 50%;
+  }
+
+  &.active {
+    width: 44rpx;
+    height: 44rpx;
+    box-shadow:
+      0 6rpx 24rpx rgba(0, 0, 0, 0.5),
+      0 0 40rpx rgba($dream-pink, 0.7),
+      0 0 60rpx rgba($dream-purple, 0.5),
+      0 0 0 4rpx rgba($dream-purple, 0.25),
+      0 0 0 8rpx rgba($dream-pink, 0.15);
+  }
 }
 
-// 控制按钮
+// 控制按钮容器
 .control-buttons {
   display: flex;
+  flex-direction: row;
   align-items: center;
   justify-content: center;
-  gap: $spacing-xl;
+  gap: 48rpx;
   margin-bottom: $spacing-md;
+  width: 100%;
 }
 
+// 控制按钮基础样式 - 极简风格
 .ctrl-btn {
-  width: 88rpx;
-  height: 88rpx;
+  position: relative;
+  width: 80rpx;
+  height: 80rpx;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 50%;
   border: none;
   padding: 0;
+  margin: 0;
+  flex-shrink: 0;
   transition: all 0.2s ease;
 
+  // 移除小程序 button 默认样式
   &::after {
     display: none;
   }
 
   &:active {
-    background: rgba(255, 255, 255, 0.2);
-    transform: scale(0.95);
+    transform: scale(0.9);
+    opacity: 0.8;
   }
 }
 
-.btn-icon {
-  font-size: 40rpx;
+// 简洁玻璃按钮
+.glass-btn {
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10rpx);
+  border: 1rpx solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.2);
+
+  &:active {
+    background: rgba(255, 255, 255, 0.2);
+    box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.3);
+  }
+}
+
+// 重播图标 - 简洁圆形箭头
+.icon-replay {
+  position: relative;
+  width: 28rpx;
+  height: 28rpx;
+  border: 3rpx solid #fff;
+  border-radius: 50%;
+  border-right-color: transparent;
+}
+
+.replay-arrow {
+  position: absolute;
+  top: -4rpx;
+  right: -2rpx;
+  width: 0;
+  height: 0;
+  border-left: 6rpx solid transparent;
+  border-right: 6rpx solid transparent;
+  border-bottom: 8rpx solid #fff;
+  transform: rotate(45deg);
+}
+
+// 播放图标 - CSS 三角形
+.icon-play {
+  width: 0;
+  height: 0;
+  border-top: 18rpx solid transparent;
+  border-bottom: 18rpx solid transparent;
+  border-left: 28rpx solid #fff;
+  margin-left: 8rpx;
+}
+
+// 暂停图标 - 两条竖线
+.icon-pause {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  height: 100%;
+  gap: 10rpx;
+}
+
+.pause-bar {
+  width: 10rpx;
+  height: 32rpx;
+  background: #fff;
+  border-radius: 3rpx;
+}
+
+// 切换图标 - 简洁双向箭头
+.icon-switch {
+  position: relative;
+  width: 24rpx;
+  height: 24rpx;
+}
+
+.switch-arrow {
+  position: absolute;
+  left: 50%;
+  width: 16rpx;
+  height: 3rpx;
+  background: #fff;
+  transform: translateX(-50%);
+
+  &::after {
+    content: '';
+    position: absolute;
+    width: 0;
+    height: 0;
+  }
+
+  &.switch-arrow-1 {
+    top: 4rpx;
+
+    &::after {
+      right: -2rpx;
+      top: -4rpx;
+      border-left: 6rpx solid #fff;
+      border-top: 5rpx solid transparent;
+      border-bottom: 5rpx solid transparent;
+    }
+  }
+
+  &.switch-arrow-2 {
+    bottom: 4rpx;
+
+    &::after {
+      left: -2rpx;
+      top: -4rpx;
+      border-right: 6rpx solid #fff;
+      border-top: 5rpx solid transparent;
+      border-bottom: 5rpx solid transparent;
+    }
+  }
+}
+
+// 分享图标 - 简洁向上箭头
+.icon-share {
+  position: relative;
+  width: 24rpx;
+  height: 24rpx;
+}
+
+.share-arrow {
+  position: absolute;
+  top: 4rpx;
+  left: 50%;
+  width: 3rpx;
+  height: 14rpx;
+  background: #fff;
+  transform: translateX(-50%);
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: -2rpx;
+    left: 50%;
+    transform: translateX(-50%) rotate(-45deg);
+    width: 8rpx;
+    height: 8rpx;
+    border-top: 3rpx solid #fff;
+    border-left: 3rpx solid #fff;
+  }
+}
+
+// 分享底座
+.share-dot {
+  position: absolute;
+  background: #fff;
+
+  &:nth-child(2) {
+    bottom: 0;
+    left: 0;
+    width: 3rpx;
+    height: 8rpx;
+    border-radius: 0 0 0 2rpx;
+  }
+  &:nth-child(3) {
+    bottom: 0;
+    right: 0;
+    width: 3rpx;
+    height: 8rpx;
+    border-radius: 0 0 2rpx 0;
+  }
+  &:nth-child(4) {
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 3rpx;
+  }
+}
+
+// 版本角标
+.track-badge {
+  position: absolute;
+  bottom: -4rpx;
+  right: -4rpx;
+  font-size: 18rpx;
+  color: #fff;
+  background: linear-gradient(135deg, $dream-purple, $dream-pink);
+  padding: 2rpx 8rpx;
+  border-radius: 12rpx;
+  font-weight: $font-medium;
+  box-shadow: 0 2rpx 8rpx rgba($dream-purple, 0.4);
 }
 
 .play-btn-wrapper {
@@ -1697,20 +2253,6 @@ $dream-gold: #FFD700;
   }
 }
 
-// 切换版本按钮
-.switch-btn {
-  position: relative;
-
-  .track-indicator {
-    position: absolute;
-    bottom: -4rpx;
-    left: 50%;
-    transform: translateX(-50%);
-    font-size: 18rpx;
-    color: rgba(255, 255, 255, 0.7);
-    white-space: nowrap;
-  }
-}
 
 // 版本切换提示
 .track-hint {

@@ -113,8 +113,8 @@ class TimeLimitManager {
     const dailyRemaining = Math.max(0, settings.daily_limit_minutes - totalMinutes)
 
     return {
-      sessionRemaining: Math.round(sessionRemaining),
-      dailyRemaining: Math.round(dailyRemaining),
+      sessionRemaining, // 返回精确的分钟数（含小数）
+      dailyRemaining,
       sessionProgress: Math.min(100, (sessionMinutes / settings.session_limit_minutes) * 100),
       dailyProgress: Math.min(100, (totalMinutes / settings.daily_limit_minutes) * 100)
     }

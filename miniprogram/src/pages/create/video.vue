@@ -262,9 +262,10 @@
               v-for="template in sceneTemplates"
               :key="template.id"
               class="template-card"
-              :class="{ active: selectedTemplate === template.id }"
+              :class="{ active: selectedTemplate === template.id, recommended: template.recommended }"
               @tap="handleTemplateSelect(template.id)"
             >
+              <view v-if="template.recommended" class="recommend-badge">推荐</view>
               <text class="template-icon">{{ template.icon }}</text>
               <text class="template-name">{{ template.name }}</text>
               <text class="template-desc">{{ template.description }}</text>
@@ -490,9 +491,10 @@
               v-for="template in sceneTemplates"
               :key="template.id"
               class="template-card"
-              :class="{ active: selectedTemplate === template.id }"
+              :class="{ active: selectedTemplate === template.id, recommended: template.recommended }"
               @tap="handleTemplateSelect(template.id)"
             >
+              <view v-if="template.recommended" class="recommend-badge">推荐</view>
               <text class="template-icon">{{ template.icon }}</text>
               <text class="template-name">{{ template.name }}</text>
               <text class="template-desc">{{ template.description }}</text>
@@ -514,7 +516,7 @@
               v-for="ratio in aspectRatioOptions"
               :key="ratio.value"
               class="aspect-ratio-item"
-              :class="{ active: selectedAspectRatio === ratio.value }"
+              :class="{ active: selectedAspectRatio === ratio.value, recommended: ratio.recommended }"
               @tap="selectedAspectRatio = ratio.value"
             >
               <view class="ratio-preview" :style="{ aspectRatio: ratio.value.replace(':', '/') }"></view>
@@ -679,7 +681,7 @@ const referencePageIndexes = ref<number[]>([])
 const maxReferenceCount = 2
 
 // 第三步：配置选项
-const selectedTemplate = ref<SceneTemplateId | null>(null)
+const selectedTemplate = ref<SceneTemplateId | null>('action_scene')
 const showAdvanced = ref(false)
 const autoEnhancePrompt = ref(true)
 const selectedNegativePresets = ref<NegativePresetId[]>(['realistic', 'blur', 'style_change'])
@@ -725,10 +727,11 @@ const sceneTemplates = [
     name: '动作场景',
     icon: '🏃',
     description: '丰富动作，高潮情节',
+    recommended: true,
     preset: {
-      duration: 8,
+      duration: 5,
       resolution: '720P',
-      motion_mode: 'dynamic'
+      motion_mode: 'normal'
     }
   },
   {
@@ -757,10 +760,10 @@ const negativePresetOptions = [
 
 // 宽高比选项 (Veo 3.1 主要支持 16:9 和 9:16)
 const aspectRatioOptions = [
-  { value: '16:9', label: '横屏 16:9', desc: '视频、电影', icon: '📺', recommended: true },
-  { value: '9:16', label: '竖屏 9:16', desc: '手机、短视频', icon: '📱' }
+  { value: '16:9', label: '横屏 16:9', desc: '视频、电影', icon: '📺' },
+  { value: '9:16', label: '竖屏 9:16', desc: '手机、短视频', icon: '📱', recommended: true }
 ]
-const selectedAspectRatio = ref('16:9')
+const selectedAspectRatio = ref('9:16')
 
 // 分辨率选项
 const resolutionOptions = [
@@ -2149,9 +2152,26 @@ onMounted(() => {
     box-shadow: $shadow-colored-video;
   }
 
+  &.recommended {
+    border-color: rgba($video-primary, 0.3);
+  }
+
   &:active {
     transform: scale(0.96);
   }
+}
+
+.recommend-badge {
+  position: absolute;
+  top: -8rpx;
+  right: -8rpx;
+  background: linear-gradient(135deg, #FF6B6B, #FF8E53);
+  color: white;
+  font-size: 18rpx;
+  padding: 4rpx 10rpx;
+  border-radius: 12rpx;
+  font-weight: 600;
+  box-shadow: 0 2rpx 8rpx rgba(255, 107, 107, 0.4);
 }
 
 .template-icon {

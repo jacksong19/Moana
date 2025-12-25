@@ -20,7 +20,8 @@
         <view class="balloon-shine"></view>
         <view class="balloon-time">
           <text class="time-num">{{ remainingMinutes }}</text>
-          <text class="time-unit">分钟</text>
+          <text class="time-sep">:</text>
+          <text class="time-num time-sec">{{ String(remainingSeconds).padStart(2, '0') }}</text>
         </view>
       </view>
       <view class="balloon-string"></view>
@@ -279,6 +280,7 @@ const currentContent = ref<PictureBook | null>(null)
 const allContentList = ref<PictureBook[]>([])
 const currentFilter = ref<'all' | 'picture_book' | 'nursery_rhyme' | 'video'>('all')
 const remainingMinutes = ref(20)
+const remainingSeconds = ref(0)
 
 // 筛选后的内容列表
 const filteredContentList = computed(() => {
@@ -452,7 +454,10 @@ function checkAnswer(opt: number) {
 
 function checkTime() {
   const info = timeLimitManager.getRemainingInfo()
-  remainingMinutes.value = info.sessionRemaining
+  // 计算精确的分钟和秒数
+  const totalSeconds = info.sessionRemaining * 60
+  remainingMinutes.value = Math.floor(totalSeconds / 60)
+  remainingSeconds.value = Math.floor(totalSeconds % 60)
 
   const result = timeLimitManager.checkLimits()
 
@@ -521,12 +526,13 @@ onLoad((options) => {
     })
   }
 
-  timeLimitManager.startSession()
+  // 使用 ensureSession 避免重复初始化，保持计时连续性
+  timeLimitManager.ensureSession()
 })
 
 onMounted(() => {
   loadContent()
-  checkTimer = setInterval(checkTime, 30000)
+  checkTimer = setInterval(checkTime, 1000) // 每秒更新
   checkTime()
 })
 
@@ -785,22 +791,35 @@ $soft-shadow: 0 8rpx 24rpx rgba(0, 0, 0, 0.1);
   left: 50%;
   transform: translate(-50%, -50%);
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
+  gap: 2rpx;
 }
 
 .time-num {
-  font-size: 48rpx;
+  font-size: 36rpx;
   font-weight: 800;
   color: white;
   text-shadow: 0 2rpx 4rpx rgba(0, 0, 0, 0.2);
   line-height: 1;
+  min-width: 44rpx;
+  text-align: center;
 }
 
-.time-unit {
-  font-size: 20rpx;
-  color: rgba(255, 255, 255, 0.9);
-  font-weight: 600;
+.time-sec {
+  font-size: 32rpx;
+}
+
+.time-sep {
+  font-size: 32rpx;
+  font-weight: 800;
+  color: white;
+  animation: blink 1s ease-in-out infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
 }
 
 .balloon-string {

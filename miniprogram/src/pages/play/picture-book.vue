@@ -634,7 +634,7 @@ async function handleComplete() {
     try { await completePlay(playHistoryId.value) } catch (e) { /* ignore */ }
   }
 
-  timeLimitManager.endSession()
+  // 不在这里结束会话，让儿童模式页面统一管理
 
   // 延长等待时间，给用户分享海报的机会
   // 保存定时器引用，以便在页面销毁或用户主动关闭时清除
@@ -712,7 +712,7 @@ function handleWarningConfirm() {
   showTimeWarning.value = false
 
   if (warningType.value !== 'rest') {
-    timeLimitManager.endSession()
+    // 不在这里结束会话，让儿童模式页面统一管理
     uni.navigateBack()
   } else {
     timeLimitManager.resetReminder()
@@ -727,7 +727,7 @@ function handleClose() {
     clearTimeout(completeTimer)
     completeTimer = null
   }
-  timeLimitManager.endSession()
+  // 不在这里结束会话，让儿童模式页面统一管理
   uni.navigateBack()
 }
 

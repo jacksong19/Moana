@@ -22,6 +22,11 @@ export const useContentStore = defineStore('content', () => {
   const isGenerating = ref(false)
   const generatingProgress = ref(0) // 0-100
 
+  // 分页状态
+  const hasMoreContent = ref(true)
+  const isLoadingMore = ref(false)
+  const PAGE_SIZE = 20
+
   // 获取主题列表
   async function fetchThemes() {
     if (themes.value) return themes.value
@@ -67,19 +72,45 @@ export const useContentStore = defineStore('content', () => {
     }
   }
 
-  // 获取已生成内容列表
+  // 获取已生成内容列表（首次加载或刷新）
   async function fetchGeneratedList(refresh = false) {
     if (!refresh && generatedList.value.length > 0) {
       return generatedList.value
     }
 
     try {
-      const res = await getGeneratedList({ limit: 20 })
+      const res = await getGeneratedList({ limit: PAGE_SIZE, offset: 0 })
       generatedList.value = res.items
+      hasMoreContent.value = res.has_more || res.items.length >= PAGE_SIZE
       return res.items
     } catch (e) {
       console.error('获取内容列表失败:', e)
       throw e
+    }
+  }
+
+  // 加载更多内容（分页）
+  async function fetchMoreContent() {
+    if (isLoadingMore.value || !hasMoreContent.value) {
+      return []
+    }
+
+    isLoadingMore.value = true
+    try {
+      const offset = generatedList.value.length
+      const res = await getGeneratedList({ limit: PAGE_SIZE, offset })
+
+      if (res.items.length > 0) {
+        generatedList.value = [...generatedList.value, ...res.items]
+      }
+
+      hasMoreContent.value = res.has_more || res.items.length >= PAGE_SIZE
+      return res.items
+    } catch (e) {
+      console.error('加载更多内容失败:', e)
+      throw e
+    } finally {
+      isLoadingMore.value = false
     }
   }
 
@@ -130,9 +161,12 @@ export const useContentStore = defineStore('content', () => {
     currentContent,
     isGenerating,
     generatingProgress,
+    hasMoreContent,
+    isLoadingMore,
     fetchThemes,
     createPictureBook,
     fetchGeneratedList,
+    fetchMoreContent,
     fetchContentDetail,
     setCurrentContent,
     clearGenerating,

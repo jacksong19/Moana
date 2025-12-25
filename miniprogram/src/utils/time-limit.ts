@@ -25,6 +25,23 @@ class TimeLimitManager {
   }
 
   /**
+   * 检查会话是否已激活
+   */
+  isSessionActive(): boolean {
+    return this.sessionStart !== null
+  }
+
+  /**
+   * 确保会话已开始（如果未开始则启动，已开始则保持）
+   * 用于播放页面，避免重复调用 startSession 重置计时器
+   */
+  ensureSession() {
+    if (!this.isSessionActive()) {
+      this.startSession()
+    }
+  }
+
+  /**
    * 获取当前会话时长（分钟）
    */
   getSessionMinutes(): number {

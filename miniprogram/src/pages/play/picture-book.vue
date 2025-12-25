@@ -218,6 +218,7 @@ const instance = getCurrentInstance()
 let audioContext: UniApp.InnerAudioContext | null = null
 let autoPlayTimer: number | null = null
 let checkTimer: number | null = null
+let completeTimer: number | null = null  // 完成后自动返回的定时器
 const audioReady = ref(false)
 // 音频缓存：页码 -> 本地文件路径
 const audioCache = ref<Map<number, string>>(new Map())
@@ -636,16 +637,22 @@ async function handleComplete() {
   timeLimitManager.endSession()
 
   // 延长等待时间，给用户分享海报的机会
-  setTimeout(() => {
+  // 保存定时器引用，以便在页面销毁或用户主动关闭时清除
+  if (completeTimer) clearTimeout(completeTimer)
+  completeTimer = setTimeout(() => {
     if (showComplete.value && !generatingPoster.value) {
       uni.navigateBack()
     }
-  }, 8000)
+  }, 8000) as unknown as number
 }
 
 // 关闭完成界面
 function closeComplete() {
   if (generatingPoster.value) return
+  if (completeTimer) {
+    clearTimeout(completeTimer)
+    completeTimer = null
+  }
   uni.navigateBack()
 }
 
@@ -716,6 +723,10 @@ function handleClose() {
   isPlaying.value = false
   stopAutoPlay()
   stopCurrentAudio()
+  if (completeTimer) {
+    clearTimeout(completeTimer)
+    completeTimer = null
+  }
   timeLimitManager.endSession()
   uni.navigateBack()
 }
@@ -813,8 +824,8 @@ function initAfterLoad() {
   // 开始播放会话
   startPlaySession()
 
-  // 时间限制
-  timeLimitManager.startSession()
+  // 时间限制（使用 ensureSession 避免重置已激活的会话）
+  timeLimitManager.ensureSession()
   checkTimer = setInterval(checkTimeLimit, 30000) as unknown as number
 
   // 首次使用提示
@@ -887,6 +898,7 @@ onUnmounted(() => {
   updatePlayProgress(true)
   stopAutoPlay()
   if (checkTimer) clearInterval(checkTimer)
+  if (completeTimer) clearTimeout(completeTimer)
   audioContext?.destroy()
 })
 </script>

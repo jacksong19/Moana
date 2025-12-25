@@ -168,7 +168,7 @@
         </view>
       </view>
 
-      <view v-if="loading && contentList.length > 0" class="loading-more">
+      <view v-if="(loading || contentStore.isLoadingMore) && contentList.length > 0" class="loading-more">
         <view class="loading-dots">
           <view class="dot d1"></view>
           <view class="dot d2"></view>
@@ -732,7 +732,7 @@ async function loadData(refresh = false) {
     }
 
     await contentStore.fetchGeneratedList(refresh)
-    hasMore.value = contentStore.generatedList.length >= 20
+    hasMore.value = contentStore.hasMoreContent
 
     await fetchContentDetails()
   } catch (e) {
@@ -764,8 +764,18 @@ async function fetchContentDetails() {
   await Promise.all(detailPromises)
 }
 
-function loadMore() {
-  if (!hasMore.value || loading.value) return
+async function loadMore() {
+  if (!hasMore.value || loading.value || contentStore.isLoadingMore) return
+
+  try {
+    await contentStore.fetchMoreContent()
+    hasMore.value = contentStore.hasMoreContent
+
+    // 补充新加载内容的详情
+    await fetchContentDetails()
+  } catch (e) {
+    console.error('加载更多失败:', e)
+  }
 }
 
 function goToCreate() {

@@ -1165,7 +1165,11 @@ watch(currentFilter, () => {
 })
 
 onShow(() => {
-  loadData(true)
+  // 只在列表为空时刷新，避免每次都清空图片加载状态
+  // 用户可以通过下拉刷新来主动更新数据
+  if (contentStore.generatedList.length === 0) {
+    loadData(true)
+  }
 })
 </script>
 

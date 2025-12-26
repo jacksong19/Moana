@@ -118,11 +118,12 @@ export async function updateProgress(
 
 /**
  * 完成播放
+ * 注意：禁用错误提示，因为重复调用（如已完成的绘本）会返回错误，不需要显示给用户
  */
 export async function completePlay(playHistoryId: string): Promise<CompletePlayResponse> {
   return request.post<CompletePlayResponse>('/play/complete', {
     play_history_id: playHistoryId
-  })
+  }, { showError: false })
 }
 
 /**

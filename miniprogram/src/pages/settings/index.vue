@@ -172,7 +172,7 @@ const navHeight = ref(88)
 
 const settings = reactive({
   daily_limit_minutes: 60,
-  session_limit_minutes: 20,
+  session_limit_minutes: 30,
   rest_reminder_enabled: true
 })
 

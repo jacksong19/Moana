@@ -31,7 +31,7 @@ export const useChildStore = defineStore('child', () => {
   const settings = ref<ChildSettings>({
     child_id: '',
     daily_limit_minutes: 60,
-    session_limit_minutes: 20,
+    session_limit_minutes: 30,
     rest_reminder_enabled: true
   })
   const todayDuration = ref(0)
@@ -123,7 +123,7 @@ export const useChildStore = defineStore('child', () => {
       settings.value = {
         child_id: currentChild.value.id,
         daily_limit_minutes: 60,
-        session_limit_minutes: 20,
+        session_limit_minutes: 30,
         rest_reminder_enabled: true
       }
     }

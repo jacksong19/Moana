@@ -2,6 +2,44 @@
   <div class="space-y-6">
     <h1 class="text-2xl font-bold text-gray-900">仪表盘</h1>
 
+    <!-- 开始创作 -->
+    <div class="bg-gradient-to-r from-purple-500 via-pink-500 to-rose-500 rounded-2xl p-6 text-white shadow-lg">
+      <h2 class="text-lg font-bold mb-4 flex items-center">
+        <span class="mr-2">✨</span>
+        开始创作
+      </h2>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <router-link
+          to="/create/picture-book"
+          class="bg-white/20 hover:bg-white/30 rounded-xl p-4 text-center transition-colors"
+        >
+          <div class="text-3xl mb-2">📖</div>
+          <p class="font-medium">绘本创作</p>
+        </router-link>
+        <router-link
+          to="/create/nursery-rhyme"
+          class="bg-white/20 hover:bg-white/30 rounded-xl p-4 text-center transition-colors"
+        >
+          <div class="text-3xl mb-2">🎵</div>
+          <p class="font-medium">儿歌创作</p>
+        </router-link>
+        <router-link
+          to="/create/video"
+          class="bg-white/20 hover:bg-white/30 rounded-xl p-4 text-center transition-colors"
+        >
+          <div class="text-3xl mb-2">🎬</div>
+          <p class="font-medium">视频创作</p>
+        </router-link>
+        <router-link
+          to="/create/smart"
+          class="bg-white/20 hover:bg-white/30 rounded-xl p-4 text-center transition-colors"
+        >
+          <div class="text-3xl mb-2">🪄</div>
+          <p class="font-medium">智能创作</p>
+        </router-link>
+      </div>
+    </div>
+
     <!-- 统计卡片 -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
       <!-- 今日学习 -->

@@ -46,10 +46,11 @@ const childStore = useChildStore()
 
 const navItems = [
   { path: '/dashboard', name: '仪表盘', icon: '📊' },
-  { path: '/children', name: '孩子管理', icon: '👶' },
+  { path: '/create', name: '创作中心', icon: '✨' },
   { path: '/library', name: '内容库', icon: '📚' },
   { path: '/favorites', name: '收藏', icon: '❤️' },
   { path: '/report', name: '学习报告', icon: '📈' },
+  { path: '/children', name: '孩子管理', icon: '👶' },
   { path: '/settings', name: '设置', icon: '⚙️' },
 ]
 

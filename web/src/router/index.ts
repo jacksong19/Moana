@@ -66,6 +66,37 @@ const router = createRouter({
       name: 'Settings',
       component: () => import('@/views/Settings.vue'),
       meta: { requiresAuth: true }
+    },
+    // 创作中心路由
+    {
+      path: '/create',
+      name: 'Create',
+      component: () => import('@/views/create/Index.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/create/picture-book',
+      name: 'CreatePictureBook',
+      component: () => import('@/views/create/PictureBook.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/create/nursery-rhyme',
+      name: 'CreateNurseryRhyme',
+      component: () => import('@/views/create/NurseryRhyme.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/create/video',
+      name: 'CreateVideo',
+      component: () => import('@/views/create/Video.vue'),
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/create/smart',
+      name: 'CreateSmart',
+      component: () => import('@/views/create/Smart.vue'),
+      meta: { requiresAuth: true }
     }
   ]
 })

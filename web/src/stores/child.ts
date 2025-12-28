@@ -30,6 +30,13 @@ export const useChildStore = defineStore('child', () => {
     return `${years}岁${remainMonths}个月`
   })
 
+  const currentChildAgeMonths = computed(() => {
+    if (!currentChild.value?.birth_date) return 24 // 默认 2 岁
+    const birth = new Date(currentChild.value.birth_date)
+    const now = new Date()
+    return (now.getFullYear() - birth.getFullYear()) * 12 + (now.getMonth() - birth.getMonth())
+  })
+
   async function fetchChildren() {
     try {
       children.value = await getChildren()
@@ -114,6 +121,7 @@ export const useChildStore = defineStore('child', () => {
     todayDuration,
     hasChild,
     currentChildAge,
+    currentChildAgeMonths,
     fetchChildren,
     setCurrentChild,
     fetchSettings,

@@ -165,6 +165,25 @@ export interface PictureBook {
   created_at: string
 }
 
+// 故事增强参数
+export interface StoryEnhancement {
+  narrative_pace?: string | null
+  interaction_density?: string | null
+  educational_focus?: string | null
+  language_style?: string | null
+  plot_complexity?: string | null
+  ending_style?: string | null
+}
+
+// 视觉增强参数
+export interface VisualEnhancement {
+  time_atmosphere?: string | null
+  scene_environment?: string | null
+  emotional_tone?: string | null
+  composition_style?: string | null
+  lighting_effect?: string | null
+}
+
 // 生成绘本参数
 export interface GeneratePictureBookParams {
   child_name: string
@@ -178,6 +197,9 @@ export interface GeneratePictureBookParams {
   color_palette?: ColorPalette
   creation_mode?: 'smart' | 'preset'
   custom_prompt?: string
+  // 增强参数
+  story_enhancement?: StoryEnhancement
+  visual_enhancement?: VisualEnhancement
 }
 
 // 异步响应
@@ -237,18 +259,37 @@ export interface GenerateNurseryRhymeParams {
   theme_category: string
   creation_mode?: 'preset' | 'smart'
   custom_prompt?: string
+  favorite_characters?: string[]
+  // 音乐风格
   music_mood?: string
   music_genre?: string
   tempo?: number
   energy_level?: number
+  // 人声
   vocal_type?: string
   vocal_emotion?: string
+  vocal_range?: string
+  vocal_style?: string
+  // 乐器和音效
   instruments?: string[]
+  sound_effects?: string[]
+  // 歌词
   lyric_complexity?: number
+  repetition_level?: number
+  // 结构
   song_structure?: string
-  duration_preference?: number
+  action_types?: string
+  // 语言文化
   language?: string
-  favorite_characters?: string[]
+  cultural_style?: string
+  // 个性化
+  educational_focus?: string
+  favorite_colors?: string[]
+  // Suno 进阶
+  style_weight?: number
+  creativity?: number
+  negative_tags?: string
+  duration_preference?: number
 }
 
 // 儿歌任务状态

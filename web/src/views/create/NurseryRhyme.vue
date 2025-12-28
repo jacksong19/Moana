@@ -125,10 +125,73 @@
               </div>
             </div>
           </div>
+
+          <!-- 高级设置 -->
+          <NurseryRhymeAdvanced
+            :params="advancedParams"
+            @update="handleAdvancedUpdate"
+            @update-array="handleAdvancedArrayUpdate"
+          />
         </div>
 
-        <!-- 步骤 3：生成中 -->
+        <!-- 步骤 3：确认创作 -->
         <div v-else-if="createStore.currentStep === 3">
+          <h2 class="text-xl font-bold text-gray-800 mb-6">确认创作参数</h2>
+
+          <div class="space-y-4">
+            <!-- 基础信息 -->
+            <div class="bg-gradient-to-r from-pink-50 to-rose-50 rounded-2xl p-4">
+              <h3 class="font-medium text-gray-800 mb-3">🎵 基础信息</h3>
+              <div class="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span class="text-gray-500">主题：</span>
+                  <span class="text-gray-800">{{ selectedThemeName }}</span>
+                </div>
+                <div>
+                  <span class="text-gray-500">情绪：</span>
+                  <span class="text-gray-800">{{ selectedMoodName }}</span>
+                </div>
+                <div>
+                  <span class="text-gray-500">节奏：</span>
+                  <span class="text-gray-800">{{ createStore.nurseryRhymeParams.tempo }} BPM</span>
+                </div>
+                <div>
+                  <span class="text-gray-500">时长：</span>
+                  <span class="text-gray-800">{{ createStore.nurseryRhymeParams.durationPreference }}秒</span>
+                </div>
+                <div>
+                  <span class="text-gray-500">人声：</span>
+                  <span class="text-gray-800">{{ selectedVocalName }}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- 高级设置摘要 -->
+            <div v-if="advancedSettingsTags.length > 0" class="bg-gradient-to-r from-purple-50 to-pink-50 rounded-2xl p-4">
+              <h3 class="font-medium text-gray-800 mb-3">⚙️ 高级设置</h3>
+              <div class="flex flex-wrap gap-2">
+                <span
+                  v-for="tag in advancedSettingsTags"
+                  :key="tag"
+                  class="px-3 py-1 bg-white/80 rounded-full text-sm text-gray-700"
+                >
+                  {{ tag }}
+                </span>
+              </div>
+            </div>
+
+            <!-- 生成提示 -->
+            <div class="bg-blue-50 rounded-2xl p-4">
+              <p class="text-sm text-blue-700">
+                <span class="font-medium">提示：</span>
+                AI 将根据以上参数为您生成专属儿歌，生成过程约需 1-3 分钟，请耐心等待。
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- 步骤 4：生成中 -->
+        <div v-else-if="createStore.currentStep === 4">
           <div class="text-center py-12">
             <div class="text-6xl mb-4 animate-bounce">🎶</div>
             <p class="text-gray-500">AI 正在创作专属儿歌...</p>
@@ -138,7 +201,7 @@
         <!-- 底部按钮 -->
         <div class="flex justify-between mt-8 pt-6 border-t border-gray-100">
           <button
-            v-if="createStore.currentStep > 1 && createStore.currentStep < 3"
+            v-if="createStore.currentStep > 1 && createStore.currentStep < 4"
             class="px-6 py-3 text-gray-600 hover:text-gray-800"
             @click="prevStep"
           >
@@ -156,6 +219,13 @@
           </button>
           <button
             v-else-if="createStore.currentStep === 2"
+            class="px-8 py-3 bg-gradient-to-r from-pink-500 to-rose-500 text-white rounded-2xl font-medium shadow-lg hover:shadow-xl transition-all"
+            @click="nextStep"
+          >
+            下一步 →
+          </button>
+          <button
+            v-else-if="createStore.currentStep === 3"
             class="px-8 py-3 bg-gradient-to-r from-pink-500 to-rose-500 text-white rounded-2xl font-medium shadow-lg hover:shadow-xl transition-all"
             @click="startGenerate"
           >
@@ -188,12 +258,13 @@ import { useCreateStore } from '@/stores/create'
 import StepIndicator from '@/components/create/StepIndicator.vue'
 import ThemeSelector from '@/components/create/ThemeSelector.vue'
 import GeneratingModal from '@/components/create/GeneratingModal.vue'
+import NurseryRhymeAdvanced from '@/components/create/NurseryRhymeAdvanced.vue'
 
 const router = useRouter()
 const childStore = useChildStore()
 const createStore = useCreateStore()
 
-const steps = ['选择灵感', '音乐参数', '生成中']
+const steps = ['选择灵感', '音乐参数', '确认创作', '生成中']
 
 const vocalTypes = [
   { id: 'soft_female', name: '温柔女声', icon: '👩' },
@@ -204,9 +275,143 @@ const vocalTypes = [
   { id: 'instrumental', name: '纯音乐', icon: '🎹' }
 ]
 
+// 高级参数映射
+const advancedParams = computed(() => ({
+  musicGenre: createStore.nurseryRhymeParams.musicGenre,
+  energyLevel: createStore.nurseryRhymeParams.energyLevel,
+  vocalRange: createStore.nurseryRhymeParams.vocalRange,
+  vocalEmotion: createStore.nurseryRhymeParams.vocalEmotion,
+  vocalStyle: createStore.nurseryRhymeParams.vocalStyle,
+  instruments: createStore.nurseryRhymeParams.instruments,
+  lyricComplexity: createStore.nurseryRhymeParams.lyricComplexity,
+  repetitionLevel: createStore.nurseryRhymeParams.repetitionLevel,
+  songStructure: createStore.nurseryRhymeParams.songStructure,
+  actionTypes: createStore.nurseryRhymeParams.actionTypes,
+  language: createStore.nurseryRhymeParams.language,
+  culturalStyle: createStore.nurseryRhymeParams.culturalStyle,
+  styleWeight: createStore.nurseryRhymeParams.styleWeight,
+  creativity: createStore.nurseryRhymeParams.creativity
+}))
+
+// 显示名称计算
+const selectedThemeName = computed(() => {
+  if (!createStore.themes || !createStore.nurseryRhymeParams.themeCategory) return ''
+  const category = createStore.themes[createStore.nurseryRhymeParams.themeCategory]
+  const theme = category?.themes?.find(t => t.id === createStore.nurseryRhymeParams.themeTopic)
+  return theme?.name || createStore.nurseryRhymeParams.themeTopic
+})
+
+const selectedMoodName = computed(() => {
+  const mood = createStore.styleOptions?.music_moods?.find(
+    m => m.id === createStore.nurseryRhymeParams.musicMood
+  )
+  return mood?.name || createStore.nurseryRhymeParams.musicMood
+})
+
+const selectedVocalName = computed(() => {
+  const vocal = vocalTypes.find(v => v.id === createStore.nurseryRhymeParams.vocalType)
+  return vocal?.name || createStore.nurseryRhymeParams.vocalType
+})
+
+// 高级设置标签
+const advancedSettingsTags = computed(() => {
+  const tags: string[] = []
+  const params = createStore.nurseryRhymeParams
+
+  // 音乐流派
+  const genreMap: Record<string, string> = {
+    nursery_folk: '民谣童谣',
+    pop_kids: '流行童歌',
+    classical_kids: '古典童乐',
+    electronic_kids: '电子童趣',
+    jazz_kids: '爵士童韵',
+    world_music: '世界音乐'
+  }
+  if (params.musicGenre && genreMap[params.musicGenre]) {
+    tags.push(genreMap[params.musicGenre])
+  }
+
+  // 音域
+  const rangeMap: Record<string, string> = {
+    soprano: '高音',
+    mezzo: '中音',
+    alto: '低音'
+  }
+  if (params.vocalRange && rangeMap[params.vocalRange]) {
+    tags.push(rangeMap[params.vocalRange])
+  }
+
+  // 演唱技巧
+  const styleMap: Record<string, string> = {
+    clear: '清晰',
+    breathy: '轻柔',
+    vibrato: '颤音',
+    whisper: '轻声'
+  }
+  if (params.vocalStyle && styleMap[params.vocalStyle]) {
+    tags.push(styleMap[params.vocalStyle])
+  }
+
+  // 乐器
+  if (params.instruments.length > 0) {
+    tags.push(`${params.instruments.length}种乐器`)
+  }
+
+  // 歌曲结构
+  const structureMap: Record<string, string> = {
+    simple: 'A-A-A 简单重复',
+    verse_chorus: 'A-B-A-B 主副歌',
+    aaba: 'A-A-B-A 经典结构',
+    through: 'A-B-C-D 通篇发展'
+  }
+  if (params.songStructure && structureMap[params.songStructure]) {
+    tags.push(structureMap[params.songStructure])
+  }
+
+  // 动作指引
+  const actionMap: Record<string, string> = {
+    clap: '拍手',
+    dance: '跳舞',
+    finger: '手指游戏'
+  }
+  if (params.actionTypes && actionMap[params.actionTypes]) {
+    tags.push(actionMap[params.actionTypes])
+  }
+
+  // 文化风格
+  const cultureMap: Record<string, string> = {
+    chinese_folk: '中国民谣',
+    western_nursery: '西方童谣',
+    japanese_style: '日式童歌',
+    korean_style: '韩式童歌',
+    modern_fusion: '现代融合'
+  }
+  if (params.culturalStyle && cultureMap[params.culturalStyle]) {
+    tags.push(cultureMap[params.culturalStyle])
+  }
+
+  // 创意调节
+  if (params.styleWeight !== 0.5) {
+    tags.push(`风格权重${Math.round(params.styleWeight * 100)}%`)
+  }
+  if (params.creativity !== 0.5) {
+    tags.push(`创意程度${Math.round(params.creativity * 100)}%`)
+  }
+
+  return tags
+})
+
 const canNextStep = computed(() => {
   return !!createStore.nurseryRhymeParams.themeCategory && !!createStore.nurseryRhymeParams.themeTopic
 })
+
+function handleAdvancedUpdate(key: string, value: any) {
+  (createStore.nurseryRhymeParams as any)[key] = value
+}
+
+function handleAdvancedArrayUpdate(key: 'instruments', value: string[]) {
+  createStore.nurseryRhymeParams[key] = value
+}
 
 function prevStep() {
   if (createStore.currentStep > 1) {
@@ -219,7 +424,7 @@ function nextStep() {
 }
 
 async function startGenerate() {
-  createStore.currentStep = 3
+  createStore.currentStep = 4
   try {
     await createStore.generateNurseryRhyme()
   } catch (e) {

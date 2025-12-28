@@ -43,7 +43,24 @@ export const useCreateStore = defineStore('create', () => {
       accessory: 'blue overalls'
     } as ProtagonistConfig,
     colorPalette: 'pastel' as string,
-    voiceId: 'Cherry'
+    voiceId: 'Cherry',
+    // 故事增强参数
+    storyEnhancement: {
+      narrative_pace: null as string | null,
+      interaction_density: null as string | null,
+      educational_focus: null as string | null,
+      language_style: null as string | null,
+      plot_complexity: null as string | null,
+      ending_style: null as string | null
+    },
+    // 视觉增强参数
+    visualEnhancement: {
+      time_atmosphere: null as string | null,
+      scene_environment: null as string | null,
+      emotional_tone: null as string | null,
+      composition_style: null as string | null,
+      lighting_effect: null as string | null
+    }
   })
 
   // ========== 儿歌参数 ==========
@@ -51,26 +68,51 @@ export const useCreateStore = defineStore('create', () => {
     themeCategory: '',
     themeTopic: '',
     musicMood: 'cheerful',
-    musicGenre: '',
-    tempo: 120,
+    musicGenre: '' as string,
+    tempo: 100,
     energyLevel: 5,
     vocalType: 'soft_female',
     vocalEmotion: 'happy',
+    vocalRange: '' as string,
+    vocalStyle: '' as string,
     instruments: [] as string[],
-    lyricComplexity: 3,
+    soundEffects: [] as string[],
+    lyricComplexity: 5,
+    repetitionLevel: 6,
     songStructure: 'simple',
+    actionTypes: '' as string,
+    language: 'mandarin',
+    culturalStyle: '' as string,
+    educationalFocus: '' as string,
+    favoriteColors: [] as string[],
+    styleWeight: 0.5,
+    creativity: 0.5,
+    negativeTags: '' as string,
     durationPreference: 60
   })
 
   // ========== 视频参数 ==========
   const videoParams = ref({
+    // 创作模式
+    creationMode: 'standalone' as 'standalone' | 'from_book',
+    // 基于绘本模式的参数
+    selectedBookId: null as string | null,
+    selectedPageIndex: null as number | null,
+    referencePageIndexes: [] as number[],
+    // 独立创作模式的参数
     customPrompt: '',
+    generatedFirstFrame: null as string | null,
+    // 共用参数
     aspectRatio: '16:9' as '16:9' | '9:16' | '4:3' | '3:4' | '1:1',
     resolution: '720P' as '720P' | '1080P',
     durationSeconds: 5 as 4 | 5 | 6 | 8,
     motionMode: 'normal' as 'static' | 'slow' | 'normal' | 'dynamic' | 'cinematic',
     enableAudio: true,
-    artStyle: 'pixar_3d' as string
+    artStyle: 'pixar_3d' as string,
+    // 场景模板
+    sceneTemplate: 'storybook' as string,
+    // 高级设置
+    autoEnhancePrompt: true
   })
 
   // ========== 生成状态 ==========
@@ -131,7 +173,22 @@ export const useCreateStore = defineStore('create', () => {
         artStyle: 'pixar_3d',
         protagonist: { animal: 'bunny', color: 'white', accessory: 'blue overalls' },
         colorPalette: 'pastel',
-        voiceId: 'Cherry'
+        voiceId: 'Cherry',
+        storyEnhancement: {
+          narrative_pace: null,
+          interaction_density: null,
+          educational_focus: null,
+          language_style: null,
+          plot_complexity: null,
+          ending_style: null
+        },
+        visualEnhancement: {
+          time_atmosphere: null,
+          scene_environment: null,
+          emotional_tone: null,
+          composition_style: null,
+          lighting_effect: null
+        }
       }
     } else if (type === 'nursery_rhyme') {
       nurseryRhymeParams.value = {
@@ -139,24 +196,43 @@ export const useCreateStore = defineStore('create', () => {
         themeTopic: '',
         musicMood: 'cheerful',
         musicGenre: '',
-        tempo: 120,
+        tempo: 100,
         energyLevel: 5,
         vocalType: 'soft_female',
         vocalEmotion: 'happy',
+        vocalRange: '',
+        vocalStyle: '',
         instruments: [],
-        lyricComplexity: 3,
+        soundEffects: [],
+        lyricComplexity: 5,
+        repetitionLevel: 6,
         songStructure: 'simple',
+        actionTypes: '',
+        language: 'mandarin',
+        culturalStyle: '',
+        educationalFocus: '',
+        favoriteColors: [],
+        styleWeight: 0.5,
+        creativity: 0.5,
+        negativeTags: '',
         durationPreference: 60
       }
     } else if (type === 'video') {
       videoParams.value = {
+        creationMode: 'standalone',
+        selectedBookId: null,
+        selectedPageIndex: null,
+        referencePageIndexes: [],
         customPrompt: '',
+        generatedFirstFrame: null,
         aspectRatio: '16:9',
         resolution: '720P',
         durationSeconds: 5,
         motionMode: 'normal',
         enableAudio: true,
-        artStyle: 'pixar_3d'
+        artStyle: 'pixar_3d',
+        sceneTemplate: 'storybook',
+        autoEnhancePrompt: true
       }
     }
   }
@@ -221,6 +297,14 @@ export const useCreateStore = defineStore('create', () => {
     generatingError.value = ''
 
     try {
+      // 过滤掉空值的增强参数
+      const storyEnhancement = Object.fromEntries(
+        Object.entries(params.storyEnhancement).filter(([_, v]) => v !== null)
+      )
+      const visualEnhancement = Object.fromEntries(
+        Object.entries(params.visualEnhancement).filter(([_, v]) => v !== null)
+      )
+
       const response = await generatePictureBookAsync({
         child_name: child.name,
         age_months: childStore.currentChildAgeMonths,
@@ -231,7 +315,9 @@ export const useCreateStore = defineStore('create', () => {
         art_style: params.artStyle as ArtStyle,
         protagonist: params.protagonist,
         color_palette: params.colorPalette as ColorPalette,
-        creation_mode: 'preset'
+        creation_mode: 'preset',
+        story_enhancement: Object.keys(storyEnhancement).length > 0 ? storyEnhancement : undefined,
+        visual_enhancement: Object.keys(visualEnhancement).length > 0 ? visualEnhancement : undefined
       })
 
       currentTaskId.value = response.task_id
@@ -268,15 +354,35 @@ export const useCreateStore = defineStore('create', () => {
         theme_category: params.themeCategory,
         favorite_characters: child.favorite_characters,
         creation_mode: 'preset',
+        // 音乐风格
         music_mood: params.musicMood,
-        music_genre: params.musicGenre,
+        music_genre: params.musicGenre || undefined,
         tempo: params.tempo,
         energy_level: params.energyLevel,
+        // 人声
         vocal_type: params.vocalType,
         vocal_emotion: params.vocalEmotion,
-        instruments: params.instruments,
+        vocal_range: params.vocalRange || undefined,
+        vocal_style: params.vocalStyle || undefined,
+        // 乐器和音效
+        instruments: params.instruments.length > 0 ? params.instruments : undefined,
+        sound_effects: params.soundEffects.length > 0 ? params.soundEffects : undefined,
+        // 歌词
         lyric_complexity: params.lyricComplexity,
+        repetition_level: params.repetitionLevel,
+        // 结构
         song_structure: params.songStructure,
+        action_types: params.actionTypes || undefined,
+        // 语言文化
+        language: params.language,
+        cultural_style: params.culturalStyle || undefined,
+        // 个性化
+        educational_focus: params.educationalFocus || undefined,
+        favorite_colors: params.favoriteColors.length > 0 ? params.favoriteColors : undefined,
+        // Suno 进阶
+        style_weight: params.styleWeight !== 0.5 ? params.styleWeight : undefined,
+        creativity: params.creativity !== 0.5 ? params.creativity : undefined,
+        negative_tags: params.negativeTags || undefined,
         duration_preference: params.durationPreference
       })
 

@@ -55,6 +55,231 @@
             @update:selected-color-palette="createStore.pictureBookParams.colorPalette = $event"
             @update:selected-voice="createStore.pictureBookParams.voiceId = $event"
           />
+
+          <!-- 故事风格面板 -->
+          <div class="mt-6 border border-purple-100 rounded-2xl overflow-hidden">
+            <div
+              class="flex items-center justify-between p-4 bg-gradient-to-r from-purple-50 to-pink-50 cursor-pointer"
+              @click="storyPanelExpanded = !storyPanelExpanded"
+            >
+              <div class="flex items-center">
+                <span class="text-xl mr-3">📖</span>
+                <div>
+                  <h3 class="font-medium text-gray-800">故事风格</h3>
+                  <p class="text-sm text-gray-500">{{ storyEnhancementSummary }}</p>
+                </div>
+              </div>
+              <span class="text-gray-400 transition-transform" :class="{ 'rotate-90': storyPanelExpanded }">›</span>
+            </div>
+            <div v-if="storyPanelExpanded" class="p-4 space-y-4 bg-white">
+              <!-- 叙事节奏 -->
+              <div>
+                <h4 class="text-sm font-medium text-gray-700 mb-2">叙事节奏</h4>
+                <div class="flex flex-wrap gap-2">
+                  <button
+                    v-for="opt in narrativePaceOptions"
+                    :key="opt.value"
+                    class="px-3 py-2 rounded-xl text-sm border transition-all"
+                    :class="createStore.pictureBookParams.storyEnhancement.narrative_pace === opt.value
+                      ? 'bg-purple-100 border-purple-300 text-purple-700'
+                      : 'bg-gray-50 border-gray-200 text-gray-600 hover:border-purple-200'"
+                    @click="toggleStoryOption('narrative_pace', opt.value)"
+                  >
+                    {{ opt.emoji }} {{ opt.label }}
+                  </button>
+                </div>
+              </div>
+              <!-- 互动密度 -->
+              <div>
+                <h4 class="text-sm font-medium text-gray-700 mb-2">互动密度</h4>
+                <div class="flex flex-wrap gap-2">
+                  <button
+                    v-for="opt in interactionDensityOptions"
+                    :key="opt.value"
+                    class="px-3 py-2 rounded-xl text-sm border transition-all"
+                    :class="createStore.pictureBookParams.storyEnhancement.interaction_density === opt.value
+                      ? 'bg-purple-100 border-purple-300 text-purple-700'
+                      : 'bg-gray-50 border-gray-200 text-gray-600 hover:border-purple-200'"
+                    @click="toggleStoryOption('interaction_density', opt.value)"
+                  >
+                    {{ opt.emoji }} {{ opt.label }}
+                  </button>
+                </div>
+              </div>
+              <!-- 教育侧重 -->
+              <div>
+                <h4 class="text-sm font-medium text-gray-700 mb-2">教育侧重</h4>
+                <div class="flex flex-wrap gap-2">
+                  <button
+                    v-for="opt in educationalFocusOptions"
+                    :key="opt.value"
+                    class="px-3 py-2 rounded-xl text-sm border transition-all"
+                    :class="createStore.pictureBookParams.storyEnhancement.educational_focus === opt.value
+                      ? 'bg-purple-100 border-purple-300 text-purple-700'
+                      : 'bg-gray-50 border-gray-200 text-gray-600 hover:border-purple-200'"
+                    @click="toggleStoryOption('educational_focus', opt.value)"
+                  >
+                    {{ opt.emoji }} {{ opt.label }}
+                  </button>
+                </div>
+              </div>
+              <!-- 语言风格 -->
+              <div>
+                <h4 class="text-sm font-medium text-gray-700 mb-2">语言风格</h4>
+                <div class="flex flex-wrap gap-2">
+                  <button
+                    v-for="opt in languageStyleOptions"
+                    :key="opt.value"
+                    class="px-3 py-2 rounded-xl text-sm border transition-all"
+                    :class="createStore.pictureBookParams.storyEnhancement.language_style === opt.value
+                      ? 'bg-purple-100 border-purple-300 text-purple-700'
+                      : 'bg-gray-50 border-gray-200 text-gray-600 hover:border-purple-200'"
+                    @click="toggleStoryOption('language_style', opt.value)"
+                  >
+                    {{ opt.emoji }} {{ opt.label }}
+                  </button>
+                </div>
+              </div>
+              <!-- 情节复杂度 -->
+              <div>
+                <h4 class="text-sm font-medium text-gray-700 mb-2">情节复杂度</h4>
+                <div class="flex flex-wrap gap-2">
+                  <button
+                    v-for="opt in plotComplexityOptions"
+                    :key="opt.value"
+                    class="px-3 py-2 rounded-xl text-sm border transition-all"
+                    :class="createStore.pictureBookParams.storyEnhancement.plot_complexity === opt.value
+                      ? 'bg-purple-100 border-purple-300 text-purple-700'
+                      : 'bg-gray-50 border-gray-200 text-gray-600 hover:border-purple-200'"
+                    @click="toggleStoryOption('plot_complexity', opt.value)"
+                  >
+                    {{ opt.emoji }} {{ opt.label }}
+                  </button>
+                </div>
+              </div>
+              <!-- 结局风格 -->
+              <div>
+                <h4 class="text-sm font-medium text-gray-700 mb-2">结局风格</h4>
+                <div class="flex flex-wrap gap-2">
+                  <button
+                    v-for="opt in endingStyleOptions"
+                    :key="opt.value"
+                    class="px-3 py-2 rounded-xl text-sm border transition-all"
+                    :class="createStore.pictureBookParams.storyEnhancement.ending_style === opt.value
+                      ? 'bg-purple-100 border-purple-300 text-purple-700'
+                      : 'bg-gray-50 border-gray-200 text-gray-600 hover:border-purple-200'"
+                    @click="toggleStoryOption('ending_style', opt.value)"
+                  >
+                    {{ opt.emoji }} {{ opt.label }}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 画面设置面板 -->
+          <div class="mt-4 border border-blue-100 rounded-2xl overflow-hidden">
+            <div
+              class="flex items-center justify-between p-4 bg-gradient-to-r from-blue-50 to-cyan-50 cursor-pointer"
+              @click="visualPanelExpanded = !visualPanelExpanded"
+            >
+              <div class="flex items-center">
+                <span class="text-xl mr-3">🎬</span>
+                <div>
+                  <h3 class="font-medium text-gray-800">画面设置</h3>
+                  <p class="text-sm text-gray-500">{{ visualEnhancementSummary }}</p>
+                </div>
+              </div>
+              <span class="text-gray-400 transition-transform" :class="{ 'rotate-90': visualPanelExpanded }">›</span>
+            </div>
+            <div v-if="visualPanelExpanded" class="p-4 space-y-4 bg-white">
+              <!-- 时间氛围 -->
+              <div>
+                <h4 class="text-sm font-medium text-gray-700 mb-2">时间氛围</h4>
+                <div class="flex flex-wrap gap-2">
+                  <button
+                    v-for="opt in timeAtmosphereOptions"
+                    :key="opt.value"
+                    class="px-3 py-2 rounded-xl text-sm border transition-all"
+                    :class="createStore.pictureBookParams.visualEnhancement.time_atmosphere === opt.value
+                      ? 'bg-blue-100 border-blue-300 text-blue-700'
+                      : 'bg-gray-50 border-gray-200 text-gray-600 hover:border-blue-200'"
+                    @click="toggleVisualOption('time_atmosphere', opt.value)"
+                  >
+                    {{ opt.emoji }} {{ opt.label }}
+                  </button>
+                </div>
+              </div>
+              <!-- 场景环境 -->
+              <div>
+                <h4 class="text-sm font-medium text-gray-700 mb-2">场景环境</h4>
+                <div class="flex flex-wrap gap-2">
+                  <button
+                    v-for="opt in sceneEnvironmentOptions"
+                    :key="opt.value"
+                    class="px-3 py-2 rounded-xl text-sm border transition-all"
+                    :class="createStore.pictureBookParams.visualEnhancement.scene_environment === opt.value
+                      ? 'bg-blue-100 border-blue-300 text-blue-700'
+                      : 'bg-gray-50 border-gray-200 text-gray-600 hover:border-blue-200'"
+                    @click="toggleVisualOption('scene_environment', opt.value)"
+                  >
+                    {{ opt.emoji }} {{ opt.label }}
+                  </button>
+                </div>
+              </div>
+              <!-- 情感基调 -->
+              <div>
+                <h4 class="text-sm font-medium text-gray-700 mb-2">情感基调</h4>
+                <div class="flex flex-wrap gap-2">
+                  <button
+                    v-for="opt in emotionalToneOptions"
+                    :key="opt.value"
+                    class="px-3 py-2 rounded-xl text-sm border transition-all"
+                    :class="createStore.pictureBookParams.visualEnhancement.emotional_tone === opt.value
+                      ? 'bg-blue-100 border-blue-300 text-blue-700'
+                      : 'bg-gray-50 border-gray-200 text-gray-600 hover:border-blue-200'"
+                    @click="toggleVisualOption('emotional_tone', opt.value)"
+                  >
+                    {{ opt.emoji }} {{ opt.label }}
+                  </button>
+                </div>
+              </div>
+              <!-- 画面构图 -->
+              <div>
+                <h4 class="text-sm font-medium text-gray-700 mb-2">画面构图</h4>
+                <div class="flex flex-wrap gap-2">
+                  <button
+                    v-for="opt in compositionStyleOptions"
+                    :key="opt.value"
+                    class="px-3 py-2 rounded-xl text-sm border transition-all"
+                    :class="createStore.pictureBookParams.visualEnhancement.composition_style === opt.value
+                      ? 'bg-blue-100 border-blue-300 text-blue-700'
+                      : 'bg-gray-50 border-gray-200 text-gray-600 hover:border-blue-200'"
+                    @click="toggleVisualOption('composition_style', opt.value)"
+                  >
+                    {{ opt.emoji }} {{ opt.label }}
+                  </button>
+                </div>
+              </div>
+              <!-- 光照效果 -->
+              <div>
+                <h4 class="text-sm font-medium text-gray-700 mb-2">光照效果</h4>
+                <div class="flex flex-wrap gap-2">
+                  <button
+                    v-for="opt in lightingEffectOptions"
+                    :key="opt.value"
+                    class="px-3 py-2 rounded-xl text-sm border transition-all"
+                    :class="createStore.pictureBookParams.visualEnhancement.lighting_effect === opt.value
+                      ? 'bg-blue-100 border-blue-300 text-blue-700'
+                      : 'bg-gray-50 border-gray-200 text-gray-600 hover:border-blue-200'"
+                    @click="toggleVisualOption('lighting_effect', opt.value)"
+                  >
+                    {{ opt.emoji }} {{ opt.label }}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- 步骤 3：确认信息 -->
@@ -80,6 +305,40 @@
             <div class="flex justify-between items-center py-2">
               <span class="text-gray-600">配音音色</span>
               <span class="font-medium text-gray-800">{{ selectedVoiceName }}</span>
+            </div>
+          </div>
+
+          <!-- 故事风格确认 -->
+          <div v-if="hasStoryEnhancement" class="mt-4 bg-purple-50 rounded-2xl p-4">
+            <div class="flex items-center mb-3">
+              <span class="text-lg mr-2">📖</span>
+              <span class="font-medium text-gray-800">故事风格</span>
+            </div>
+            <div class="flex flex-wrap gap-2">
+              <span
+                v-for="tag in storyEnhancementTags"
+                :key="tag"
+                class="px-3 py-1 bg-white rounded-full text-sm text-purple-700 border border-purple-200"
+              >
+                {{ tag }}
+              </span>
+            </div>
+          </div>
+
+          <!-- 画面设置确认 -->
+          <div v-if="hasVisualEnhancement" class="mt-4 bg-blue-50 rounded-2xl p-4">
+            <div class="flex items-center mb-3">
+              <span class="text-lg mr-2">🎬</span>
+              <span class="font-medium text-gray-800">画面设置</span>
+            </div>
+            <div class="flex flex-wrap gap-2">
+              <span
+                v-for="tag in visualEnhancementTags"
+                :key="tag"
+                class="px-3 py-1 bg-white rounded-full text-sm text-blue-700 border border-blue-200"
+              >
+                {{ tag }}
+              </span>
             </div>
           </div>
         </div>
@@ -138,7 +397,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useChildStore } from '@/stores/child'
 import { useCreateStore } from '@/stores/create'
@@ -152,6 +411,88 @@ const childStore = useChildStore()
 const createStore = useCreateStore()
 
 const steps = ['选择主题', '风格设置', '确认信息', '生成中']
+
+// 面板展开状态
+const storyPanelExpanded = ref(false)
+const visualPanelExpanded = ref(false)
+
+// 故事增强选项
+const narrativePaceOptions = [
+  { value: 'relaxed', label: '轻松舒缓', emoji: '😌' },
+  { value: 'lively', label: '紧凑活泼', emoji: '🎵' },
+  { value: 'progressive', label: '循序渐进', emoji: '📖' }
+]
+
+const interactionDensityOptions = [
+  { value: 'minimal', label: '少互动', emoji: '📕' },
+  { value: 'moderate', label: '适中', emoji: '📗' },
+  { value: 'intensive', label: '多互动', emoji: '📘' }
+]
+
+const educationalFocusOptions = [
+  { value: 'cognitive', label: '认知学习', emoji: '🧠' },
+  { value: 'behavioral', label: '行为引导', emoji: '🌟' },
+  { value: 'emotional', label: '情感培养', emoji: '💕' },
+  { value: 'imaginative', label: '想象激发', emoji: '🦋' }
+]
+
+const languageStyleOptions = [
+  { value: 'simple', label: '简洁直白', emoji: '💬' },
+  { value: 'rhythmic', label: '韵律押韵', emoji: '🎶' },
+  { value: 'onomatopoeia', label: '拟声丰富', emoji: '🔔' },
+  { value: 'repetitive', label: '重复强化', emoji: '🔄' }
+]
+
+const plotComplexityOptions = [
+  { value: 'linear', label: '简单线性', emoji: '➡️' },
+  { value: 'twist', label: '有小波折', emoji: '🌊' },
+  { value: 'ensemble', label: '多角色', emoji: '👥' }
+]
+
+const endingStyleOptions = [
+  { value: 'warm', label: '温馨收尾', emoji: '🤗' },
+  { value: 'open', label: '开放想象', emoji: '✨' },
+  { value: 'summary', label: '总结回顾', emoji: '📝' }
+]
+
+// 视觉增强选项
+const timeAtmosphereOptions = [
+  { value: 'morning', label: '清晨阳光', emoji: '🌅' },
+  { value: 'afternoon', label: '午后温暖', emoji: '☀️' },
+  { value: 'sunset', label: '傍晚金色', emoji: '🌇' },
+  { value: 'night', label: '夜晚星空', emoji: '🌙' },
+  { value: 'dreamy', label: '梦幻魔法', emoji: '✨' }
+]
+
+const sceneEnvironmentOptions = [
+  { value: 'indoor', label: '温馨室内', emoji: '🏠' },
+  { value: 'garden', label: '花园户外', emoji: '🌷' },
+  { value: 'forest', label: '森林探险', emoji: '🌲' },
+  { value: 'beach', label: '海边沙滩', emoji: '🏖️' },
+  { value: 'clouds', label: '云端梦境', emoji: '☁️' }
+]
+
+const emotionalToneOptions = [
+  { value: 'cheerful', label: '欢乐活泼', emoji: '😄' },
+  { value: 'cozy', label: '温馨甜蜜', emoji: '🥰' },
+  { value: 'playful', label: '轻松幽默', emoji: '😜' },
+  { value: 'peaceful', label: '安静祥和', emoji: '😊' },
+  { value: 'curious', label: '神秘好奇', emoji: '🤔' }
+]
+
+const compositionStyleOptions = [
+  { value: 'close_up', label: '角色特写', emoji: '👤' },
+  { value: 'panorama', label: '全景场景', emoji: '🏞️' },
+  { value: 'interaction', label: '互动场景', emoji: '🤝' },
+  { value: 'narrative', label: '故事叙事', emoji: '📽️' }
+]
+
+const lightingEffectOptions = [
+  { value: 'soft_natural', label: '柔和自然', emoji: '🌤️' },
+  { value: 'warm_sunlight', label: '温暖阳光', emoji: '🌞' },
+  { value: 'dreamy_glow', label: '梦幻光晕', emoji: '💫' },
+  { value: 'cozy_lamp', label: '夜灯温馨', emoji: '🪔' }
+]
 
 // 计算属性
 const canNextStep = computed(() => {
@@ -189,6 +530,71 @@ const selectedVoiceName = computed(() => {
   return voice?.name || ''
 })
 
+// 故事增强相关
+const storyEnhancementSummary = computed(() => {
+  const se = createStore.pictureBookParams.storyEnhancement
+  const count = Object.values(se).filter(v => v !== null).length
+  return count === 0 ? '可选，由 AI 智能推断' : `已选 ${count} 项`
+})
+
+const hasStoryEnhancement = computed(() => {
+  const se = createStore.pictureBookParams.storyEnhancement
+  return Object.values(se).some(v => v !== null)
+})
+
+const storyEnhancementTags = computed(() => {
+  const se = createStore.pictureBookParams.storyEnhancement
+  const tags: string[] = []
+  const allOptions = {
+    narrative_pace: narrativePaceOptions,
+    interaction_density: interactionDensityOptions,
+    educational_focus: educationalFocusOptions,
+    language_style: languageStyleOptions,
+    plot_complexity: plotComplexityOptions,
+    ending_style: endingStyleOptions
+  }
+  for (const [key, value] of Object.entries(se)) {
+    if (value) {
+      const opts = allOptions[key as keyof typeof allOptions]
+      const opt = opts?.find(o => o.value === value)
+      if (opt) tags.push(`${opt.emoji} ${opt.label}`)
+    }
+  }
+  return tags
+})
+
+// 视觉增强相关
+const visualEnhancementSummary = computed(() => {
+  const ve = createStore.pictureBookParams.visualEnhancement
+  const count = Object.values(ve).filter(v => v !== null).length
+  return count === 0 ? '可选，由 AI 智能推断' : `已选 ${count} 项`
+})
+
+const hasVisualEnhancement = computed(() => {
+  const ve = createStore.pictureBookParams.visualEnhancement
+  return Object.values(ve).some(v => v !== null)
+})
+
+const visualEnhancementTags = computed(() => {
+  const ve = createStore.pictureBookParams.visualEnhancement
+  const tags: string[] = []
+  const allOptions = {
+    time_atmosphere: timeAtmosphereOptions,
+    scene_environment: sceneEnvironmentOptions,
+    emotional_tone: emotionalToneOptions,
+    composition_style: compositionStyleOptions,
+    lighting_effect: lightingEffectOptions
+  }
+  for (const [key, value] of Object.entries(ve)) {
+    if (value) {
+      const opts = allOptions[key as keyof typeof allOptions]
+      const opt = opts?.find(o => o.value === value)
+      if (opt) tags.push(`${opt.emoji} ${opt.label}`)
+    }
+  }
+  return tags
+})
+
 // 方法
 function handleThemeSelect() {
   // 主题选择后可以自动进入下一步
@@ -202,6 +608,24 @@ function updateProtagonist(animal: string) {
       color: protagonist.default_color,
       accessory: protagonist.default_accessory
     }
+  }
+}
+
+function toggleStoryOption(key: keyof typeof createStore.pictureBookParams.storyEnhancement, value: string) {
+  const se = createStore.pictureBookParams.storyEnhancement
+  if (se[key] === value) {
+    se[key] = null
+  } else {
+    se[key] = value
+  }
+}
+
+function toggleVisualOption(key: keyof typeof createStore.pictureBookParams.visualEnhancement, value: string) {
+  const ve = createStore.pictureBookParams.visualEnhancement
+  if (ve[key] === value) {
+    ve[key] = null
+  } else {
+    ve[key] = value
   }
 }
 
